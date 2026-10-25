@@ -1,4 +1,7 @@
 import {
+  AddUserBody,
+  AllowedUser,
+  AllowedUserList,
   ApiError,
   ChatPart,
   type ChatRequest,
@@ -10,6 +13,7 @@ import {
   ImportCreated,
   ImportProposal,
   LinkPreview,
+  Me,
   Note,
   NoteAnalyze,
   NoteCreate,
@@ -150,6 +154,13 @@ async function chat(
 
 export const api = {
   chat,
+  me: () => request('GET', '/me', Me),
+  users: () => request('GET', '/users', AllowedUserList),
+  addUser: (input: AddUserBody) => request('POST', '/users', AllowedUser, input),
+  setUserAdmin: (email: string, isAdmin: boolean) =>
+    request('PATCH', `/users/${encodeURIComponent(email)}`, AllowedUser, { isAdmin }),
+  removeUser: (email: string) =>
+    request('DELETE', `/users/${encodeURIComponent(email)}`, NoContent),
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),

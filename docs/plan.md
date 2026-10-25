@@ -26,7 +26,7 @@ Decisions taken with the user:
 
 | Topic | Decision |
 |---|---|
-| Auth | Google only. API allowlist `ALLOWED_EMAILS`; others get `403`. Local dev/E2E: one seeded password user (Google stays off locally). |
+| Auth | Google only. Allow list in the `allowed_users` table, managed by admins in the app; `ALLOWED_EMAILS` only seeds the first admins. Others get `403`. Local dev/E2E: one seeded password user (Google stays off locally). |
 | Voice | Browser records → API transcribes with Groq Whisper (via the AI port) → text goes to Claude. Audio kept for replay. |
 | Models | Classification and import: `claude-haiku-5-5`. Chat: `claude-sonnet-5-5`. Both set by env. |
 | New taxonomy from Claude | Allowed, shown with a "new" badge, created only when the note is submitted. |
@@ -137,6 +137,7 @@ erDiagram
   notes ||--o{ note_tags : ""
   tags ||--o{ note_tags : ""
   notes ||--o| note_audio : ""
+  auth_users ||--o{ allowed_users : "added_by"
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
   categories { uuid id PK uuid user_id FK text name timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
@@ -144,6 +145,7 @@ erDiagram
   note_categories { uuid note_id PK uuid category_id PK }
   note_tags { uuid note_id PK uuid tag_id PK }
   note_audio { uuid note_id PK text mime bytea data }
+  allowed_users { text email PK "lowercase" boolean is_admin uuid added_by FK "auth.users, nullable" timestamptz created_at }
 ```
 
 - Enums: `note_status (draft, todo, in_progress, done)`, `importance (important, not_important)`,
@@ -157,9 +159,11 @@ erDiagram
 - `notes.unread_links text[] not null default '{}'`: links in the body that Claude could not read.
   Set on submit and import confirm. A Re-analyze that reads every link clears it when the note is
   saved. Added by the link-previews ticket.
+- `allowed_users`: who may sign in, keyed by lowercased email (not by user id, so a removed user who
+  is re-added gets their notes back). Seeded from `ALLOWED_EMAILS`; RLS on, no policies.
 - `note_audio.data`: at most 5 MB (enforced in the API). See ADR 0003.
 - Migrations (one per ticket, via `pnpm db:new`): settings (sign-in ticket), taxonomy, notes
-  (+ link tables), audio, `unread_links` (link previews).
+  (+ link tables), audio, `unread_links` (link previews), `allowed_users`.
 
 ## Row Level Security
 
@@ -171,25 +175,36 @@ only through the API.
 Supabase Auth, **Google only** in the hosted project. The web uses `supabase-js` for auth only and
 sends `Authorization: Bearer <access token>`. The API verifies the token against the project's
 JWKS (`jose`, issuer `${SUPABASE_URL}/auth/v1`, audience `authenticated`), then requires the
-token's email to be in `ALLOWED_EMAILS` (comma list, case-insensitive): otherwise
+token's email to be in the `allowed_users` table: otherwise
 `403 {error:'not_allowed'}`, which the web shows as a "no access" screen with sign out.
+`ALLOWED_EMAILS` (comma list, case-insensitive) is the **bootstrap admin list**: on startup each
+listed email is inserted with `is_admin = true` if missing; nothing is ever deleted or demoted.
+An admin manages the list from the Users screen (`/users` routes) with no redeploy. Admin adds only
+those routes: notes, taxonomy and settings stay filtered by the caller's own `user_id`. The Google
+consent screen must be published ("In production") so any Google account can reach the sign-in;
+see `docs/adding-users.md`.
 `requireUser` registers on every route except `/health`; `currentUser(req)` reads the caller.
 
 Locally Google stays off (`supabase/config.toml`); `supabase/seed.sql` seeds one confirmed
 password user. `DevSignIn` (rendered only when `import.meta.env.DEV`) signs in as that user; E2E
-uses the same user. The seed email is in the local `ALLOWED_EMAILS` default.
+uses the same user. The seed email is in the local `ALLOWED_EMAILS` default, so it is a bootstrap admin.
 
 Env (append to `.env.example`): `SUPABASE_URL`, `ALLOWED_EMAILS`, `VITE_SUPABASE_URL`,
 `VITE_SUPABASE_ANON_KEY` (local-stack defaults).
 
 ## API contract
 
-All routes except `/health` require a valid JWT and the allowlist. Every query filters by the
+All routes except `/health` require a valid JWT and an `allowed_users` row. Every query filters by the
 caller's `user_id`; another user's id behaves as not found.
 
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
 | GET | `/health` | `?deep=1` | existing |
+| GET | `/me` | — | `{email, isAdmin}` |
+| GET | `/users` | — | admin only (`403 not_admin`): `[{email, isAdmin, createdAt}]` |
+| POST | `/users` | `{email, isAdmin?}` | `201 {email, isAdmin, createdAt}` · `422 invalid_email` · `409 exists` |
+| PATCH | `/users/:email` | `{isAdmin}` | updated user · `404` · `422 last_admin` / `cannot_change_self` on demote |
+| DELETE | `/users/:email` | — | `204` · `404` · `422 last_admin` / `cannot_change_self` |
 | GET / PUT | `/settings` | `{noteSort}` | `Settings` (defaults when no row) |
 | GET | `/taxonomy` | — | categories with their tags, deleted ones included and flagged |
 | POST | `/categories` | `{name}` | `201 Category` · `409 name_taken` |

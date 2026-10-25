@@ -2,9 +2,11 @@ import { createContext, useContext } from 'react';
 
 export type AuthState = 'loading' | 'signedOut' | 'allowed' | 'notAllowed';
 
-export const AuthContext = createContext<{ state: AuthState; signOut: () => Promise<void> } | null>(
-  null,
-);
+export const AuthContext = createContext<{
+  state: AuthState;
+  isAdmin: boolean;
+  signOut: () => Promise<void>;
+} | null>(null);
 
 export function useAuth() {
   const ctx = useContext(AuthContext);

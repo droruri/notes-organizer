@@ -147,6 +147,29 @@
       }
     }
   },
+  "users": {
+    "menu": "Users",
+    "title": "Users",
+    "back": "Back",
+    "admin": "Admin",
+    "emailLabel": "Google email",
+    "adminCheckbox": "Admin",
+    "add": "Add",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "remove": "Remove",
+    "confirmRemove": "Remove {{email}}? Their notes are kept.",
+    "confirmYes": "Yes, remove",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "errors": {
+      "exists": "That email is already on the list.",
+      "invalid_email": "That is not a valid email.",
+      "last_admin": "The last admin cannot be removed or demoted.",
+      "cannot_change_self": "You cannot remove or demote yourself.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "import": {
     "menu": "Menu",
     "open": "Import notes",

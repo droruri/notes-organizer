@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-/** The header menu: a button that opens a short list with "Import notes". */
-export function ImportMenu({ onImport }: { onImport: () => void }) {
+/** The header menu: "Import notes", plus "Users" for an admin (`onUsers` set). */
+export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUsers?: () => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
@@ -32,6 +32,19 @@ export function ImportMenu({ onImport }: { onImport: () => void }) {
           >
             {t('import.open')}
           </button>
+          {onUsers && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onUsers();
+              }}
+              className="block w-full rounded px-3 py-2 text-start hover:bg-surface-hover"
+            >
+              {t('users.menu')}
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -4,19 +4,22 @@ import { api, ApiRequestError } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
 
-/** Why a session was refused (or not): the API decides, via 403 not_allowed on /settings. */
-async function checkAccess(): Promise<AuthState> {
+/** Why a session was refused (or not): the API decides, via 403 not_allowed on /me. */
+async function checkAccess(): Promise<{ state: AuthState; isAdmin: boolean }> {
   try {
-    await api.settings();
-    return 'allowed';
+    const me = await api.me();
+    return { state: 'allowed', isAdmin: me.isAdmin };
   } catch (err) {
-    if (err instanceof ApiRequestError && err.status === 403) return 'notAllowed';
+    if (err instanceof ApiRequestError && err.status === 403) {
+      return { state: 'notAllowed', isAdmin: false };
+    }
     throw err;
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>('loading');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,7 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!session) return setState('signedOut');
       setState('loading');
       checkAccess()
-        .then((s) => !cancelled && setState(s))
+        .then((access) => {
+          if (cancelled) return;
+          setIsAdmin(access.isAdmin);
+          setState(access.state);
+        })
         .catch(() => !cancelled && setState('signedOut'));
     };
     const { data } = supabase().auth.onAuthStateChange((_event, session) => {
@@ -41,5 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase().auth.signOut();
   };
 
-  return <AuthContext.Provider value={{ state, signOut }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ state, isAdmin, signOut }}>{children}</AuthContext.Provider>
+  );
 }

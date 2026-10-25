@@ -22,7 +22,8 @@ pnpm deploy:hosted   # idempotent; a part whose keys are missing is skipped with
 ```
 
 Needs `jq`. The keys are listed under "Hosted setup" in `.env.example`; the manual steps are in
-issue #18. After the deploy, sign in on the web URL with an address from `ALLOWED_EMAILS`.
+issue #18. After the deploy, sign in on the web URL with an address from `ALLOWED_EMAILS`, then
+add everyone else in the app: see [docs/adding-users.md](docs/adding-users.md).
 
 ## Ralph
 

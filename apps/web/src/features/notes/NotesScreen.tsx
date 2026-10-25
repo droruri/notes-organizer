@@ -55,7 +55,7 @@ const suggestionOf = (note: Note): Suggestion => ({
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
 
-export function NotesScreen() {
+export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   // A share from another app opens the add-note editor with the shared text.
@@ -291,7 +291,11 @@ export function NotesScreen() {
           onClose={() => setOutboxDismissed(true)}
         />
       )}
-      {slot && createPortal(<ImportMenu onImport={() => setImporting(true)} />, slot)}
+      {slot &&
+        createPortal(
+          <ImportMenu onImport={() => setImporting(true)} {...(onUsers ? { onUsers } : {})} />,
+          slot,
+        )}
       {importing && (
         <ImportDialog
           taxonomy={taxonomy.data}

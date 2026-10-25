@@ -253,7 +253,7 @@ need SUPABASE_ACCESS_TOKEN secret "Access token:"
 
 stage "Google OAuth client"
 open_url "https://console.cloud.google.com/apis/credentials"
-step "OAuth consent screen: External, app name, your email."
+step "OAuth consent screen: External, app name, your email. Then Publish app (In production); Testing mode needs every user added by hand."
 step "Credentials → Create OAuth client ID → Web application."
 if [[ -n "${SUPABASE_PROJECT_REF:-$(_existing SUPABASE_PROJECT_REF || true)}" ]]; then
   step "Authorized redirect URI: https://${SUPABASE_PROJECT_REF:-$(_existing SUPABASE_PROJECT_REF)}.supabase.co/auth/v1/callback"
@@ -269,7 +269,7 @@ note "By hand instead: Supabase → Authentication → Providers → Google, pas
 pause
 
 stage "Who may sign in"
-say "A comma-separated list of the Google emails allowed to use the app."
+say "Your own Google email (comma-separated list is fine). Add everyone else later in the app: docs/adding-users.md."
 need ALLOWED_EMAILS plain "Allowed emails:"
 
 stage "Anthropic"

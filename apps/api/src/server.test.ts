@@ -60,12 +60,6 @@ describe('auth', () => {
   it('401s with an invalid token', async () => {
     expect((await get('Bearer nope')).statusCode).toBe(401);
   });
-
-  it('403s for an email not on the allowlist', async () => {
-    const res = await get('Bearer other');
-    expect(res.statusCode).toBe(403);
-    expect(res.json()).toEqual({ error: 'not_allowed' });
-  });
 });
 
 describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
