@@ -48,9 +48,13 @@ export function ActionCard({
   });
 
   return (
-    <div className="rounded-lg border border-line bg-surface p-3" role="group" aria-label={title}>
+    <div
+      className="card enter-rise flex flex-col gap-2 border-s-4 border-s-marker p-3"
+      role="group"
+      aria-label={title}
+    >
       <p className="font-medium">{title}</p>
-      {state === 'done' && <p className="text-sm text-muted">{t('chat.action.done')}</p>}
+      {state === 'done' && <p className="text-sm font-medium text-ok">{t('chat.action.done')}</p>}
       {state === 'dismissed' && <p className="text-sm text-muted">{t('chat.action.dismissed')}</p>}
       {error && (
         <p role="alert" className="text-sm text-danger">
@@ -58,20 +62,21 @@ export function ActionCard({
         </p>
       )}
       {(state === 'idle' || state === 'busy') && (
-        <div className="mt-2 flex gap-2">
+        <div className="flex gap-2">
           <button
             type="button"
             disabled={state === 'busy'}
             onClick={() => void approve()}
-            className="rounded-md bg-fg px-3 py-1 text-bg disabled:opacity-50"
+            className="btn btn-primary btn-sm"
           >
+            {state === 'busy' && <span aria-hidden="true" className="spinner" />}
             {t('chat.action.approve')}
           </button>
           <button
             type="button"
             disabled={state === 'busy'}
             onClick={() => setState('dismissed')}
-            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover disabled:opacity-50"
+            className="btn btn-ghost btn-sm"
           >
             {t('chat.action.dismiss')}
           </button>

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiRequestError } from '../../lib/api';
+import { Icon } from '../../ui/Icon';
+import { Loading } from '../../ui/Loading';
 
 type UsersApi = {
   list: () => Promise<AllowedUser[]>;
@@ -68,20 +70,19 @@ export function UsersScreen({
   });
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{t('users.title')}</h2>
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-        >
+    <section className="enter-rise flex flex-col gap-5">
+      <div className="flex flex-col items-start gap-2">
+        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm -ms-3 text-muted">
+          <Icon name="back" size={16} />
           {t('users.back')}
         </button>
+        <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
+          {t('users.title')}
+        </h2>
       </div>
 
       <form
-        className="flex flex-wrap items-center gap-2"
+        className="card flex flex-wrap items-center gap-3 p-3"
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);
@@ -96,91 +97,101 @@ export function UsersScreen({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="min-w-0 flex-1 rounded-md border border-line bg-bg px-3 py-2"
+          autoComplete="off"
+          spellCheck={false}
+          className="field min-w-56 flex-1"
         />
-        <label className="flex items-center gap-1">
-          <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} />
+        <label className="flex min-h-10 items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={admin}
+            onChange={(e) => setAdmin(e.target.checked)}
+            className="check"
+          />
           {t('users.adminCheckbox')}
         </label>
-        <button
-          type="submit"
-          disabled={add.isPending}
-          className="rounded-md border border-line px-3 py-2 hover:bg-surface-hover disabled:opacity-50"
-        >
+        <button type="submit" disabled={add.isPending} className="btn btn-primary">
+          <Icon name="plus" size={16} />
           {t('users.add')}
         </button>
       </form>
 
       {error && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {error}
         </p>
       )}
-      {users.isPending && <p className="text-muted">{t('users.loading')}</p>}
+      {users.isPending && <Loading label={t('users.loading')} />}
       {users.isError && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {t('users.errors.generic')}
         </p>
       )}
 
-      <ul className="flex flex-col gap-2">
-        {users.data?.map((u) => (
-          <li key={u.email} className="flex flex-col gap-2 rounded-md border border-line p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span dir="ltr" className="break-all">
-                {u.email}
+      {users.data && users.data.length > 0 && (
+        <ul className="card flex flex-col divide-y divide-line overflow-hidden">
+          {users.data.map((u) => (
+            <li key={u.email} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <span
+                aria-hidden="true"
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft font-semibold text-accent uppercase"
+              >
+                {u.email.slice(0, 1)}
               </span>
-              {u.isAdmin && (
-                <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs">
-                  {t('users.admin')}
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <span dir="ltr" className="break-all">
+                  {u.email}
                 </span>
+                {u.isAdmin && (
+                  <span className="pill bg-accent-soft text-accent">{t('users.admin')}</span>
+                )}
+              </div>
+              {confirming === u.email ? (
+                <div className="notice notice-danger w-full flex-wrap items-center">
+                  <span className="me-auto">{t('users.confirmRemove', { email: u.email })}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      remove.mutate(u.email);
+                    }}
+                    className="btn btn-sm btn-danger"
+                  >
+                    {t('users.confirmYes')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(null)}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    {t('users.cancel')}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      toggle.mutate(u);
+                    }}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    {u.isAdmin ? t('users.removeAdmin') : t('users.makeAdmin')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(u.email)}
+                    className="btn btn-ghost btn-sm btn-danger"
+                  >
+                    {t('users.remove')}
+                  </button>
+                </div>
               )}
-            </div>
-            {confirming === u.email ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span>{t('users.confirmRemove', { email: u.email })}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    remove.mutate(u.email);
-                  }}
-                  className="rounded-md border border-line px-3 py-1 text-danger hover:bg-surface-hover"
-                >
-                  {t('users.confirmYes')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(null)}
-                  className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-                >
-                  {t('users.cancel')}
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null);
-                    toggle.mutate(u);
-                  }}
-                  className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-                >
-                  {u.isAdmin ? t('users.removeAdmin') : t('users.makeAdmin')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(u.email)}
-                  className="rounded-md border border-line px-3 py-1 text-danger hover:bg-surface-hover"
-                >
-                  {t('users.remove')}
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

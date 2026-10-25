@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
 
 /** The header menu: "Import notes", plus "Users" for an admin (`onUsers` set). */
 export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUsers?: () => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -13,26 +15,32 @@ export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUser
       setOpen(false);
       toggle.current?.focus();
     };
+    // A press anywhere outside the menu closes it.
+    const onPointer = (e: PointerEvent) => {
+      if (e.target instanceof Node && !root.current?.contains(e.target)) setOpen(false);
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+    };
   }, [open]);
   return (
-    <div className="relative">
+    <div ref={root} className="relative">
       <button
         ref={toggle}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+        aria-label={t('import.menu')}
+        className="btn btn-ghost btn-icon btn-sm"
       >
-        {t('import.menu')}
+        <Icon name="menu" size={18} />
       </button>
       {open && (
-        <div
-          role="menu"
-          className="absolute end-0 top-full z-10 mt-1 min-w-40 rounded-md border border-line bg-bg p-1 shadow-lg"
-        >
+        <div role="menu" className="menu enter-pop">
           <button
             type="button"
             role="menuitem"
@@ -40,8 +48,9 @@ export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUser
               setOpen(false);
               onImport();
             }}
-            className="block w-full rounded px-3 py-2 text-start hover:bg-surface-hover"
+            className="menu-item"
           >
+            <Icon name="upload" size={16} className="text-muted" />
             {t('import.open')}
           </button>
           {onUsers && (
@@ -52,8 +61,9 @@ export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUser
                 setOpen(false);
                 onUsers();
               }}
-              className="block w-full rounded px-3 py-2 text-start hover:bg-surface-hover"
+              className="menu-item"
             >
+              <Icon name="users" size={16} className="text-muted" />
               {t('users.menu')}
             </button>
           )}

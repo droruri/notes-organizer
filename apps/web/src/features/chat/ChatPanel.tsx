@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import { ActionCard } from './ActionCard';
 import { ChatAnswer } from './ChatAnswer';
 import { api } from '../../lib/api';
+import { Icon } from '../../ui/Icon';
+import { useEscape } from '../../ui/useEscape';
 
 type StreamChat = (input: ChatRequest, onPart: (part: ChatPart) => void) => Promise<void>;
 
@@ -39,6 +41,7 @@ export function ChatPanel({
   const [failed, setFailed] = useState(false);
   const [actions, setActions] = useState<Record<number, AgentAction[]>>({});
   const history = useRef<ChatMessage[]>([]);
+  useEscape(onClose);
 
   const send = async () => {
     const content = input.trim();
@@ -84,24 +87,37 @@ export function ChatPanel({
     <aside
       role="dialog"
       aria-label={t('chat.title')}
-      className="fixed inset-0 z-20 flex flex-col bg-bg md:inset-y-0 md:end-0 md:start-auto md:w-96 md:border-s md:border-line md:shadow-lg"
+      className="enter-drawer fixed inset-0 z-30 flex flex-col bg-surface pt-[env(safe-area-inset-top)] md:inset-y-0 md:start-auto md:end-0 md:w-[26rem] md:shadow-[0_0_0_1px_rgb(var(--shadow-rgb)/0.08),0_24px_64px_-16px_rgb(var(--shadow-rgb)/0.35)]"
     >
-      <header className="flex items-center justify-between border-b border-line px-4 py-3">
+      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
+        <span className="grid size-8 place-items-center rounded-full bg-marker text-marker-fg">
+          <Icon name="spark" size={16} />
+        </span>
         <h2 className="font-semibold">{t('chat.title')}</h2>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+          aria-label={t('chat.close')}
+          className="btn btn-ghost btn-icon btn-sm ms-auto"
         >
-          {t('chat.close')}
+          <Icon name="close" size={18} />
         </button>
       </header>
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3" aria-live="polite">
-        {messages.length === 0 && <p className="text-muted">{t('chat.empty')}</p>}
+      <div
+        className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4"
+        aria-live="polite"
+      >
+        {messages.length === 0 && (
+          <p className="m-auto max-w-64 text-center text-sm text-muted">{t('chat.empty')}</p>
+        )}
         {messages.map((m, i) => (
           <div
             key={i}
-            className={m.role === 'user' ? 'self-end rounded-lg bg-surface-hover px-3 py-2' : ''}
+            className={
+              m.role === 'user'
+                ? 'enter-rise max-w-[85%] self-end rounded-2xl rounded-ee-md bg-accent px-3.5 py-2 text-[var(--accent-fg)]'
+                : 'flex max-w-[95%] flex-col gap-2 self-start leading-relaxed'
+            }
           >
             {m.role === 'user' ? (
               <p className="whitespace-pre-wrap">{m.content}</p>
@@ -116,18 +132,19 @@ export function ChatPanel({
           </div>
         ))}
         {tool && (
-          <p role="status" className="text-sm text-muted motion-safe:animate-pulse">
+          <p role="status" className="flex items-center gap-2 text-sm text-muted">
+            <span aria-hidden="true" className="spinner" />
             {t('chat.searching')}
           </p>
         )}
         {failed && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="notice notice-danger">
             {t('chat.error')}
           </p>
         )}
       </div>
       <form
-        className="flex gap-2 border-t border-line p-3"
+        className="flex gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         onSubmit={(e) => {
           e.preventDefault();
           void send();
@@ -138,14 +155,17 @@ export function ChatPanel({
           onChange={(e) => setInput(e.target.value)}
           aria-label={t('chat.placeholder')}
           placeholder={t('chat.placeholder')}
-          className="min-w-0 flex-1 rounded-md border border-line bg-bg px-2 py-1"
+          dir="auto"
+          autoComplete="off"
+          className="field flex-1 rounded-full px-4"
         />
         <button
           type="submit"
           disabled={busy || input.trim() === ''}
-          className="rounded-md bg-fg px-4 py-2 text-bg disabled:opacity-50"
+          aria-label={t('chat.send')}
+          className="btn btn-primary btn-icon shrink-0 rounded-full"
         >
-          {t('chat.send')}
+          {busy ? <span aria-hidden="true" className="spinner" /> : <Icon name="send" size={18} />}
         </button>
       </form>
     </aside>

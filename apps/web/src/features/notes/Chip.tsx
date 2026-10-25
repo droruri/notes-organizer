@@ -21,12 +21,10 @@ export function Chip({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm ${
-        selected ? 'border-fg bg-surface-hover font-medium' : 'border-line'
-      } ${deleted ? 'text-muted line-through opacity-60' : ''}`}
+      className={`chip ${deleted ? 'text-muted line-through opacity-60' : ''}`}
     >
       {label}
-      {isNew && <span className="rounded bg-fg px-1 text-xs text-bg">{t('notes.picker.new')}</span>}
+      {isNew && <span className="marker">{t('notes.picker.new')}</span>}
     </button>
   );
 }

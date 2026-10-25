@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
 
 export function LanguageToggle() {
   const { t, i18n } = useTranslation();
@@ -8,8 +9,9 @@ export function LanguageToggle() {
       type="button"
       lang={next}
       onClick={() => void i18n.changeLanguage(next)}
-      className="rounded-md border border-line px-3 py-1 text-sm hover:bg-surface-hover"
+      className="btn btn-ghost btn-sm text-muted"
     >
+      <Icon name="globe" size={16} />
       {t('language.switchTo')}
     </button>
   );

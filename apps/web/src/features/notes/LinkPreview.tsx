@@ -18,7 +18,7 @@ export function LinkPreviews({ body }: { body: string }) {
             allow="encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
-            className="aspect-video w-full rounded-lg border border-line"
+            className="aspect-video w-full rounded-[10px] bg-surface-hover"
           />
         ) : (
           <ArticleCard key={url} url={url} />

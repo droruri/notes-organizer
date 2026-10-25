@@ -79,8 +79,11 @@ export function TaxonomyPicker({
       : tag.categoryName;
 
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-1 text-sm text-muted">{t('notes.picker.categories')}</legend>
+    <fieldset className="card flex flex-col gap-3 p-4">
+      <legend className="sr-only">{t('notes.picker.categories')}</legend>
+      <p aria-hidden="true" className="text-sm font-medium text-muted">
+        {t('notes.picker.categories')}
+      </p>
       <div className="flex flex-wrap gap-2">
         {usable.map((c) => (
           <Chip
@@ -117,19 +120,19 @@ export function TaxonomyPicker({
           />
         ))}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           aria-label={t('notes.picker.createLabel')}
           placeholder={t('notes.picker.createLabel')}
-          className="min-w-0 flex-1 rounded-md border border-line bg-bg px-2 py-1"
+          className="field min-h-9 min-w-40 flex-1 py-1 text-sm"
         />
         <select
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           aria-label={t('notes.picker.createIn')}
-          className="rounded-md border border-line bg-bg px-2 py-1"
+          className="field min-h-9 w-auto py-1 text-sm"
         >
           <option value={NEW_CATEGORY}>{t('notes.picker.newCategory')}</option>
           {usable.map((c) => (
@@ -143,11 +146,7 @@ export function TaxonomyPicker({
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          onClick={add}
-          className="rounded-md border border-line px-3 py-1 text-sm hover:bg-surface-hover"
-        >
+        <button type="button" onClick={add} className="btn btn-sm">
           {t('notes.picker.add')}
         </button>
       </div>

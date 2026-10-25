@@ -13,7 +13,7 @@ export function DevSignIn() {
       onClick={() =>
         void supabase().auth.signInWithPassword({ email: DEV_EMAIL, password: DEV_PASSWORD })
       }
-      className="rounded-md border border-line px-3 py-1 text-sm hover:bg-surface-hover"
+      className="btn btn-ghost btn-sm w-full text-muted"
     >
       {t('auth.devSignIn')}
     </button>

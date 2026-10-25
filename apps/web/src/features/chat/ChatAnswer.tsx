@@ -27,7 +27,7 @@ export function ChatAnswer({
           key={`n${i}`}
           type="button"
           onClick={() => onOpenNote(note)}
-          className="mx-1 rounded-md border border-line px-2 text-sm hover:bg-surface-hover"
+          className="mx-0.5 inline rounded-md bg-accent-soft px-1.5 py-0.5 text-sm font-medium text-accent underline-offset-2 hover:underline"
         >
           {note.body.slice(0, EXCERPT)}
         </button>,

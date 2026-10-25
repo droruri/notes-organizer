@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
 
 type Phase = 'idle' | 'recording' | 'recorded';
 type Problem = 'denied' | 'noMic' | 'unsupported' | 'failed';
@@ -91,22 +92,30 @@ export function VoiceRecorder({
     setPhase('idle');
   };
 
-  const button =
-    'rounded-md border border-line px-4 py-2 hover:bg-surface-hover disabled:opacity-50';
   return (
     <div className="flex flex-wrap items-center gap-2">
       {phase === 'idle' && (
-        <button type="button" onClick={start} className={button}>
+        <button type="button" onClick={start} className="btn btn-ghost btn-sm text-muted">
+          <Icon name="mic" size={16} />
           {t('voice.record')}
         </button>
       )}
       {phase !== 'idle' && (
-        <span role="timer" aria-label={t('voice.elapsed')} className="tabular-nums">
-          {clock(seconds)}
+        <span className="flex items-center gap-2 px-1 font-medium">
+          <span
+            aria-hidden="true"
+            className={`size-2.5 rounded-full ${
+              phase === 'recording' ? 'bg-danger motion-safe:animate-pulse' : 'bg-muted'
+            }`}
+          />
+          <span role="timer" aria-label={t('voice.elapsed')} className="tabular-nums">
+            {clock(seconds)}
+          </span>
         </span>
       )}
       {phase === 'recording' && (
-        <button type="button" onClick={stop} className={button}>
+        <button type="button" onClick={stop} className="btn btn-sm">
+          <Icon name="stop" size={14} />
           {t('voice.stop')}
         </button>
       )}
@@ -115,18 +124,29 @@ export function VoiceRecorder({
           type="button"
           onClick={() => onSend(audio)}
           disabled={pending}
-          className="rounded-md bg-fg px-4 py-2 text-bg disabled:opacity-50"
+          className="btn btn-primary btn-sm"
         >
+          {pending ? (
+            <span aria-hidden="true" className="spinner" />
+          ) : (
+            <Icon name="send" size={14} />
+          )}
           {pending ? t('voice.sending') : t('voice.send')}
         </button>
       )}
       {phase !== 'idle' && (
-        <button type="button" onClick={discard} disabled={pending} className={button}>
+        <button
+          type="button"
+          onClick={discard}
+          disabled={pending}
+          className="btn btn-ghost btn-danger btn-sm"
+        >
+          <Icon name="trash" size={14} />
           {t('voice.discard')}
         </button>
       )}
       {(problem || failed) && (
-        <p role="alert" className="w-full text-danger">
+        <p role="alert" className="notice notice-danger w-full">
           {t(problem ? `voice.${problem}` : 'voice.uploadFailed')}
         </p>
       )}

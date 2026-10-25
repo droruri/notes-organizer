@@ -18,6 +18,10 @@
     "noAccess": {
       "title": "No access",
       "body": "This account is not allowed to use the app."
+    },
+    "welcome": {
+      "title": "All your notes, in one place",
+      "body": "Write or record a note, and Claude suggests a category, tags and a due date."
     }
   },
   "notes": {
@@ -76,7 +80,14 @@
       "due_date": "Due date",
       "newest": "Newest",
       "oldest": "Oldest"
-    }
+    },
+    "count_one": "{{count}} note",
+    "count_other": "{{count}} notes",
+    "emptyHint": "Write something or record a voice note. Claude will suggest how to file it.",
+    "suggestHint": "Claude suggests a category, tags and a due date. You can change anything before saving.",
+    "reviewTitle": "Review note",
+    "editTitle": "Edit note",
+    "suggested": "Suggested by Claude"
   },
   "filters": {
     "title": "Filter",

@@ -2,10 +2,9 @@ import type { Note, Taxonomy } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NoteEditor } from '../notes/NoteEditor';
+import { Icon } from '../../ui/Icon';
 import { AudioPreview } from './AudioPreview';
 import type { OutboxEntry } from './outbox';
-
-const button = 'rounded-md border border-line px-4 py-2 hover:bg-surface-hover';
 
 const draftOf = (e: OutboxEntry): Note => ({
   id: e.clientId,
@@ -72,10 +71,10 @@ export function OutboxDialog({
       role="dialog"
       aria-modal="true"
       aria-label={t('offline.dialogTitle')}
-      className="fixed inset-0 z-20 overflow-y-auto bg-bg p-4 text-fg"
+      className="screen enter-rise text-fg"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 text-start">
-        <h2 className="text-lg font-semibold">{t('offline.dialogTitle')}</h2>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 text-start">
+        <h2 className="text-2xl font-bold tracking-tight">{t('offline.dialogTitle')}</h2>
         {open ? (
           <>
             {open.hasAudio && <AudioPreview clientId={open.clientId} />}
@@ -93,20 +92,23 @@ export function OutboxDialog({
         ) : (
           <>
             <p className="text-muted">{t('offline.dialogHint', { count: entries.length })}</p>
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-2.5">
               {entries.map((e) => (
                 <li key={e.clientId}>
                   <button
                     type="button"
                     onClick={() => setOpenId(e.clientId)}
-                    className={`${button} w-full text-start`}
+                    className="card slip status-draft flex w-full items-center gap-2 p-4 ps-5 text-start"
                   >
-                    {e.hasAudio ? t('offline.voiceNote') : e.body}
+                    {e.hasAudio && <Icon name="mic" size={16} className="shrink-0 text-muted" />}
+                    <span dir="auto" className="line-clamp-3 break-words">
+                      {e.hasAudio ? t('offline.voiceNote') : e.body}
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
-            <button type="button" onClick={onClose} className={`${button} self-start`}>
+            <button type="button" onClick={onClose} className="btn self-start">
               {t('offline.later')}
             </button>
           </>

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { Icon } from '../../ui/Icon';
 
 /** A note's recording: fetched (with the auth token) only once the user asks to play it. */
 export function AudioPlayer({ noteId }: { noteId: string }) {
@@ -14,10 +15,19 @@ export function AudioPlayer({ noteId }: { noteId: string }) {
     enabled: wanted,
     staleTime: Infinity,
   });
-  if (audio.data) return <audio controls autoPlay src={audio.data} aria-label={t('voice.play')} />;
+  if (audio.data)
+    return (
+      <audio
+        controls
+        autoPlay
+        src={audio.data}
+        aria-label={t('voice.play')}
+        className="h-10 w-full max-w-md"
+      />
+    );
   if (audio.isError) {
     return (
-      <p role="alert" className="text-danger">
+      <p role="alert" className="text-sm text-danger">
         {t('voice.audioFailed')}
       </p>
     );
@@ -27,8 +37,9 @@ export function AudioPlayer({ noteId }: { noteId: string }) {
       type="button"
       onClick={() => setWanted(true)}
       disabled={wanted}
-      className="w-fit rounded-md border border-line px-3 py-1 text-sm hover:bg-surface-hover disabled:opacity-50"
+      className="btn btn-sm w-fit"
     >
+      {wanted ? <span aria-hidden="true" className="spinner" /> : <Icon name="play" size={14} />}
       {wanted ? t('voice.loading') : t('voice.play')}
     </button>
   );

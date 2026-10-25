@@ -28,6 +28,9 @@ import {
 import { reportNetworkFailure, useOnline } from '../offline/useOnline';
 import { clearSharedNote, peekSharedNote } from '../share/shareTarget';
 import { HeaderSlot } from '../shell/headerSlot';
+import { Loading } from '../../ui/Loading';
+import { Icon } from '../../ui/Icon';
+import { Toast } from '../../ui/Toast';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
@@ -191,11 +194,11 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
 
   if (!notes.data || !taxonomy.data) {
     return notes.isError || taxonomy.isError ? (
-      <p role="alert" className="text-danger">
+      <p role="alert" className="notice notice-danger">
         {t('notes.error')}
       </p>
     ) : (
-      <p className="text-muted">{t('status.checking')}</p>
+      <Loading label={t('status.checking')} />
     );
   }
 
@@ -220,7 +223,7 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
   if (mode.kind === 'compose') {
     return (
       <form
-        className="flex flex-col gap-3"
+        className="enter-rise flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (!text.trim()) return;
@@ -228,51 +231,63 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
           else void saveOffline(text);
         }}
       >
-        {!online && <p role="status">{t('offline.banner')}</p>}
-        <textarea
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={5}
-          aria-label={t('notes.body')}
-          placeholder={t('notes.placeholder')}
-          className="rounded-md border border-line bg-bg px-2 py-1"
-        />
+        <h2 className="text-2xl font-bold tracking-tight">{t('notes.add')}</h2>
+        {!online && (
+          <p role="status" className="notice notice-info">
+            {t('offline.banner')}
+          </p>
+        )}
+        <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[textarea:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            dir="auto"
+            aria-label={t('notes.body')}
+            placeholder={t('notes.placeholder')}
+            className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
+          />
+          <div className="border-t border-line pt-3">
+            <VoiceRecorder
+              onSend={(audio) =>
+                online
+                  ? createVoice.mutate({ audio, clientId: crypto.randomUUID() })
+                  : void saveOffline('', audio)
+              }
+              pending={createVoice.isPending}
+              failed={createVoice.isError}
+            />
+          </div>
+        </div>
         {offlineNotice === 'failed' && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="notice notice-danger">
             {t('offline.saveFailed')}
           </p>
         )}
         {create.isError && (
-          <p role="alert" className="text-danger">
+          <p role="alert" className="notice notice-danger">
             {t('notes.error')}
           </p>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="submit"
             disabled={create.isPending || text.trim() === ''}
-            className="rounded-md bg-fg px-4 py-2 text-bg disabled:opacity-50"
+            className="btn btn-primary"
           >
+            {create.isPending ? (
+              <span aria-hidden="true" className="spinner" />
+            ) : (
+              <Icon name="spark" size={16} />
+            )}
             {create.isPending ? t('notes.suggesting') : t('notes.suggest')}
           </button>
-          <button
-            type="button"
-            onClick={() => setMode({ kind: 'list' })}
-            className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
-          >
+          <button type="button" onClick={() => setMode({ kind: 'list' })} className="btn btn-ghost">
             {t('notes.cancel')}
           </button>
         </div>
-        <VoiceRecorder
-          onSend={(audio) =>
-            online
-              ? createVoice.mutate({ audio, clientId: crypto.randomUUID() })
-              : void saveOffline('', audio)
-          }
-          pending={createVoice.isPending}
-          failed={createVoice.isError}
-        />
+        <p className="text-sm text-muted">{t('notes.suggestHint')}</p>
       </form>
     );
   }
@@ -282,7 +297,7 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
   const visible = sortNotes(filterNotes(notes.data, filter, today), sort, today);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       {online && !outboxDismissed && outbox.length > 0 && (
         <OutboxDialog
           entries={outbox}
@@ -310,47 +325,56 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
           }}
         />
       )}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t('notes.title')}</h2>
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col">
+          <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
+            {t('notes.title')}
+          </h2>
+          <p className="text-sm text-muted tabular-nums">
+            {t('notes.count', { count: visible.length })}
+          </p>
+        </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
-          >
+          <button type="button" onClick={() => setChatOpen(true)} className="btn">
+            <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
           </button>
           <button
             type="button"
             onClick={() => setMode({ kind: 'compose' })}
-            className="rounded-md bg-fg px-4 py-2 text-bg"
+            className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_rgb(11_92_120/0.55)]"
           >
+            <Icon name="plus" size={18} />
             {t('notes.add')}
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-3">
-        <NoteFilters filter={filter} onChange={setFilter} taxonomy={taxonomy.data} />
-        <label className="flex items-center gap-2 text-sm">
-          {t('notes.sort.label')}
-          <select
-            value={sort}
-            onChange={(e) => {
-              const next = NoteSort.safeParse(e.target.value);
-              if (next.success) saveSort.mutate({ noteSort: next.data });
-            }}
-            className="rounded-md border border-line bg-bg px-2 py-1"
-          >
-            {NoteSort.options.map((o) => (
-              <option key={o} value={o}>
-                {t(`notes.sort.${o}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <NoteFilters
+        filter={filter}
+        onChange={setFilter}
+        taxonomy={taxonomy.data}
+        sort={
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <span className="shrink-0">{t('notes.sort.label')}</span>
+            <select
+              value={sort}
+              onChange={(e) => {
+                const next = NoteSort.safeParse(e.target.value);
+                if (next.success) saveSort.mutate({ noteSort: next.data });
+              }}
+              className="field min-h-9 w-auto py-1 text-sm text-fg"
+            >
+              {NoteSort.options.map((o) => (
+                <option key={o} value={o}>
+                  {t(`notes.sort.${o}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        }
+      />
       {saveSort.isError && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>
       )}
@@ -360,9 +384,10 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
         taxonomy={taxonomy.data}
         today={today}
         onOpen={(note) => setMode({ kind: 'edit', note })}
+        onAdd={() => setMode({ kind: 'compose' })}
       />
       {undo.isError && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>
       )}
@@ -381,9 +406,26 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
         />
       )}
       {imported && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
+        <Toast
+          actions={
+            <>
+              {imported.unreadNotes > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
+                    setImported(null);
+                  }}
+                  className="btn btn-sm"
+                >
+                  {t('import.show')}
+                </button>
+              )}
+              <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
+                {t('import.dismiss')}
+              </button>
+            </>
+          }
         >
           {imported.unreadNotes > 0
             ? t('import.toastUnread', {
@@ -391,58 +433,29 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
                 count: imported.unreadNotes,
               })
             : t('import.done', { count: imported.created.notes })}
-          <span className="flex gap-2">
-            {imported.unreadNotes > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
-                  setImported(null);
-                }}
-                className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-              >
-                {t('import.show')}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setImported(null)}
-              className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-            >
-              {t('import.dismiss')}
-            </button>
-          </span>
-        </div>
+        </Toast>
       )}
       {offlineNotice !== null && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
+        <Toast
+          actions={
+            <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
+              {t('offline.dismiss')}
+            </button>
+          }
         >
           {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
-          <button
-            type="button"
-            onClick={() => setOfflineNotice(null)}
-            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-          >
-            {t('offline.dismiss')}
-          </button>
-        </div>
+        </Toast>
       )}
       {undoId !== null && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
+        <Toast
+          actions={
+            <button type="button" onClick={() => undo.mutate(undoId)} className="btn btn-sm">
+              {t('notes.undo')}
+            </button>
+          }
         >
           {t('notes.deleted')}
-          <button
-            type="button"
-            onClick={() => undo.mutate(undoId)}
-            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-          >
-            {t('notes.undo')}
-          </button>
-        </div>
+        </Toast>
       )}
     </section>
   );
