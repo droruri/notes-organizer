@@ -352,6 +352,7 @@ export function NotesScreen() {
       )}
       <NoteList
         notes={visible}
+        filtered={notes.data.length > 0}
         taxonomy={taxonomy.data}
         today={today}
         onOpen={(note) => setMode({ kind: 'edit', note })}

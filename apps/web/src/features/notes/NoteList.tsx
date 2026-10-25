@@ -4,17 +4,21 @@ import { NoteCard } from './NoteCard';
 
 export function NoteList({
   notes,
+  filtered,
   taxonomy,
   today,
   onOpen,
 }: {
   notes: Note[];
+  /** Notes exist, but the filter hides all of them. */
+  filtered: boolean;
   taxonomy: Taxonomy;
   today: string;
   onOpen: (note: Note) => void;
 }) {
   const { t } = useTranslation();
-  if (notes.length === 0) return <p className="text-muted">{t('notes.empty')}</p>;
+  if (notes.length === 0)
+    return <p className="text-muted">{t(filtered ? 'notes.noMatches' : 'notes.empty')}</p>;
   return (
     <ul className="flex flex-col gap-3">
       {notes.map((n) => (
