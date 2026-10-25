@@ -83,7 +83,8 @@ else
   [ -n "$ANON_KEY" ] && ok "publishable key found" || fail "no publishable/anon key"
   # Session pooler (port 5432): Render has no IPv6 and the direct host is IPv6-only.
   if pooler=$(api GET "$SB/config/database/pooler" "$SUPABASE_ACCESS_TOKEN"); then
-    read -r db_user db_host < <(jq -r 'map(select(.database_type == "PRIMARY"))[0] | "\(.db_user) \(.db_host)"' <<<"$pooler")
+    read -r db_user db_host < <(jq -r 'map(select(.database_type == "PRIMARY"))[0] | "\(.db_user // "") \(.db_host // "")"' <<<"$pooler")
+    if [ -z "${db_host:-}" ]; then fail "no primary pooler in the Supabase config"; else
     pw=$(jq -rn --arg p "$SUPABASE_DB_PASSWORD" '$p | @uri')
     DB_URL="postgresql://$db_user:$pw@$db_host:5432/postgres"
     ok "session pooler: $db_host"
@@ -91,6 +92,8 @@ else
       ok "migrations pushed"
     else
       fail "supabase db push"
+      DB_URL=""
+    fi
     fi
   else
     fail "could not read the pooler config"
@@ -143,8 +146,12 @@ else
       fi
     fi
     if [ -n "$RENDER_ID" ]; then
-      API_URL=$(api GET "$R/services/$RENDER_ID" "$RENDER_API_KEY" | jq -r '.serviceDetails.url // empty')
-      ok "API URL: $API_URL"
+      if svc_url=$(api GET "$R/services/$RENDER_ID" "$RENDER_API_KEY" | jq -r '.serviceDetails.url // empty') && [ -n "$svc_url" ]; then
+        API_URL=$svc_url
+        ok "API URL: $API_URL"
+      else
+        fail "could not read the service URL"
+      fi
     fi
   else
     fail "Render API rejected the key"
@@ -179,8 +186,17 @@ else
       ) } }
     }')
   if project=$(api GET "$CF/$PAGES_PROJECT" "$CLOUDFLARE_API_TOKEN" 2>/dev/null); then
-    project=$(api PATCH "$CF/$PAGES_PROJECT" "$CLOUDFLARE_API_TOKEN" "$(jq 'del(.name, .source)' <<<"$body")") \
-      && ok "updated project $PAGES_PROJECT" || fail "could not update the project"
+    # PATCH replaces the env vars, so with a value unknown (a skipped part) leave them as they are.
+    patch=$(jq 'del(.name, .source)' <<<"$body")
+    if [ -z "$API_URL" ] || [ -z "$ANON_KEY" ]; then
+      patch=$(jq 'del(.deployment_configs)' <<<"$patch")
+      echo "  note: a value is unknown, so the existing Pages env vars are kept"
+    fi
+    if updated=$(api PATCH "$CF/$PAGES_PROJECT" "$CLOUDFLARE_API_TOKEN" "$patch"); then
+      project=$updated; ok "updated project $PAGES_PROJECT"
+    else
+      fail "could not update the project"
+    fi
   else
     project=$(api POST "$CF" "$CLOUDFLARE_API_TOKEN" "$body") \
       && ok "created project $PAGES_PROJECT" \
@@ -241,7 +257,9 @@ say "cron-job.org"
 m=$(missing CRONJOB_API_KEY API_URL)
 if [ -n "$m" ]; then
   skip "set$m"
-elif check "wake /health" "$API_URL/health" '.ok == true'; then
+elif ! check "wake /health" "$API_URL/health" '.ok == true'; then
+  skip "API not reachable — cron jobs not touched"
+else
   C=https://api.cron-job.org
   KEEPALIVE="notes-api keep-alive"
   DEEP="notes-api deep"

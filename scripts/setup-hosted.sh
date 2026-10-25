@@ -6,6 +6,7 @@
 # it. Author the per-step stages below the marker.
 
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
 # ──────────────────────────────────────────────────────────────────────────
 # Wizard library: delightful, consistent UX, identical across every wizard.
@@ -201,7 +202,7 @@ HOSTED_KEYS=(SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD SUPABASE_ACCESS_TOKEN GOO
 # Creates .env from .env.example when missing; appends missing key names to .env.example.
 prepare_files() {
   if [[ ! -f "$ENV_FILE" ]]; then
-    if [[ -f .env.example ]]; then cp .env.example "$ENV_FILE"; else : > "$ENV_FILE"; fi
+    (umask 077; if [[ -f .env.example ]]; then cp .env.example "$ENV_FILE"; else : > "$ENV_FILE"; fi)
     say "created $ENV_FILE"
   fi
   local key
@@ -213,7 +214,9 @@ prepare_files() {
 # filled KEY: true when KEY has a non-empty value in .env. ALLOWED_EMAILS counts as empty while it
 # holds the local seed user, which would lock everyone out of the hosted app.
 filled() {
-  local v; v=$(_existing "$1" || true)
+  local v
+  # A value _existing cannot decode (escapes, $) is still a value: never ask over it.
+  v=$(_existing "$1") || { grep -qE "^${1}=." "$ENV_FILE" && return 0; return 1; }
   [[ -n "$v" ]] || return 1
   [[ "$1" == ALLOWED_EMAILS && "$v" == dev@notes.local ]] && return 1
   return 0
@@ -314,4 +317,4 @@ if confirm "Run pnpm deploy:hosted now?"; then
 fi
 }
 
-run_wizard "$@"; exit
+run_wizard; exit
