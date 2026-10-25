@@ -43,6 +43,9 @@ export function isOverdue(note: Pick<Note, 'dueDate' | 'status'>, today: string)
   return note.dueDate !== null && note.status !== 'done' && note.dueDate < today;
 }
 
+/** The viewer's local `YYYY-MM-DD` for a timestamp, matching the date the card displays. */
+const localDay = (iso: string): string => new Date(iso).toLocaleDateString('en-CA');
+
 const inRange = (value: string | null, from: string, to: string): boolean => {
   if (from === '' && to === '') return true;
   if (value === null) return false;
@@ -62,7 +65,7 @@ export function filterNotes(notes: Note[], filter: NoteFilter, _today: string): 
       anyOf(filter.statuses, (s) => n.status === s) &&
       anyOf(filter.importances, (i) => n.importance === i) &&
       anyOf(filter.urgencies, (u) => n.urgency === u) &&
-      inRange(n.createdAt.slice(0, 10), filter.createdFrom, filter.createdTo) &&
+      inRange(localDay(n.createdAt), filter.createdFrom, filter.createdTo) &&
       inRange(n.dueDate, filter.dueFrom, filter.dueTo),
   );
 }

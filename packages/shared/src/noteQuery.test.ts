@@ -62,8 +62,8 @@ describe('filterNotes', () => {
     expect(filterNotes([a, b], EMPTY_FILTER, TODAY)).toHaveLength(2);
   });
   it('filters created and due ranges inclusively', () => {
-    const a = note({ createdAt: '2026-10-05T23:00:00.000Z', dueDate: '2026-11-01' });
-    const b = note({ createdAt: '2026-10-10T00:00:00.000Z' });
+    const a = note({ createdAt: '2026-10-05T12:00:00.000Z', dueDate: '2026-11-01' });
+    const b = note({ createdAt: '2026-10-10T12:00:00.000Z' });
     expect(ids(filterNotes([a, b], f({ createdFrom: '2026-10-06' }), TODAY))).toEqual([b.id]);
     expect(ids(filterNotes([a, b], f({ createdTo: '2026-10-05' }), TODAY))).toEqual([a.id]);
     expect(

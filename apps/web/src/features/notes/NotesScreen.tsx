@@ -162,6 +162,11 @@ export function NotesScreen() {
           </select>
         </label>
       </div>
+      {saveSort.isError && (
+        <p role="alert" className="text-danger">
+          {t('notes.error')}
+        </p>
+      )}
       <NoteList notes={visible} taxonomy={taxonomy.data} today={today} />
     </section>
   );
