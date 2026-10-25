@@ -14,8 +14,9 @@ export function createTokenVerifier(supabaseUrl: string): VerifyToken {
   const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
   return async (token) => {
     const { payload } = await jwtVerify(token, jwks, { issuer, audience: 'authenticated' });
-    const claims = Claims.parse(payload);
-    return { id: claims.sub, email: claims.email };
+    const claims = Claims.safeParse(payload);
+    if (!claims.success) throw new Error('token claims rejected');
+    return { id: claims.data.sub, email: claims.data.email };
   };
 }
 
@@ -39,7 +40,7 @@ export function currentUser(req: FastifyRequest): AuthUser {
 
 /** An `onRequest` hook: 401 without a valid token, 403 when the email is not allowed. */
 export function requireUser(verifyToken: VerifyToken, allowedEmails: ReadonlySet<string>) {
-  return async (req: FastifyRequest, reply: FastifyReply): Promise<void> => {
+  return async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply | undefined> => {
     const match = /^Bearer (.+)$/.exec(req.headers.authorization ?? '');
     const token = match?.[1];
     if (!token) return reply.code(401).send({ error: 'unauthorized' });
