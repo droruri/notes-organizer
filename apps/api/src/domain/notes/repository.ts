@@ -1,5 +1,5 @@
 import { Proposed, type Importance, type Note, type NoteStatus, type Urgency } from '@notes/shared';
-import type { Queryable } from '../../db';
+import type { Queryable } from '../../tx';
 import type { Links } from './note';
 
 // SQL for notes and their category/tag links.

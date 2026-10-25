@@ -46,7 +46,8 @@ function isFakeEnabled(value: string | undefined): boolean {
 
 /** The fake for `AI_FAKE=1`, otherwise the Anthropic adapter. */
 export function createAi(env: AiEnv): Ai {
-  if (isFakeEnabled(env.AI_FAKE) || !env.ANTHROPIC_API_KEY) return createFakeAi();
+  if (isFakeEnabled(env.AI_FAKE)) return createFakeAi();
+  if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is required unless AI_FAKE=1');
   return createAnthropicAi({
     apiKey: env.ANTHROPIC_API_KEY,
     classifyModel: env.LLM_CLASSIFY_MODEL,

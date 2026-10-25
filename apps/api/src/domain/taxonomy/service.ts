@@ -1,5 +1,6 @@
 import type { Category, Tag, Taxonomy } from '@notes/shared';
-import type { Db, Queryable } from '../../db';
+import type { Db } from '../../db';
+import type { Queryable } from '../../tx';
 import * as repo from './repository';
 import { isUsable, normalizeName } from './taxonomy';
 

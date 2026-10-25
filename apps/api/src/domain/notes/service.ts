@@ -1,6 +1,7 @@
 import type { Note, NoteCreate, NoteEdit, Suggestion } from '@notes/shared';
 import type { Ai } from '../../ai/provider';
-import { withTransaction, type Db } from '../../db';
+import type { Db } from '../../db';
+import { withTransaction } from '../../tx';
 import * as taxonomyRepo from '../taxonomy/repository';
 import { getTaxonomy } from '../taxonomy/service';
 import { classify } from './classify';
@@ -70,6 +71,9 @@ export async function updateNote(
     if (!note) return fail('not_found');
     const status = edit.status ?? note.status;
     if (!isValidTransition(note.status, status)) return fail('invalid_transition');
+    // New categories and tags are created only by submit; a plain edit may link existing ones.
+    const proposesNew = (edit.newCategories?.length ?? 0) > 0 || (edit.newTags?.length ?? 0) > 0;
+    if (proposesNew && status !== 'todo') return fail('invalid_transition');
 
     const taxonomy = await getTaxonomy(tx, userId);
     const plan = planNewTaxonomy(edit.newCategories ?? [], edit.newTags ?? [], taxonomy);

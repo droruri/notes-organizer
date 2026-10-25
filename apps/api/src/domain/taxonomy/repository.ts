@@ -1,5 +1,5 @@
 import type { Category, Tag } from '@notes/shared';
-import type { Queryable } from '../../db';
+import type { Queryable } from '../../tx';
 
 // SQL for categories and tags. Tags have no user_id: ownership is checked through the category.
 

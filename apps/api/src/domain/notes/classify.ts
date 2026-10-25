@@ -83,9 +83,17 @@ const lower = (s: string) => s.toLowerCase();
 /** Drop unknown ids, normalize and dedupe new names against the taxonomy and each other. */
 export function mapSuggestion(raw: RawSuggestion, taxonomy: Taxonomy): Suggestion {
   const categories = new Map(taxonomy.categories.map((c) => [c.id, c]));
-  const tags = new Map(taxonomy.categories.flatMap((c) => c.tags.map((t) => [t.id, t] as const)));
-  const categoryIds = [...new Set(raw.categoryIds.filter((id) => categories.has(id)))];
-  const tagIds = [...new Set(raw.tagIds.filter((id) => tags.has(id)))];
+  const tagCategory = new Map(
+    taxonomy.categories.flatMap((c) => c.tags.map((t) => [t.id, c.id] as const)),
+  );
+  const tagIds = [...new Set(raw.tagIds.filter((id) => tagCategory.has(id)))];
+  // A kept tag brings its category along: a tag is never linked without it.
+  const categoryIds = [
+    ...new Set([
+      ...raw.categoryIds.filter((id) => categories.has(id)),
+      ...tagIds.flatMap((id) => tagCategory.get(id) ?? []),
+    ]),
+  ];
 
   const newCategories: string[] = [];
   const addNewCategory = (rawName: string): string | null => {

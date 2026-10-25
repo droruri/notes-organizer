@@ -34,6 +34,11 @@ describe('mapSuggestion', () => {
     expect(s.tagIds).toEqual([T1]);
   });
 
+  it('links the category of every kept tag', () => {
+    const s = mapSuggestion(raw({ tagIds: [T1] }), taxonomy);
+    expect(s.categoryIds).toEqual([C1]);
+  });
+
   it('dedupes new names against existing and each other, case-insensitively', () => {
     const s = mapSuggestion(
       raw({
