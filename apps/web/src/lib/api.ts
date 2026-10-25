@@ -1,4 +1,4 @@
-import { ApiError, HealthResponse, Settings } from '@notes/shared';
+import { ApiError, Category, HealthResponse, Settings, Tag, Taxonomy } from '@notes/shared';
 import { z } from 'zod';
 import { accessToken } from './supabase';
 
@@ -52,10 +52,23 @@ async function request<T>(
   return parsed.data;
 }
 
+const NoContent = z.undefined();
+
 export const api = {
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),
+  taxonomy: () => request('GET', '/taxonomy', Taxonomy),
+  createCategory: (name: string) => request('POST', '/categories', Category, { name }),
+  renameCategory: (id: string, name: string) =>
+    request('PATCH', `/categories/${id}`, Category, { name }),
+  deleteCategory: (id: string) => request('DELETE', `/categories/${id}`, NoContent),
+  restoreCategory: (id: string) => request('POST', `/categories/${id}/restore`, Category),
+  createTag: (categoryId: string, name: string) =>
+    request('POST', `/categories/${categoryId}/tags`, Tag, { name }),
+  renameTag: (id: string, name: string) => request('PATCH', `/tags/${id}`, Tag, { name }),
+  deleteTag: (id: string) => request('DELETE', `/tags/${id}`, NoContent),
+  restoreTag: (id: string) => request('POST', `/tags/${id}/restore`, Tag),
 };
 
 /** Generic verbs for features that add their own endpoints. */

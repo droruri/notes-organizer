@@ -1,0 +1,108 @@
+import type { Category, Tag } from '@notes/shared';
+import type { Db } from '../../db';
+
+// SQL for categories and tags. Tags have no user_id: ownership is checked through the category.
+
+const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted';
+const TAG_COLS = 't.id, t.category_id as "categoryId", t.name, t.deleted_at is not null as deleted';
+
+export async function listCategories(db: Db, userId: string): Promise<Category[]> {
+  const { rows } = await db.query<Category>(
+    `select ${CATEGORY_COLS} from categories c where c.user_id = $1 order by lower(c.name), c.id`,
+    [userId],
+  );
+  return rows;
+}
+
+export async function listTags(db: Db, userId: string): Promise<Tag[]> {
+  const { rows } = await db.query<Tag>(
+    `select ${TAG_COLS} from tags t join categories c on c.id = t.category_id
+     where c.user_id = $1 order by lower(t.name), t.id`,
+    [userId],
+  );
+  return rows;
+}
+
+export async function findCategory(
+  db: Db,
+  userId: string,
+  id: string,
+): Promise<Category | undefined> {
+  const { rows } = await db.query<Category>(
+    `select ${CATEGORY_COLS} from categories c where c.id = $1 and c.user_id = $2`,
+    [id, userId],
+  );
+  return rows[0];
+}
+
+/** The tag plus whether its category is deleted. */
+export async function findTag(
+  db: Db,
+  userId: string,
+  id: string,
+): Promise<(Tag & { categoryDeleted: boolean }) | undefined> {
+  const { rows } = await db.query<Tag & { categoryDeleted: boolean }>(
+    `select ${TAG_COLS}, c.deleted_at is not null as "categoryDeleted"
+     from tags t join categories c on c.id = t.category_id
+     where t.id = $1 and c.user_id = $2`,
+    [id, userId],
+  );
+  return rows[0];
+}
+
+export async function insertCategory(db: Db, userId: string, name: string): Promise<Category> {
+  const { rows } = await db.query<Category>(
+    `insert into categories (user_id, name) values ($1, $2)
+     returning id, name, deleted_at is not null as deleted`,
+    [userId, name],
+  );
+  return rowOrThrow(rows);
+}
+
+export async function insertTag(db: Db, categoryId: string, name: string): Promise<Tag> {
+  const { rows } = await db.query<Tag>(
+    `insert into tags (category_id, name) values ($1, $2)
+     returning id, category_id as "categoryId", name, deleted_at is not null as deleted`,
+    [categoryId, name],
+  );
+  return rowOrThrow(rows);
+}
+
+export async function updateCategory(
+  db: Db,
+  id: string,
+  change: { name: string } | { deleted: boolean },
+): Promise<Category> {
+  const { rows } = await db.query<Category>(
+    `update categories set
+       name = coalesce($2, name),
+       deleted_at = case when $3::boolean is null then deleted_at
+                         when $3 then coalesce(deleted_at, now()) else null end
+     where id = $1 returning id, name, deleted_at is not null as deleted`,
+    [id, 'name' in change ? change.name : null, 'deleted' in change ? change.deleted : null],
+  );
+  return rowOrThrow(rows);
+}
+
+export async function updateTag(
+  db: Db,
+  id: string,
+  change: { name: string } | { deleted: boolean },
+): Promise<Tag> {
+  const { rows } = await db.query<Tag>(
+    `update tags set
+       name = coalesce($2, name),
+       deleted_at = case when $3::boolean is null then deleted_at
+                         when $3 then coalesce(deleted_at, now()) else null end
+     where id = $1
+     returning id, category_id as "categoryId", name, deleted_at is not null as deleted`,
+    [id, 'name' in change ? change.name : null, 'deleted' in change ? change.deleted : null],
+  );
+  return rowOrThrow(rows);
+}
+
+function rowOrThrow<T>(rows: T[]): T {
+  const row = rows[0];
+  if (row === undefined) throw new Error('expected a row from the taxonomy query');
+  return row;
+}

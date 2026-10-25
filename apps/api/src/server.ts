@@ -6,6 +6,7 @@ import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken 
 import { createPool, type Db } from './db';
 import { healthRoutes } from './routes/health';
 import { settingsRoutes } from './routes/settings';
+import { taxonomyRoutes } from './routes/taxonomy';
 
 // Wiring only: build the app, register routes, read env. Domain logic lives in src/domain/<area>/.
 
@@ -32,6 +33,7 @@ export function buildServer({
   void app.register(async (authed) => {
     authed.addHook('onRequest', requireUser(verifyToken, allowedEmails));
     settingsRoutes(authed, db);
+    taxonomyRoutes(authed, db);
   });
   return app;
 }
