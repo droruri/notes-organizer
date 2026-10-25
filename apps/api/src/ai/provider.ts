@@ -4,10 +4,12 @@ import {
   experimental_transcribe as transcribe,
   generateObject,
   isStepCount,
+  simulateReadableStream,
   streamText,
   type ModelMessage,
   type ToolSet,
 } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
 import { z } from 'zod';
 
 // THE ONLY place a model is called (ADR 0001). Everything else depends on the `Ai` port.
@@ -122,6 +124,7 @@ export type ExtractCall = { system: string; prompt: string };
 export function createFakeAi(
   turns: FakeTurn[] = [],
   transcript = 'fake transcript',
+  chatReply = 'fake answer',
 ): Ai & { calls: ExtractCall[] } {
   const queue = [...turns];
   const calls: ExtractCall[] = [];
@@ -137,9 +140,31 @@ export function createFakeAi(
         ? { ok: true, value: parsed.data }
         : { ok: false, error: z.prettifyError(parsed.error) };
     },
-    chat: () => {
-      throw new Error('fake chat is not scripted yet');
-    },
+    chat: ({ system, messages }) =>
+      streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: simulateReadableStream({
+              chunks: [
+                { type: 'stream-start', warnings: [] },
+                { type: 'text-start', id: 't' },
+                { type: 'text-delta', id: 't', delta: chatReply },
+                { type: 'text-end', id: 't' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
+                    outputTokens: { total: 1, text: 1, reasoning: 0 },
+                  },
+                },
+              ],
+            }),
+          }),
+        }),
+        system,
+        messages,
+      }),
     transcribe: async () => ({ text: transcript }),
   };
 }

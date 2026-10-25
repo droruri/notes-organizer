@@ -111,3 +111,28 @@ export function statusMoves(status: NoteStatus): {
   if (i === -1) return { back: null, forward: null };
   return { back: FLOW[i - 1] ?? null, forward: FLOW[i + 1] ?? null };
 }
+
+/** Chat history sent with `POST /chat`; the server keeps only the last 20. */
+export const ChatMessage = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().max(10_000),
+});
+export type ChatMessage = z.infer<typeof ChatMessage>;
+
+export const ChatRequest = z.object({
+  messages: z.array(ChatMessage).min(1).max(100),
+  today: DateString,
+  locale: Locale,
+});
+export type ChatRequest = z.infer<typeof ChatRequest>;
+
+/** The streamed parts the chat panel reads (a subset of the AI SDK's UI message parts). */
+export const ChatPart = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('text-delta'), delta: z.string() }),
+  z.object({ type: z.literal('tool-input-start'), toolName: z.string() }),
+  z.object({ type: z.literal('error'), errorText: z.string() }),
+]);
+export type ChatPart = z.infer<typeof ChatPart>;
+
+/** An answer cites a note as `[[note:<id>]]`. */
+export const NOTE_CITATION = /\[\[note:([0-9a-f-]{36})\]\]/;
