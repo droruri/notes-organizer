@@ -38,6 +38,10 @@ cd apps/web
 # Web host: HOSTED_WEB_URL when set, else whatever twa-manifest.json already has.
 manifest=$(cat twa-manifest.json)
 if [ -n "${HOSTED_WEB_URL:-}" ]; then
+  case $HOSTED_WEB_URL in
+    https://*) ;;
+    *) warn "Android build — HOSTED_WEB_URL must start with https://"; exit 0 ;;
+  esac
   host=${HOSTED_WEB_URL#https://}; host=${host%%/*}
   manifest=$(jq --arg h "$host" '.host = $h
     | .iconUrl = "https://\($h)/icon-512.png"
@@ -52,14 +56,18 @@ pkg=$(jq -r .packageId twa-manifest.json.tmp)
 jq -n --arg pkg "$pkg" --arg fp "$ANDROID_KEYSTORE_SHA256" '[{
   relation: ["delegate_permission/common.handle_all_urls"],
   target: {namespace: "android_app", package_name: $pkg, sha256_cert_fingerprints: [$fp]}
-}]' > public/.well-known/assetlinks.json
+}]' > public/.well-known/assetlinks.json.tmp \
+  && mv public/.well-known/assetlinks.json.tmp public/.well-known/assetlinks.json || exit 1
 
 mkdir -p android
 mv twa-manifest.json.tmp android/twa-manifest.json
 cd android
 export BUBBLEWRAP_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD BUBBLEWRAP_KEY_PASSWORD=${ANDROID_KEY_PASSWORD:-$ANDROID_KEYSTORE_PASSWORD}
-npx --yes @bubblewrap/cli update --manifest=twa-manifest.json --skipVersionUpgrade \
-  || npx --yes @bubblewrap/cli init --manifest="$(jq -r .webManifestUrl twa-manifest.json)" \
-  || exit 1
+# First run generates the Android project from the manifest; later runs only update it.
+if [ -f build.gradle ]; then
+  npx --yes @bubblewrap/cli update --manifest=twa-manifest.json --skipVersionUpgrade || exit 1
+else
+  npx --yes @bubblewrap/cli init --manifest="$(jq -r .webManifestUrl twa-manifest.json)" || exit 1
+fi
 npx --yes @bubblewrap/cli build --manifest=twa-manifest.json || exit 1
 echo "built: $(pwd)/app-release-bundle.aab and app-release-signed.apk"
