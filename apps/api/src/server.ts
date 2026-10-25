@@ -1,4 +1,6 @@
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
+import { MAX_AUDIO_BYTES } from '@notes/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
@@ -36,6 +38,7 @@ export function buildServer({
   // Every route registered in this scope requires a signed-in, allowed user.
   void app.register(async (authed) => {
     authed.addHook('onRequest', requireUser(verifyToken, allowedEmails));
+    void authed.register(multipart, { limits: { fileSize: MAX_AUDIO_BYTES, files: 1 } });
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
     notesRoutes(authed, db, ai);

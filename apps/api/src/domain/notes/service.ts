@@ -1,4 +1,11 @@
-import type { Note, NoteAnalyze, NoteCreate, NoteEdit, Suggestion } from '@notes/shared';
+import {
+  MAX_BODY_LENGTH,
+  type Note,
+  type NoteAnalyze,
+  NoteCreate,
+  NoteEdit,
+  Suggestion,
+} from '@notes/shared';
 import type { Ai } from '../../ai/provider';
 import type { Db } from '../../db';
 import { withTransaction } from '../../tx';
@@ -8,7 +15,12 @@ import { classify } from './classify';
 import { isValidTransition, planLinks, planNewTaxonomy, suggestionOf } from './note';
 import * as repo from './repository';
 
-export type Failure = 'not_found' | 'invalid_transition' | 'unknown_taxonomy';
+export type Failure =
+  | 'not_found'
+  | 'invalid_transition'
+  | 'unknown_taxonomy'
+  | 'transcription_failed'
+  | 'empty_transcript';
 export type Result<T> = { ok: true; value: T } | { ok: false; error: Failure };
 
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
@@ -27,6 +39,7 @@ export async function createDraft(
   ai: Ai,
   userId: string,
   input: NoteCreate,
+  audio?: repo.Audio,
 ): Promise<Draft> {
   const existing = await repo.findNoteByClientId(db, userId, input.clientId);
   if (existing) return { created: false, note: existing, suggestion: suggestionOf(existing) };
@@ -47,12 +60,40 @@ export async function createDraft(
       importance: suggestion.importance,
       urgency: suggestion.urgency,
     });
-    if (noteId !== null) await repo.replaceLinks(tx, noteId, suggestion);
+    if (noteId !== null) {
+      await repo.replaceLinks(tx, noteId, suggestion);
+      if (audio) await repo.insertAudio(tx, noteId, audio);
+    }
     return noteId;
   });
   // null = a concurrent request with the same clientId won the insert.
   const note = rowOrThrow(await repo.findNoteByClientId(db, userId, input.clientId));
   return { created: id !== null, note, suggestion: suggestionOf(note) };
+}
+
+/** Transcribe a recording, then run the normal draft flow with the transcript as the body. */
+export async function createVoiceDraft(
+  db: Db,
+  ai: Ai,
+  userId: string,
+  input: Omit<NoteCreate, 'body'>,
+  audio: repo.Audio,
+): Promise<Result<Draft>> {
+  const existing = await repo.findNoteByClientId(db, userId, input.clientId);
+  if (existing) return ok({ created: false, note: existing, suggestion: suggestionOf(existing) });
+  let text: string;
+  try {
+    ({ text } = await ai.transcribe({ audio: audio.data, mime: audio.mime }));
+  } catch {
+    return fail('transcription_failed');
+  }
+  const body = text.trim().slice(0, MAX_BODY_LENGTH);
+  if (body === '') return fail('empty_transcript');
+  return ok(await createDraft(db, ai, userId, { ...input, body }, audio));
+}
+
+export function getAudio(db: Db, userId: string, id: string): Promise<repo.Audio | undefined> {
+  return repo.findAudio(db, userId, id);
 }
 
 export function listNotes(db: Db, userId: string): Promise<Note[]> {

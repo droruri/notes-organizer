@@ -16,6 +16,7 @@ import { api } from '../../lib/api';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
+import { VoiceRecorder } from './VoiceRecorder';
 
 type Mode =
   | { kind: 'list' }
@@ -53,18 +54,22 @@ export function NotesScreen() {
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
   });
 
+  const meta = () => ({
+    clientId: crypto.randomUUID(),
+    today: localToday(),
+    locale: i18n.language === 'en' ? ('en' as const) : ('he' as const),
+  });
+  const onDraft = async (draft: NoteCreated) => {
+    await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+    setMode({ kind: 'review', draft });
+  };
   const create = useMutation({
-    mutationFn: (body: string) =>
-      api.createNote({
-        body,
-        clientId: crypto.randomUUID(),
-        today: localToday(),
-        locale: i18n.language === 'en' ? 'en' : 'he',
-      }),
-    onSuccess: async (draft) => {
-      await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-      setMode({ kind: 'review', draft });
-    },
+    mutationFn: (body: string) => api.createNote({ body, ...meta() }),
+    onSuccess: onDraft,
+  });
+  const createVoice = useMutation({
+    mutationFn: (audio: Blob) => api.createVoiceNote(audio, meta()),
+    onSuccess: onDraft,
   });
   const submit = useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof api.updateNote>[1] }) =>
@@ -171,6 +176,11 @@ export function NotesScreen() {
             {t('notes.cancel')}
           </button>
         </div>
+        <VoiceRecorder
+          onSend={(audio) => createVoice.mutate(audio)}
+          pending={createVoice.isPending}
+          failed={createVoice.isError}
+        />
       </form>
     );
   }

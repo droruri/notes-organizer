@@ -15,7 +15,8 @@ const NOTE_SELECT = `
     to_char(n.due_date, 'YYYY-MM-DD') as "dueDate", n.proposed,
     n.created_at as "createdAt", n.updated_at as "updatedAt",
     coalesce((select array_agg(nc.category_id::text) from note_categories nc where nc.note_id = n.id), '{}') as "categoryIds",
-    coalesce((select array_agg(nt.tag_id::text) from note_tags nt where nt.note_id = n.id), '{}') as "tagIds"
+    coalesce((select array_agg(nt.tag_id::text) from note_tags nt where nt.note_id = n.id), '{}') as "tagIds",
+    exists(select 1 from note_audio a where a.note_id = n.id) as "hasAudio"
   from notes n`;
 
 function toNote(row: NoteRow): Note {
@@ -156,4 +157,27 @@ export async function replaceLinks(db: Queryable, noteId: string, links: Links):
     `insert into note_tags (note_id, tag_id) select $1, unnest($2::uuid[]) on conflict do nothing`,
     [noteId, links.tagIds],
   );
+}
+
+export type Audio = { mime: string; data: Buffer };
+
+export async function insertAudio(db: Queryable, noteId: string, audio: Audio): Promise<void> {
+  await db.query('insert into note_audio (note_id, mime, data) values ($1, $2, $3)', [
+    noteId,
+    audio.mime,
+    audio.data,
+  ]);
+}
+
+export async function findAudio(
+  db: Queryable,
+  userId: string,
+  noteId: string,
+): Promise<Audio | undefined> {
+  const { rows } = await db.query<Audio>(
+    `select a.mime, a.data from note_audio a join notes n on n.id = a.note_id
+     where a.note_id = $1 and n.user_id = $2 and n.deleted_at is null`,
+    [noteId, userId],
+  );
+  return rows[0];
 }

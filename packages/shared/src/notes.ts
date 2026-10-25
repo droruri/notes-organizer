@@ -15,6 +15,10 @@ export type Locale = z.infer<typeof Locale>;
 /** `YYYY-MM-DD`. */
 export const DateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
+/** Recording types the API accepts (parameters such as `;codecs=opus` are ignored). */
+export const AUDIO_MIMES = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg'] as const;
+export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
+
 export const MAX_BODY_LENGTH = 10_000;
 const Body = z.string().trim().min(1).max(MAX_BODY_LENGTH);
 
@@ -53,6 +57,7 @@ export const Note = z.object({
   proposed: Proposed.nullable(),
   categoryIds: z.array(z.uuid()),
   tagIds: z.array(z.uuid()),
+  hasAudio: z.boolean(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

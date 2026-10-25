@@ -1,4 +1,4 @@
-import { Note, NoteCreated, NoteList, Suggestion, Taxonomy } from '@notes/shared';
+import { MAX_AUDIO_BYTES, Note, NoteCreated, NoteList, Suggestion, Taxonomy } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import type { VerifyToken } from '../auth';
@@ -267,5 +267,124 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       (await send(theirs, 'POST', `/notes/${id}/analyze`, { today, locale: 'en' })).statusCode,
     ).toBe(404);
     await app2.close();
+  });
+
+  describe('voice notes', () => {
+    function multipart(
+      file: { data: Buffer; type: string } | null,
+      fields: Record<string, string>,
+    ) {
+      const boundary = 'xBOUNDARYx';
+      const parts: Buffer[] = [];
+      for (const [k, v] of Object.entries(fields)) {
+        parts.push(
+          Buffer.from(
+            `--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`,
+          ),
+        );
+      }
+      if (file) {
+        parts.push(
+          Buffer.from(
+            `--${boundary}\r\nContent-Disposition: form-data; name="audio"; filename="voice"\r\nContent-Type: ${file.type}\r\n\r\n`,
+          ),
+          file.data,
+          Buffer.from('\r\n'),
+        );
+      }
+      parts.push(Buffer.from(`--${boundary}--\r\n`));
+      return {
+        payload: Buffer.concat(parts),
+        headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      };
+    }
+    const upload = (
+      file: { data: Buffer; type: string } | null,
+      who = mine,
+      appUnderTest = app,
+      clientId = crypto.randomUUID(),
+    ) => {
+      const { payload, headers } = multipart(file, { clientId, today, locale: 'en' });
+      return appUnderTest.inject({
+        method: 'POST',
+        url: '/notes',
+        payload,
+        headers: { ...who, ...headers },
+      });
+    };
+    const bytes = Buffer.from([1, 2, 3, 4, 5]);
+
+    it('turns the transcript into the draft body and stores the recording', async () => {
+      const scripted = createFakeAi([], 'call the dentist');
+      const app2 = buildServer({
+        db: pool,
+        ai: scripted,
+        verifyToken,
+        allowedEmails: new Set([ME.email, OTHER.email]),
+      });
+      const res = await upload({ data: bytes, type: 'audio/webm;codecs=opus' }, mine, app2);
+      expect(res.statusCode).toBe(201);
+      const { note } = NoteCreated.parse(res.json());
+      expect(note.body).toBe('call the dentist');
+      expect(note.status).toBe('draft');
+      expect(note.hasAudio).toBe(true);
+      expect(scripted.calls).toHaveLength(1);
+
+      const audio = await send(mine, 'GET', `/notes/${note.id}/audio`);
+      expect(audio.statusCode).toBe(200);
+      expect(audio.headers['content-type']).toContain('audio/webm');
+      expect(audio.rawPayload.equals(bytes)).toBe(true);
+      await app2.close();
+    });
+
+    it('returns the same note for a repeated clientId without transcribing again', async () => {
+      const clientId = crypto.randomUUID();
+      const first = await upload({ data: bytes, type: 'audio/webm' }, mine, app, clientId);
+      const again = await upload({ data: bytes, type: 'audio/webm' }, mine, app, clientId);
+      expect(first.statusCode).toBe(201);
+      expect(again.statusCode).toBe(200);
+      expect(NoteCreated.parse(again.json()).note.id).toBe(NoteCreated.parse(first.json()).note.id);
+    });
+
+    it('rejects an unsupported type, an oversized file and a missing file', async () => {
+      expect((await upload({ data: bytes, type: 'text/plain' })).statusCode).toBe(415);
+      const big = Buffer.alloc(MAX_AUDIO_BYTES + 1, 1);
+      expect((await upload({ data: big, type: 'audio/webm' })).statusCode).toBe(413);
+      expect((await upload(null)).statusCode).toBe(400);
+    });
+
+    it('answers 404 for another user, a text note and an unknown id', async () => {
+      const res = await upload({ data: bytes, type: 'audio/mpeg' });
+      const id = NoteCreated.parse(res.json()).note.id;
+      expect((await send(theirs, 'GET', `/notes/${id}/audio`)).statusCode).toBe(404);
+      const text = NoteCreated.parse((await draft('typed')).res.json());
+      expect((await send(mine, 'GET', `/notes/${text.note.id}/audio`)).statusCode).toBe(404);
+      expect((await send(mine, 'GET', `/notes/${crypto.randomUUID()}/audio`)).statusCode).toBe(404);
+    });
+
+    it('fails with 502 when transcription throws, and 422 for an empty transcript', async () => {
+      const broken = createFakeAi();
+      broken.transcribe = async () => {
+        throw new Error('groq down');
+      };
+      const app2 = buildServer({
+        db: pool,
+        ai: broken,
+        verifyToken,
+        allowedEmails: new Set([ME.email]),
+      });
+      expect((await upload({ data: bytes, type: 'audio/webm' }, mine, app2)).statusCode).toBe(502);
+      await app2.close();
+      const silent = buildServer({
+        db: pool,
+        ai: createFakeAi([], '  '),
+        verifyToken,
+        allowedEmails: new Set([ME.email]),
+      });
+      expect((await upload({ data: bytes, type: 'audio/webm' }, mine, silent)).statusCode).toBe(
+        422,
+      );
+      await silent.close();
+    });
   });
 });
