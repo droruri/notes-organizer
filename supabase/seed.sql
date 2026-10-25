@@ -1,0 +1,1 @@
+-- Local-only seed data, applied by `pnpm db:reset`.

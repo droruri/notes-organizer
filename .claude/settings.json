@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 300,
+            "command": "in=$(cat); [ \"$(echo \"$in\" | jq -r '.stop_hook_active // false')\" = true ] && exit 0; [ -n \"$RALPH_HOME\" ] && exit 0; cd \"$CLAUDE_PROJECT_DIR\" || exit 0; git status --porcelain | grep -qE '\\.(ts|tsx)$' || exit 0; out=$( { npx pnpm typecheck && npx pnpm lint; } 2>&1) || { echo \"Checks failing — fix before finishing:\" >&2; echo \"$out\" | grep -E 'error|warn' | head -20 >&2; exit 2; }; exit 0"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -n '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:\"Plan approved. First save the last plan-explainer summary you printed in chat as <plan>.simple.md next to the plan file and link it. Then publish its ticket breakdown as GitHub issues per the to-tickets SKILL.md (CLAUDE.md § Planning) — blockers first, label ready-for-agent, ## Blocked by #N. Do not start implementing.\"}}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | grep -E '/\\.claude/plans/[^/]+\\.md$' | grep -qv '\\.simple\\.md$' || exit 0; jq -n '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:\"Plan file updated. Before ExitPlanMode, print a fresh /plan-explainer summary of the whole plan in the chat (plain-language before/after per section, example, benefit, Mermaid flow) — see .claude/skills/plan-explainer/SKILL.md, plan-mode paragraph.\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

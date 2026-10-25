@@ -1,0 +1,105 @@
+# Runs the ralph loop (run-ralph.sh) on a GitHub runner, billed to the Claude subscription.
+#
+# One-time setup (the job skips with a warning until both secrets exist):
+#   1. Locally: `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` with its output.
+#   2. Create a fine-grained PAT for this repo with read/write on Contents, Issues and Pull
+#      requests, and read on Actions and Commit statuses. `gh secret set RALPH_GH_TOKEN`.
+#      Not GITHUB_TOKEN: pushes made with it don't trigger CI, so ralph's PRs would never go green.
+#
+# Start: `gh workflow run ralph.yml -f issue=<N>` (empty issue = work through all unblocked issues).
+# Progress and the `ralph:running` lock live on the issue, so a local run and this one never clash.
+
+name: Ralph
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Issue number (empty = every unblocked issue)
+        required: false
+        type: string
+      model:
+        description: Model
+        required: false
+        default: sonnet
+        type: choice
+        options: [sonnet, opus]
+
+concurrency:
+  group: ralph
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - id: check
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          RALPH_GH_TOKEN: ${{ secrets.RALPH_GH_TOKEN }}
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] || [ -z "$RALPH_GH_TOKEN" ]; then
+            echo "::warning::CLAUDE_CODE_OAUTH_TOKEN or RALPH_GH_TOKEN is not set; skipping ralph. See the setup notes at the top of ralph.yml."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  ralph:
+    needs: secrets
+    if: needs.secrets.outputs.ok == 'true'
+    runs-on: ubuntu-latest
+    # GitHub's maximum; covers waiting out a 5-hour usage limit once.
+    timeout-minutes: 360
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      GH_TOKEN: ${{ secrets.RALPH_GH_TOKEN }}
+      RALPH_MODEL: ${{ inputs.model }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RALPH_GH_TOKEN }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Git identity (the PAT's owner)
+        run: |
+          read -r login id < <(gh api user --jq '"\(.login) \(.id)"')
+          git config --global user.name "$login"
+          git config --global user.email "$id+$login@users.noreply.github.com"
+
+      - name: Install Claude Code and the plugins ralph instructions use
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin marketplace add anthropics/claude-plugins-official || echo "::warning::marketplace claude-plugins-official not added"
+          claude plugin marketplace add JuliusBrussee/caveman || echo "::warning::marketplace caveman not added"
+          claude plugin install mattpocock-skills@claude-plugins-official || echo "::warning::mattpocock-skills not installed"
+          claude plugin install caveman@caveman || echo "::warning::caveman not installed"
+
+      # Browser checks (ralph/shared.md): same steps as the CI e2e job.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @notes/web exec playwright install --with-deps chromium
+      # Auth (GoTrue) and the API gateway are needed here, so only unrelated services are excluded.
+      - run: pnpm db:start -x studio,imgproxy,storage-api,edge-runtime,logflare,vector,realtime,supavisor,postgres-meta,mailpit
+
+      - env:
+          ISSUE: ${{ inputs.issue }}
+        run: ./run-ralph.sh $ISSUE
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ralph-logs
+          path: |
+            logs/
+            .ralph/wt/*/logs/
+          if-no-files-found: ignore
