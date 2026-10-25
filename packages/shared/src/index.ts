@@ -44,3 +44,5 @@ export type Taxonomy = z.infer<typeof Taxonomy>;
 /** Body of the create and rename taxonomy requests. */
 export const NameBody = z.object({ name: z.string() });
 export type NameBody = z.infer<typeof NameBody>;
+
+export * from './notes';

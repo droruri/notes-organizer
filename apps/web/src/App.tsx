@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { AuthGate } from './features/auth/AuthGate';
 import { AuthProvider } from './features/auth/AuthProvider';
-import { ApiStatus } from './features/status/ApiStatus';
+import { NotesScreen } from './features/notes/NotesScreen';
 import { Shell } from './features/shell/Shell';
 
 export function App() {
@@ -12,7 +12,7 @@ export function App() {
       <AuthProvider>
         <Shell>
           <AuthGate>
-            <ApiStatus />
+            <NotesScreen />
           </AuthGate>
         </Shell>
       </AuthProvider>

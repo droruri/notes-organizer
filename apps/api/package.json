@@ -9,8 +9,10 @@
     "test": "vp test run"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.88",
     "@fastify/cors": "^11.3.0",
     "@notes/shared": "workspace:*",
+    "ai": "^7.0.153",
     "fastify": "^5.12.5",
     "jose": "^6.2.13",
     "pg": "^8.23.0",

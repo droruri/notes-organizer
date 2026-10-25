@@ -1,4 +1,16 @@
-import { ApiError, Category, HealthResponse, Settings, Tag, Taxonomy } from '@notes/shared';
+import {
+  ApiError,
+  Category,
+  HealthResponse,
+  Note,
+  NoteCreate,
+  NoteCreated,
+  NoteEdit,
+  NoteList,
+  Settings,
+  Tag,
+  Taxonomy,
+} from '@notes/shared';
 import { z } from 'zod';
 import { accessToken } from './supabase';
 
@@ -69,6 +81,9 @@ export const api = {
   renameTag: (id: string, name: string) => request('PATCH', `/tags/${id}`, Tag, { name }),
   deleteTag: (id: string) => request('DELETE', `/tags/${id}`, NoContent),
   restoreTag: (id: string) => request('POST', `/tags/${id}/restore`, Tag),
+  notes: () => request('GET', '/notes', NoteList),
+  createNote: (input: NoteCreate) => request('POST', '/notes', NoteCreated, input),
+  updateNote: (id: string, edit: NoteEdit) => request('PATCH', `/notes/${id}`, Note, edit),
 };
 
 /** Generic verbs for features that add their own endpoints. */

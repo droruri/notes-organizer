@@ -19,5 +19,47 @@
       "title": "אין לך גישה",
       "body": "לחשבון הזה אין הרשאה להשתמש באפליקציה."
     }
+  },
+  "notes": {
+    "title": "הפתקים",
+    "add": "פתק חדש",
+    "placeholder": "מה תרצה לרשום?",
+    "suggest": "הצע סיווג",
+    "suggesting": "Claude חושב…",
+    "empty": "אין פתקים עדיין",
+    "draft": "טיוטה",
+    "submit": "שמירה",
+    "submitting": "שומר…",
+    "cancel": "ביטול",
+    "error": "משהו השתבש. נסה שוב.",
+    "body": "טקסט",
+    "dueDate": "תאריך יעד",
+    "importance": "חשיבות",
+    "urgency": "דחיפות",
+    "none": "—",
+    "importanceValues": {
+      "important": "חשוב",
+      "not_important": "לא חשוב"
+    },
+    "urgencyValues": {
+      "not_critical": "לא קריטי",
+      "medium": "בינוני",
+      "critical": "קריטי",
+      "urgent": "דחוף"
+    },
+    "status": {
+      "draft": "טיוטה",
+      "todo": "לביצוע",
+      "in_progress": "בתהליך",
+      "done": "הושלם"
+    },
+    "picker": {
+      "categories": "קטגוריות",
+      "new": "חדש",
+      "createLabel": "שם חדש",
+      "createIn": "הוסף אל",
+      "newCategory": "קטגוריה חדשה",
+      "add": "הוספה"
+    }
   }
 }
