@@ -25,6 +25,23 @@ Needs `jq`. The keys are listed under "Hosted setup" in `.env.example`; the manu
 issue #18. After the deploy, sign in on the web URL with an address from `ALLOWED_EMAILS`, then
 add everyone else in the app: see [docs/adding-users.md](docs/adding-users.md).
 
+## Android
+
+The hosted PWA packaged as a Trusted Web Activity ([Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap), config in `apps/web/twa-manifest.json`). Needs JDK 17+ and `jq`.
+
+```sh
+# 1. once: keytool -genkeypair -keystore android.keystore -alias notes -keyalg RSA -keysize 2048 -validity 10000
+#    then put ANDROID_KEYSTORE, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and
+#    ANDROID_KEYSTORE_SHA256 (from `keytool -list -v -keystore android.keystore`) in .env
+pnpm build:android   # skips with a warning when ANDROID_KEYSTORE* is unset
+pnpm deploy:hosted   # publishes the regenerated .well-known/assetlinks.json with the web
+adb install apps/web/android/app-release-signed.apk
+```
+
+The build writes `app-release-bundle.aab` (Play Store) and `app-release-signed.apk` to `apps/web/android/`, and regenerates `apps/web/public/.well-known/assetlinks.json` from the fingerprint, so deploy the web after building. Set `HOSTED_WEB_URL` if the web host differs from the one in `twa-manifest.json`.
+
+Share-target check: in YouTube or Chrome tap Share, pick the notes app, and the add-note screen opens with the link prefilled. If a browser address bar shows, the asset links don't match the signing key.
+
 ## Ralph
 
 Issues labeled `ready-for-agent` are built by the ralph loop: `./run-ralph.sh` (all unblocked

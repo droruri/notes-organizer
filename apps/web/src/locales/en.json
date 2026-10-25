@@ -27,6 +27,7 @@
     "suggest": "Suggest",
     "suggesting": "Claude is thinking…",
     "empty": "No notes yet",
+    "noMatches": "No notes match the filter",
     "draft": "Draft",
     "submit": "Save",
     "submitting": "Saving…",

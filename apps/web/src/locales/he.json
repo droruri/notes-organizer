@@ -27,6 +27,7 @@
     "suggest": "הצע סיווג",
     "suggesting": "Claude חושב…",
     "empty": "אין פתקים עדיין",
+    "noMatches": "אין פתקים שמתאימים לסינון",
     "draft": "טיוטה",
     "submit": "שמירה",
     "submitting": "שומר…",

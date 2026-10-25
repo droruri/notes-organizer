@@ -32,7 +32,9 @@ export function NoteCard({
   return (
     <li className="rounded-lg border border-line p-3">
       <button type="button" onClick={() => onOpen(note)} className="block w-full text-start">
-        <span className="whitespace-pre-wrap break-words">{note.body}</span>
+        <span dir="auto" className="block whitespace-pre-wrap break-words">
+          {note.body}
+        </span>
       </button>
       <LinkPreviews body={note.body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}

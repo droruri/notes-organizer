@@ -56,7 +56,11 @@ export function buildServer({
   app.addHook('onReady', async () => {
     await seeded().catch((err: unknown) => app.log.error({ err }, 'seeding admins failed'));
   });
-  void app.register(cors, { origin: webOrigin });
+  // @fastify/cors v11 allows only GET/HEAD/POST by default; routes also use PUT/PATCH/DELETE.
+  void app.register(cors, {
+    origin: webOrigin,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
   healthRoutes(app, db);
   // Every route registered in this scope requires a signed-in, allowed user.
   void app.register(async (authed) => {

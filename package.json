@@ -18,6 +18,7 @@
     "build": "pnpm typecheck && pnpm -r build",
     "test": "pnpm -r test",
     "deploy:hosted": "scripts/deploy-hosted.sh",
+    "build:android": "scripts/build-android.sh",
     "setup:hosted": "scripts/setup-hosted.sh"
   },
   "devDependencies": {

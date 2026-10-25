@@ -1,13 +1,25 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /** The header menu: "Import notes", plus "Users" for an admin (`onUsers` set). */
 export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUsers?: () => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      toggle.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
   return (
     <div className="relative">
       <button
+        ref={toggle}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}

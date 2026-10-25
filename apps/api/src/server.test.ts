@@ -116,3 +116,24 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe('CORS preflight', () => {
+  const webOrigin = 'https://web.example';
+  const app = buildServer({
+    db: createPool('postgresql://unused@127.0.0.1:1/none'),
+    ...auth,
+    webOrigin,
+  });
+  afterAll(() => app.close());
+
+  it.each(['PUT', 'PATCH', 'DELETE'])('allows %s from the web origin', async (method) => {
+    const res = await app.inject({
+      method: 'OPTIONS',
+      url: '/notes/some-id',
+      headers: { origin: webOrigin, 'access-control-request-method': method },
+    });
+    expect(res.statusCode).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe(webOrigin);
+    expect(String(res.headers['access-control-allow-methods'])).toContain(method);
+  });
+});
