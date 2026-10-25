@@ -71,6 +71,20 @@ describe('ChatPanel', () => {
     await screen.findByText(/what is overdue/);
   });
 
+  it('renders a streamed action as an ActionCard', async () => {
+    ask(
+      scripted([
+        { type: 'text-delta', delta: 'Add it?' },
+        {
+          type: 'data-actions',
+          data: [{ action: 'create', kind: 'category', name: 'Money' }],
+        },
+      ]),
+    );
+    expect(await screen.findByText(/Money/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /אישור|approve/i })).toBeTruthy();
+  });
+
   it('shows an error when the stream fails', async () => {
     ask(async () => {
       throw new Error('down');

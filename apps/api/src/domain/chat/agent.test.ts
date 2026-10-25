@@ -28,9 +28,10 @@ const note = (id: string, o: Record<string, unknown>) => ({
 type Row = { notes: object[]; cats: object[]; tags: object[] };
 
 /** A fake pool that, like the repositories, only returns the rows of the user id in `$1`. */
-function fakeDb(rowsByUser: Record<string, Row>): Db {
+function fakeDb(rowsByUser: Record<string, Row>, sqls: string[] = []): Db {
   return {
     query: async (sql: string, params: unknown[]) => {
+      sqls.push(sql);
       const data = rowsByUser[String(params[0])] ?? { notes: [], cats: [], tags: [] };
       if (/from notes/.test(sql)) return { rows: data.notes };
       if (/from categories/.test(sql)) return { rows: data.cats };
@@ -114,23 +115,20 @@ describe('propose_change', () => {
   const D1 = 'd1111111-1111-4111-8111-111111111111';
   const T2 = 'a2222222-2222-4222-8222-222222222222';
   const sqls: string[] = [];
-  const base = fakeDb({
-    [ME]: {
-      cats: [cat(C1, 'Work'), cat(C2, 'Home'), { id: D1, name: 'Old', deleted: true }],
-      tags: [
-        { id: T1, categoryId: C1, name: 'urgent-ish', deleted: false },
-        { id: T2, categoryId: D1, name: 'gone', deleted: true },
-      ],
-      notes: [],
+  const db = fakeDb(
+    {
+      [ME]: {
+        cats: [cat(C1, 'Work'), cat(C2, 'Home'), { id: D1, name: 'Old', deleted: true }],
+        tags: [
+          { id: T1, categoryId: C1, name: 'urgent-ish', deleted: false },
+          { id: T2, categoryId: D1, name: 'gone', deleted: true },
+        ],
+        notes: [],
+      },
     },
-  });
-  const recording = {
-    query: async (sql: string, params: unknown[]) => {
-      sqls.push(sql);
-      return base.query(sql, params);
-    },
-  } as unknown as Db;
-  const propose = buildTools({ db: recording, userId: ME, today }).proposeChange;
+    sqls,
+  );
+  const propose = buildTools({ db, userId: ME, today }).proposeChange;
 
   it('returns an action for each valid change and never writes', async () => {
     expect(await propose({ action: 'create', kind: 'category', name: ' Money ' })).toEqual({
