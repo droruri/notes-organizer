@@ -279,9 +279,17 @@ too, so there is one fetch path.
 - YouTube: oEmbed (`https://www.youtube.com/oembed?url=…&format=json`) for title and author, plus
   the watch page's `og:description`. No transcript.
 - Vimeo: `https://vimeo.com/api/oembed.json?url=…` (title and description).
+- Blocked sites, as in `my-holy-attractions-map` `domain/normalizer/pageMeta.ts`: a 403, 429,
+  503 or network error is retried once with a browser user-agent. If the page is still blocked
+  and `JINA_API_KEY` is set, it is read through Jina Reader (`https://r.jina.ai/<url>`,
+  `Authorization: Bearer`, `x-return-format: html`, 10 s timeout). The same parser then reads the
+  HTML. Only public http/https URLs that pass the SSRF check go to the reader, so Jina sees only
+  the public page URL. Without the key this step is skipped, and the link is unread. Env:
+  `JINA_API_KEY` (optional; append to `.env.example` with a comment).
 
 `notes/service` (`createDraft`, `analyze`) runs `extractLinks(body)`, reads the first 3 links in
-parallel with a 6 s budget for the whole note, then classifies. A link that fails (paywall, bot
+parallel with a 6 s budget for the whole note (15 s when a link falls back to Jina Reader), then
+classifies. A link that fails (paywall, bot
 block, private video, timeout) is still sent as a URL and lands in `Suggestion.unreadLinks`; it
 never blocks the draft. Some sites will never be readable — the "link not read" chip, the filter
 and Re-analyze are the safety net.
@@ -336,6 +344,7 @@ and Re-analyze are the safety net.
 
 `scripts/deploy-hosted.sh`, adapted from the sibling repo: hosted Supabase migrations and the
 Google provider, Render API service (env incl. `ANTHROPIC_API_KEY`, `GROQ_API_KEY`,
+`JINA_API_KEY` when set,
 `ALLOWED_EMAILS`, `SUPABASE_URL`, `WEB_ORIGIN`), Cloudflare Pages for the web, cron-job.org
 keep-alive (`/health` every 14 min 07:00–23:00; `/health?deep=1` daily). Idempotent; each step
 skips with a warning when its key is missing.
@@ -343,7 +352,7 @@ skips with a warning when its key is missing.
 Creating accounts and keys is human-only, in a `needs-human` setup issue with exact steps
 (Supabase project, Google OAuth client, Supabase Google provider, Anthropic key with a spend
 limit, Groq key, Render + GitHub, Cloudflare Pages GitHub app + API token + account id,
-cron-job.org key). `scripts/setup-hosted.sh` (built with the `wizard` skill) walks through those
+cron-job.org key, optional Jina Reader key). `scripts/setup-hosted.sh` (built with the `wizard` skill) walks through those
 steps: for each value it shows where to find it and asks for it; it creates `.env` from
 `.env.example` when `.env` is missing and otherwise appends; it never overwrites a filled key; it
 appends any missing key name to `.env.example` with an empty value; it is re-runnable; at the end
@@ -359,7 +368,8 @@ it offers to run `pnpm deploy:hosted`.
   ids → `404` / `422`; audio size and mime limits, playback; import analyze writes nothing,
   confirm all-or-nothing; link preview against a local HTTP fixture server, private-IP
   rejection; link context: a fixture page's title reaches the fake AI prompt, a failing link
-  lands in `unreadLinks`, the 3-link cap per note, the 30-link cap per import; chat: `find_notes` scoped to the caller, `propose_change` never writes.
+  lands in `unreadLinks`, a 403 fixture is retried through a fake reader when `JINA_API_KEY` is
+  set and stays unread without it, the 3-link cap per note, the 30-link cap per import; chat: `find_notes` scoped to the caller, `propose_change` never writes.
 - **Pure units** — `note.ts` transitions and invariant, `taxonomy.ts` rules, `classify.ts`
   mapping (unknown ids, duplicate names), `noteQuery.ts` (every filter, the sort order, overdue
   on the today boundary), `links.ts` URL forms, `outbox.ts`.

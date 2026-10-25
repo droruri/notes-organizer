@@ -61,6 +61,7 @@ Before Claude classifies a note, the server reads up to 3 of its links:
 - articles: title, description and the start of the text
 - videos: title and description
 
+When a site blocks the server, the server tries once more as a normal browser. Then, if a Jina Reader key is set, it reads the page through Jina Reader. Jina sees only the public page address.
 If a link can't be read (paywall, a site that blocks bots, a private video), the note shows a "link not read" chip. The chip stays after you submit. A "Links not read" filter finds those notes, and Re-analyze tries again.
 **Example:** you share a YouTube link with no text. Claude reads the title "Index funds explained" and suggests Finance › Index investing.
 **What we gain:** you don't leave the app to see what a note points to. Shared links are classified by their content. You can see when a link wasn't read.
