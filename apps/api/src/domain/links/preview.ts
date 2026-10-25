@@ -128,7 +128,8 @@ export function parsePage(html: string, pageUrl: string): Parsed {
   const siteName = metaOf(doc, 'og:site_name');
   let paragraphs: string[] = [];
   try {
-    const article = new Readability(doc.cloneNode(true) as Document).parse();
+    // Readability mutates the document it is given, so it gets its own parse.
+    const article = new Readability(new JSDOM(html, { url: pageUrl }).window.document).parse();
     if (article?.content) {
       const body = new JSDOM(article.content).window.document;
       paragraphs = [...body.querySelectorAll('p, li, blockquote, h1, h2, h3, h4')]

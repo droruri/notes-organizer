@@ -106,7 +106,10 @@ export function createAnthropicAi({
       }),
     async transcribe({ audio }) {
       const { text } = await transcribe({ model: groq.transcription('whisper-large-v3'), audio });
-      return { text };
+      // Provider output is untrusted: a non-string throws, and the caller maps that to a failure.
+      const parsed = z.string().safeParse(text);
+      if (!parsed.success) throw new Error('transcription returned no text');
+      return { text: parsed.data };
     },
   };
 }
