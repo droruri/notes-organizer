@@ -19,8 +19,8 @@ const VoiceCreate = NoteCreate.omit({ body: true });
 
 type Upload = { fields: Record<string, string>; audio: { mime: string; data: Buffer } | null };
 
-/** Reads the `audio` file and the text fields; `null` when the file is over the size cap. */
-async function readUpload(req: FastifyRequest): Promise<Upload | null> {
+/** Reads the `audio` file and the text fields; `too_large` over the size cap, `too_many` for a second file. */
+async function readUpload(req: FastifyRequest): Promise<Upload | 'too_large' | 'too_many'> {
   const fields: Record<string, string> = {};
   let audio: Upload['audio'] = null;
   try {
@@ -35,7 +35,10 @@ async function readUpload(req: FastifyRequest): Promise<Upload | null> {
       }
     }
   } catch (err) {
-    if (err instanceof Error && 'code' in err && err.code === 'FST_REQ_FILE_TOO_LARGE') return null;
+    if (err instanceof Error && 'code' in err && err.code === 'FST_REQ_FILE_TOO_LARGE') {
+      return 'too_large';
+    }
+    if (err instanceof Error && 'code' in err && err.code === 'FST_FILES_LIMIT') return 'too_many';
     throw err;
   }
   return { fields, audio };
@@ -46,7 +49,8 @@ const Params = z.object({ id: z.uuid() });
 export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
   async function voiceNote(req: FastifyRequest, reply: FastifyReply) {
     const upload = await readUpload(req);
-    if (upload === null) return reply.code(413).send({ error: 'audio_too_large' });
+    if (upload === 'too_large') return reply.code(413).send({ error: 'audio_too_large' });
+    if (upload === 'too_many') return reply.code(400).send({ error: 'invalid_body' });
     const input = VoiceCreate.safeParse(upload.fields);
     if (!input.success || !upload.audio || upload.audio.data.length === 0) {
       return reply.code(400).send({ error: 'invalid_body' });

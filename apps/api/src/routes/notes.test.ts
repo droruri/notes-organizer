@@ -353,6 +353,28 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       expect((await upload(null)).statusCode).toBe(400);
     });
 
+    it('answers 400 when a second audio file is sent', async () => {
+      const part = (name: string) =>
+        `--xBOUNDARYx\r\nContent-Disposition: form-data; name="audio"; filename="${name}"\r\nContent-Type: audio/webm\r\n\r\n`;
+      const payload = Buffer.concat([
+        Buffer.from(
+          `--xBOUNDARYx\r\nContent-Disposition: form-data; name="clientId"\r\n\r\n${crypto.randomUUID()}\r\n`,
+        ),
+        Buffer.from(part('a')),
+        bytes,
+        Buffer.from(`\r\n${part('b')}`),
+        bytes,
+        Buffer.from('\r\n--xBOUNDARYx--\r\n'),
+      ]);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/notes',
+        headers: { ...mine, 'content-type': 'multipart/form-data; boundary=xBOUNDARYx' },
+        payload,
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
     it('answers 404 for another user, a text note and an unknown id', async () => {
       const res = await upload({ data: bytes, type: 'audio/mpeg' });
       const id = NoteCreated.parse(res.json()).note.id;

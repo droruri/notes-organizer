@@ -1,5 +1,6 @@
 import {
   ApiError,
+  AUDIO_MIMES,
   Category,
   HealthResponse,
   Note,
@@ -87,7 +88,12 @@ async function noteAudio(id: string): Promise<Blob> {
     headers: token ? { authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new ApiRequestError(res.status, undefined, `GET audio failed: ${res.status}`);
-  return res.blob();
+  const blob = await res.blob();
+  const mime = (blob.type.split(';')[0] ?? '').trim();
+  if (!(AUDIO_MIMES as readonly string[]).includes(mime)) {
+    throw new ApiRequestError(res.status, undefined, `GET audio: unexpected type ${blob.type}`);
+  }
+  return blob;
 }
 
 export const api = {
