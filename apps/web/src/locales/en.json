@@ -1,9 +1,23 @@
 {
-  "app": { "name": "My Notes" },
-  "language": { "switchTo": "עברית" },
+  "app": {
+    "name": "My Notes"
+  },
+  "language": {
+    "switchTo": "עברית"
+  },
   "status": {
     "checking": "Checking the server…",
     "down": "Server unavailable",
     "up": "Server is up"
+  },
+  "auth": {
+    "loading": "Signing in…",
+    "signInGoogle": "Sign in with Google",
+    "devSignIn": "Dev sign-in",
+    "signOut": "Sign out",
+    "noAccess": {
+      "title": "No access",
+      "body": "This account is not allowed to use the app."
+    }
   }
 }

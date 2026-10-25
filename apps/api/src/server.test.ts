@@ -2,12 +2,15 @@ import { HealthResponse } from '@notes/shared';
 import { afterAll, describe, expect, it } from 'vite-plus/test';
 import { createPool } from './db';
 import { buildServer } from './server';
+import { allowedEmails, ALLOWED_USER, fakeVerifyToken } from './test-auth';
+
+const auth = { verifyToken: fakeVerifyToken, allowedEmails };
 
 const databaseUrl = process.env.DATABASE_URL;
 
 describe('GET /health', () => {
   // The pool connects lazily, and the shallow check never queries.
-  const app = buildServer({ db: createPool('postgresql://unused@127.0.0.1:1/none') });
+  const app = buildServer({ db: createPool('postgresql://unused@127.0.0.1:1/none'), ...auth });
   afterAll(() => app.close());
 
   it('answers ok without touching the database', async () => {
@@ -25,7 +28,7 @@ describe('GET /health', () => {
 
 describe.skipIf(!databaseUrl)('GET /health?deep=1 against the local stack', () => {
   const pool = createPool(databaseUrl ?? '');
-  const app = buildServer({ db: pool });
+  const app = buildServer({ db: pool, ...auth });
   afterAll(async () => {
     await app.close();
     await pool.end();
@@ -34,5 +37,75 @@ describe.skipIf(!databaseUrl)('GET /health?deep=1 against the local stack', () =
   it('reaches the database', async () => {
     const res = await app.inject({ method: 'GET', url: '/health?deep=1' });
     expect(res.json()).toEqual({ ok: true, db: true });
+  });
+});
+
+describe('auth', () => {
+  const app = buildServer({ db: createPool('postgresql://unused@127.0.0.1:1/none'), ...auth });
+  afterAll(() => app.close());
+  const get = (authorization?: string) =>
+    app.inject({
+      method: 'GET',
+      url: '/settings',
+      ...(authorization ? { headers: { authorization } } : {}),
+    });
+
+  it('401s without a token', async () => {
+    const res = await get();
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'unauthorized' });
+  });
+
+  it('401s with an invalid token', async () => {
+    expect((await get('Bearer nope')).statusCode).toBe(401);
+  });
+
+  it('403s for an email not on the allowlist', async () => {
+    const res = await get('Bearer other');
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'not_allowed' });
+  });
+});
+
+describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
+  const pool = createPool(databaseUrl ?? '');
+  const app = buildServer({ db: pool, ...auth });
+  const headers = { authorization: 'Bearer allowed' };
+  afterAll(async () => {
+    await pool.query('delete from user_settings where user_id = $1', [ALLOWED_USER.id]);
+    await pool.query('delete from auth.users where id = $1', [ALLOWED_USER.id]);
+    await app.close();
+    await pool.end();
+  });
+
+  it('returns defaults, then round-trips a saved sort', async () => {
+    await pool.query(
+      `insert into auth.users (id, email, aud, role) values ($1, $2, 'authenticated', 'authenticated')
+       on conflict do nothing`,
+      [ALLOWED_USER.id, ALLOWED_USER.email],
+    );
+    const first = await app.inject({ method: 'GET', url: '/settings', headers });
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toEqual({ noteSort: 'urgency' });
+
+    const put = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteSort: 'newest' },
+    });
+    expect(put.json()).toEqual({ noteSort: 'newest' });
+    const again = await app.inject({ method: 'GET', url: '/settings', headers });
+    expect(again.json()).toEqual({ noteSort: 'newest' });
+  });
+
+  it('rejects an invalid body with 400', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteSort: 'bogus' },
+    });
+    expect(res.statusCode).toBe(400);
   });
 });

@@ -2,8 +2,10 @@ import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPool, type Db } from './db';
 import { healthRoutes } from './routes/health';
+import { settingsRoutes } from './routes/settings';
 
 // Wiring only: build the app, register routes, read env. Domain logic lives in src/domain/<area>/.
 
@@ -11,10 +13,14 @@ const DEFAULT_WEB_ORIGIN = 'http://localhost:5173';
 
 export function buildServer({
   db,
+  verifyToken,
+  allowedEmails,
   webOrigin = DEFAULT_WEB_ORIGIN,
   logger = false,
 }: {
   db: Db;
+  verifyToken: VerifyToken;
+  allowedEmails: ReadonlySet<string>;
   webOrigin?: string;
   /** Request logging; off by default so tests stay silent. */
   logger?: boolean;
@@ -22,12 +28,19 @@ export function buildServer({
   const app = Fastify({ logger });
   void app.register(cors, { origin: webOrigin });
   healthRoutes(app, db);
+  // Every route registered in this scope requires a signed-in, allowed user.
+  void app.register(async (authed) => {
+    authed.addHook('onRequest', requireUser(verifyToken, allowedEmails));
+    settingsRoutes(authed, db);
+  });
   return app;
 }
 
 const Env = z.object({
   DATABASE_URL: z.string().min(1),
   WEB_ORIGIN: z.url(),
+  SUPABASE_URL: z.url(),
+  ALLOWED_EMAILS: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(3000),
 });
 
@@ -39,6 +52,8 @@ async function main(): Promise<void> {
   }
   const app = buildServer({
     db: createPool(env.data.DATABASE_URL),
+    verifyToken: createTokenVerifier(env.data.SUPABASE_URL),
+    allowedEmails: parseAllowedEmails(env.data.ALLOWED_EMAILS),
     webOrigin: env.data.WEB_ORIGIN,
     logger: true,
   });
