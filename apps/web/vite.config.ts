@@ -18,8 +18,21 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#0b5c78',
-        // Add icon-192.png and icon-512.png to public/ and list them here to make it installable.
-        icons: [],
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: '/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+        share_target: {
+          action: '/',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
       },
     }),
   ],
