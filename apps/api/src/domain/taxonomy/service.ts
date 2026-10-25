@@ -2,6 +2,7 @@ import type { Category, Tag, Taxonomy } from '@notes/shared';
 import type { Db } from '../../db';
 import type { Queryable } from '../../tx';
 import * as repo from './repository';
+import type { NewTaxonomyPlan } from '../notes/note';
 import { isUsable, normalizeName } from './taxonomy';
 
 export type Failure = 'invalid_name' | 'not_found' | 'name_taken' | 'category_deleted';
@@ -104,4 +105,29 @@ export async function setTagDeleted(
     return fail('category_deleted');
   }
   return guarded(() => repo.updateTag(db, id, { deleted }));
+}
+
+/** Create the categories and tags a plan names. Returns the ids of everything it created. */
+export async function createPlanned(
+  tx: Queryable,
+  userId: string,
+  plan: NewTaxonomyPlan,
+): Promise<{ categoryIds: string[]; tagIds: string[] }> {
+  const created = new Map<string, string>();
+  const made = { categoryIds: [] as string[], tagIds: [] as string[] };
+  for (const name of plan.categories) {
+    const category = await repo.insertCategory(tx, userId, name);
+    created.set(name.toLowerCase(), category.id);
+    made.categoryIds.push(category.id);
+  }
+  for (const tag of plan.tags) {
+    if (tag.existingTagId) continue;
+    const categoryId =
+      'id' in tag.category ? tag.category.id : created.get(tag.category.name.toLowerCase());
+    if (categoryId === undefined) throw new Error('planned tag lost its category');
+    const row = await repo.insertTag(tx, categoryId, tag.name);
+    made.tagIds.push(row.id);
+    made.categoryIds.push(categoryId);
+  }
+  return made;
 }

@@ -11,6 +11,7 @@ import { createPool, type Db } from './db';
 import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
 import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
+import { importsRoutes } from './routes/imports';
 import { linksRoutes } from './routes/links';
 import { notesRoutes } from './routes/notes';
 import { settingsRoutes } from './routes/settings';
@@ -50,6 +51,7 @@ export function buildServer({
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
+    importsRoutes(authed, db, ai, links);
     linksRoutes(authed, links);
     chatRoutes(authed, db, ai, webOrigin);
   });

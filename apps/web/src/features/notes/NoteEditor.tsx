@@ -36,8 +36,9 @@ export function NoteEditor({
   failed: boolean;
   onSubmit: (edit: NoteEdit) => void;
   onCancel: () => void;
-  onReanalyze: () => Promise<Suggestion>;
-  onDelete: () => void;
+  /** Omit to hide the button (import rows are not stored yet). */
+  onReanalyze?: (() => Promise<Suggestion>) | undefined;
+  onDelete?: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
   const [body, setBody] = useState(note.body);
@@ -61,7 +62,8 @@ export function NoteEditor({
     setAnalyzing(true);
     setAnalyzeFailed(false);
     try {
-      const next = await onReanalyze();
+      const next = await onReanalyze?.();
+      if (!next) return;
       setPicked({
         categoryIds: next.categoryIds,
         tagIds: next.tagIds,
@@ -183,21 +185,25 @@ export function NoteEditor({
         >
           {t('notes.cancel')}
         </button>
-        <button
-          type="button"
-          onClick={reanalyze}
-          disabled={analyzing}
-          className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover disabled:opacity-50"
-        >
-          {analyzing ? t('notes.reanalyzing') : t('notes.reanalyze')}
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="ms-auto rounded-md border border-line px-4 py-2 text-danger hover:bg-surface-hover"
-        >
-          {t('notes.delete')}
-        </button>
+        {onReanalyze && (
+          <button
+            type="button"
+            onClick={reanalyze}
+            disabled={analyzing}
+            className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover disabled:opacity-50"
+          >
+            {analyzing ? t('notes.reanalyzing') : t('notes.reanalyze')}
+          </button>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="ms-auto rounded-md border border-line px-4 py-2 text-danger hover:bg-surface-hover"
+          >
+            {t('notes.delete')}
+          </button>
+        )}
       </div>
     </form>
   );

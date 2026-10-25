@@ -20,7 +20,7 @@ export const AUDIO_MIMES = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg'
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
 export const MAX_BODY_LENGTH = 10_000;
-const Body = z.string().trim().min(1).max(MAX_BODY_LENGTH);
+export const NoteBody = z.string().trim().min(1).max(MAX_BODY_LENGTH);
 
 /** A tag to create under an existing category (`categoryId`) or a new one (`categoryName`). */
 export const NewTag = z.union([
@@ -68,7 +68,7 @@ export type Note = z.infer<typeof Note>;
 
 /** Body of `POST /notes` (JSON). `id`, `status` and the owner are decided by the server. */
 export const NoteCreate = z.object({
-  body: Body,
+  body: NoteBody,
   clientId: z.uuid(),
   today: DateString,
   locale: Locale,
@@ -80,7 +80,7 @@ export type NoteCreated = z.infer<typeof NoteCreated>;
 
 /** Body of `PATCH /notes/:id`. `status: 'todo'` on a draft submits it. */
 export const NoteEdit = z.object({
-  body: Body.optional(),
+  body: NoteBody.optional(),
   categoryIds: z.array(z.uuid()).optional(),
   tagIds: z.array(z.uuid()).optional(),
   newCategories: z.array(z.string()).optional(),
