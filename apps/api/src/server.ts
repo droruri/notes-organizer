@@ -1,4 +1,5 @@
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import { MAX_AUDIO_BYTES } from '@notes/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -8,6 +9,7 @@ import { AiEnv, createAi, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPool, type Db } from './db';
 import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
+import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
 import { linksRoutes } from './routes/links';
 import { notesRoutes } from './routes/notes';
@@ -43,11 +45,13 @@ export function buildServer({
   // Every route registered in this scope requires a signed-in, allowed user.
   void app.register(async (authed) => {
     authed.addHook('onRequest', requireUser(verifyToken, allowedEmails));
+    await authed.register(rateLimit, { global: false });
     void authed.register(multipart, { limits: { fileSize: MAX_AUDIO_BYTES, files: 1 } });
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
     linksRoutes(authed, links);
+    chatRoutes(authed, db, ai);
   });
   return app;
 }

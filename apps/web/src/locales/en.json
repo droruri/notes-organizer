@@ -111,5 +111,17 @@
     "failed": "Preview unavailable",
     "reader": "Reader view",
     "original": "Open original"
+  },
+  "chat": {
+    "title": "Ask about your notes",
+    "open": "Ask",
+    "close": "Close",
+    "placeholder": "Ask about your notes…",
+    "send": "Send",
+    "searching": "Searching your notes…",
+    "error": "The assistant is unavailable. Try again.",
+    "empty": "Ask what categories you have, what is overdue, or what is in progress.",
+    "you": "You",
+    "assistant": "Assistant"
   }
 }

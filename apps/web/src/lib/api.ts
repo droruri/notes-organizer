@@ -1,5 +1,7 @@
 import {
   ApiError,
+  ChatPart,
+  type ChatRequest,
   AUDIO_MIMES,
   Category,
   HealthResponse,
@@ -97,7 +99,53 @@ async function noteAudio(id: string): Promise<Blob> {
   return blob;
 }
 
+/**
+ * `POST /chat`: reads the SSE stream and hands each recognised part to `onPart`.
+ * Parts the panel does not use are skipped.
+ */
+async function chat(
+  input: ChatRequest,
+  onPart: (part: ChatPart) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = await accessToken();
+  const res = await fetch(`${baseUrl}/chat`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(input),
+    ...(signal ? { signal } : {}),
+  });
+  if (!res.ok || !res.body) {
+    throw new ApiRequestError(res.status, undefined, `POST /chat failed: ${res.status}`);
+  }
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += value;
+    const events = buffer.split('\n\n');
+    buffer = events.pop() ?? '';
+    for (const event of events) {
+      const data = event.startsWith('data: ') ? event.slice(6) : undefined;
+      if (data === undefined) continue;
+      let json: unknown;
+      try {
+        json = JSON.parse(data);
+      } catch {
+        continue;
+      }
+      const part = ChatPart.safeParse(json);
+      if (part.success) onPart(part.data);
+    }
+  }
+}
+
 export const api = {
+  chat,
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),

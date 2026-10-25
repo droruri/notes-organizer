@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { ChatPanel } from '../chat/ChatPanel';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
@@ -48,6 +49,7 @@ export function NotesScreen() {
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const [chatOpen, setChatOpen] = useState(false);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
   const saveSort = useMutation({
@@ -193,13 +195,22 @@ export function NotesScreen() {
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t('notes.title')}</h2>
-        <button
-          type="button"
-          onClick={() => setMode({ kind: 'compose' })}
-          className="rounded-md bg-fg px-4 py-2 text-bg"
-        >
-          {t('notes.add')}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
+          >
+            {t('chat.open')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode({ kind: 'compose' })}
+            className="rounded-md bg-fg px-4 py-2 text-bg"
+          >
+            {t('notes.add')}
+          </button>
+        </div>
       </div>
       <div className="flex flex-col gap-3">
         <NoteFilters filter={filter} onChange={setFilter} taxonomy={taxonomy.data} />
@@ -236,6 +247,16 @@ export function NotesScreen() {
         <p role="alert" className="text-danger">
           {t('notes.error')}
         </p>
+      )}
+      {chatOpen && (
+        <ChatPanel
+          notes={notes.data}
+          onOpenNote={(note) => {
+            setChatOpen(false);
+            setMode({ kind: 'edit', note });
+          }}
+          onClose={() => setChatOpen(false)}
+        />
       )}
       {undoId !== null && (
         <div

@@ -6,6 +6,7 @@ import { currentUser } from '../auth';
 import type { Db } from '../db';
 import type { LinkReader } from '../domain/links/preview';
 import { isTodayPlausible } from '../domain/notes/note';
+import { llmRateLimit } from './rateLimit';
 import * as service from '../domain/notes/service';
 
 const STATUS: Record<service.Failure, number> = {
@@ -76,7 +77,7 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkRea
 
   app.get('/notes', async (req) => service.listNotes(db, currentUser(req).id));
 
-  app.post('/notes', async (req, reply) => {
+  app.post('/notes', { config: llmRateLimit }, async (req, reply) => {
     if (req.isMultipart()) return voiceNote(req, reply);
     const body = NoteCreate.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
@@ -125,7 +126,7 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkRea
     return result.value;
   });
 
-  app.post('/notes/:id/analyze', async (req, reply) => {
+  app.post('/notes/:id/analyze', { config: llmRateLimit }, async (req, reply) => {
     const params = Params.safeParse(req.params);
     if (!params.success) return reply.code(404).send({ error: 'not_found' });
     const body = NoteAnalyze.safeParse(req.body);
