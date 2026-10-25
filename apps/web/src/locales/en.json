@@ -60,6 +60,24 @@
       "createIn": "Add to",
       "newCategory": "New category",
       "add": "Add"
+    },
+    "created": "Created",
+    "overdue": "Overdue",
+    "sort": {
+      "label": "Sort",
+      "urgency": "Urgency",
+      "due_date": "Due date",
+      "newest": "Newest",
+      "oldest": "Oldest"
     }
+  },
+  "filters": {
+    "title": "Filter",
+    "search": "Search notes",
+    "tags": "Tags",
+    "status": "Status",
+    "from": "from",
+    "to": "to",
+    "clear": "Clear filters"
   }
 }
