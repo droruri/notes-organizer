@@ -6,6 +6,7 @@ import {
   Importance,
   Urgency,
   NoteStatus,
+  DateString,
 } from '@notes/shared';
 import type { ChatMessage, Locale, Note } from '@notes/shared';
 import { tool, type ToolSet } from 'ai';
@@ -28,8 +29,8 @@ const FindNotesInput = z.object({
   urgencies: z.array(Urgency).optional(),
   overdue: z.boolean().optional(),
   text: z.string().optional(),
-  dueBefore: z.string().optional(),
-  dueAfter: z.string().optional(),
+  dueBefore: DateString.optional(),
+  dueAfter: DateString.optional(),
   limit: z.number().int().min(1).max(MAX_FIND_LIMIT).optional(),
 });
 type FindNotesInput = z.infer<typeof FindNotesInput>;

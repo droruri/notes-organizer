@@ -135,4 +135,4 @@ export const ChatPart = z.discriminatedUnion('type', [
 export type ChatPart = z.infer<typeof ChatPart>;
 
 /** An answer cites a note as `[[note:<id>]]`. */
-export const NOTE_CITATION = /\[\[note:([0-9a-f-]{36})\]\]/g;
+export const NOTE_CITATION = /\[\[note:([0-9a-f-]{36})\]\]/;

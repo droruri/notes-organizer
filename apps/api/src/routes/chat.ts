@@ -7,7 +7,7 @@ import { llmRateLimit } from './rateLimit';
 import { chatArgs } from '../domain/chat/agent';
 import { isTodayPlausible } from '../domain/notes/note';
 
-export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
+export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai, webOrigin: string): void {
   app.post('/chat', { config: llmRateLimit }, async (req, reply) => {
     const body = ChatRequest.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
@@ -18,7 +18,7 @@ export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
     raw.writeHead(200, {
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
-      'access-control-allow-origin': req.headers.origin ?? '*',
+      'access-control-allow-origin': webOrigin,
     });
     try {
       for await (const part of result.toUIMessageStream()) {

@@ -51,7 +51,7 @@ export function buildServer({
     taxonomyRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
     linksRoutes(authed, links);
-    chatRoutes(authed, db, ai);
+    chatRoutes(authed, db, ai, webOrigin);
   });
   return app;
 }

@@ -34,7 +34,9 @@ const scripted =
 function ask(stream: NonNullable<Parameters<typeof ChatPanel>[0]['stream']>, onOpenNote = vi.fn()) {
   render(<ChatPanel notes={[note]} onOpenNote={onOpenNote} onClose={vi.fn()} stream={stream} />);
   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'what is overdue?' } });
-  fireEvent.submit(screen.getByRole('textbox').closest('form') as HTMLFormElement);
+  const form = screen.getByRole('textbox').closest('form');
+  if (!form) throw new Error('ChatPanel input is not inside a form');
+  fireEvent.submit(form);
   return onOpenNote;
 }
 
