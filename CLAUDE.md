@@ -5,7 +5,8 @@ in `docs/plan.md`; read the relevant section before starting a ticket.
 
 ## Layout
 
-pnpm workspaces monorepo:
+pnpm workspaces monorepo on [Vite+](https://viteplus.dev/) (`vp`); lint and format config live
+in the root `vite.config.ts`:
 
 - `apps/web` — Vite + React + TS PWA.
 - `apps/api` — the single Fastify + TS service.
@@ -17,10 +18,10 @@ pnpm workspaces monorepo:
 
 ```sh
 pnpm dev          # supabase start + api + web
-pnpm lint         # eslint + prettier --check
-pnpm format       # prettier --write
+pnpm lint         # vp lint (Oxlint) + vp fmt --check (Oxfmt)
+pnpm format       # vp fmt
 pnpm typecheck    # tsc in every package
-pnpm test         # vitest in every package
+pnpm test         # vp test (Vitest) in every package
 pnpm --filter @notes/api test   # one package
 pnpm db:reset     # fresh local DB, all migrations re-applied
 pnpm db:new <name>
@@ -53,8 +54,8 @@ Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralp
 - Every boundary is parsed, not trusted: request bodies/queries, env vars, API responses, LLM
   output, fetched pages — Zod `safeParse`, with the failure branch handled.
 - Server-derived fields (`created_by`, ids, …) are never accepted from the client.
-- Tests: Vitest everywhere; API routes through `app.inject()` via `buildServer({ db })`; web
-  components through React Testing Library. **No real LLM calls in any test or in CI.**
+- Tests: Vitest everywhere, imported from `vite-plus/test` (lint-enforced); API routes through
+  `app.inject()` via `buildServer({ db })`; web components through React Testing Library. **No real LLM calls in any test or in CI.**
 - UI text is Hebrew, RTL.
 - `pg` return types: `timestamptz` → `Date`; `numeric`, `bigint` and `extract(epoch …)` →
   **string**. Cast in SQL (`::float8`, `::int`) or parse explicitly — don't type them as numbers.
@@ -117,5 +118,5 @@ and follow it instead of calling the Skill tool.
 - If `pnpm` isn't on PATH, use `npx pnpm`.
 - Always quote pnpm filters (`pnpm --filter './apps/*'`) — unquoted, the shell expands the glob.
 - If `gh pr edit` fails on token scope, use `gh api` (REST) instead.
-- Don't run Prettier on `ralph/*.md` or other hand-written planning docs.
+- Don't run the formatter on `ralph/*.md` or other hand-written planning docs.
 - UI changes aren't done until checked in a browser (Playwright from Bash, see `ralph/shared.md`). Open the page, look at it, and say what you saw.

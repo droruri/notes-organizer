@@ -1,5 +1,5 @@
 import { HealthResponse } from '@notes/shared';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vite-plus/test';
 import { createPool } from './db';
 import { buildServer } from './server';
 

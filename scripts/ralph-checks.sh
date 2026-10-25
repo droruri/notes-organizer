@@ -37,7 +37,7 @@ for pkg in apps/web apps/api packages/shared; do
     continue
   fi
   echo "-- $pkg: ${#files[@]} changed file(s)"
-  (cd "$pkg" && pnpm exec vitest related --run --passWithNoTests --reporter=dot "${files[@]}" 2>&1 | tail -40)
+  (cd "$pkg" && pnpm exec vp test related --run --passWithNoTests --reporter=dot "${files[@]}" 2>&1 | tail -40)
   [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "$pkg tests FAILED"; status=1; }
 done
 exit $status
