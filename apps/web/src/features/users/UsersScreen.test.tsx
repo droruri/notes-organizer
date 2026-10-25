@@ -72,7 +72,9 @@ describe('UsersScreen', () => {
       }),
     });
     await screen.findByText('dana@x.com');
-    fireEvent.click(screen.getAllByRole('button', { name: 'הסרה' })[1] as HTMLElement);
+    const removeButton = screen.getAllByRole('button', { name: 'הסרה' })[1];
+    if (!removeButton) throw new Error('no remove button for the second user');
+    fireEvent.click(removeButton);
     expect(api.remove).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'כן, להסיר' }));
     await waitFor(() => expect(api.remove).toHaveBeenCalledWith('dana@x.com'));

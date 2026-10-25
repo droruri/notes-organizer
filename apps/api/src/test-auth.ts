@@ -18,3 +18,6 @@ export const allowListDb = {
     rows: sql.includes('from allowed_users') ? [{ is_admin: false }] : [],
   }),
 } as unknown as Db;
+
+/** A database stand-in whose allow list is empty: every signed-in email is `not_allowed`. */
+export const emptyAllowListDb = { query: async () => ({ rows: [] }) } as unknown as Db;

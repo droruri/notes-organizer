@@ -203,7 +203,7 @@ caller's `user_id`; another user's id behaves as not found.
 | GET | `/me` | — | `{email, isAdmin}` |
 | GET | `/users` | — | admin only (`403 not_admin`): `[{email, isAdmin, createdAt}]` |
 | POST | `/users` | `{email, isAdmin?}` | `201 {email, isAdmin, createdAt}` · `422 invalid_email` · `409 exists` |
-| PATCH | `/users/:email` | `{isAdmin}` | updated user · `404` · `422 last_admin` / `cannot_change_self` on demote |
+| PATCH | `/users/:email` | `{isAdmin}` | updated user · `404` · `422 invalid_body` · `422 last_admin` / `cannot_change_self` on demote |
 | DELETE | `/users/:email` | — | `204` · `404` · `422 last_admin` / `cannot_change_self` |
 | GET / PUT | `/settings` | `{noteSort}` | `Settings` (defaults when no row) |
 | GET | `/taxonomy` | — | categories with their tags, deleted ones included and flagged |

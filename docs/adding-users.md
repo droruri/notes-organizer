@@ -11,7 +11,9 @@ no redeploy and no `.env` change.
   wants every person added as a test user (max 100), which defeats the point.
 - Put **your own email** in `ALLOWED_EMAILS` for the first deploy. It is the bootstrap admin list:
   on every start the API inserts each listed email as an admin if it is missing. It never removes
-  or demotes anyone, so editing it later does not undo changes made in the app.
+  or demotes anyone, so editing it later does not undo changes made in the app. Note it re-adds a missing
+  listed email on each start, so a bootstrap email you removed in the app comes back at the next
+  restart: take it out of `ALLOWED_EMAILS` too.
 
 ## 2. Add a user
 

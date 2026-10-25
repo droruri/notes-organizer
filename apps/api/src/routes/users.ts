@@ -34,7 +34,7 @@ export function usersRoutes(app: FastifyInstance, db: Db): void {
 
     admin.patch<{ Params: { email: string } }>('/users/:email', async (req, reply) => {
       const body = UserRoleBody.safeParse(req.body);
-      if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
+      if (!body.success) return reply.code(422).send({ error: 'invalid_body' });
       const result = await setAdmin(
         db,
         currentUser(req).email,
