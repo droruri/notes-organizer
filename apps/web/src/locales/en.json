@@ -175,5 +175,17 @@
     "toastUnread_other": "Imported {{notes}} notes. {{count}} notes have links that were not read.",
     "show": "Show them",
     "dismiss": "Dismiss"
+  },
+  "offline": {
+    "banner": "You're offline. New notes are saved on this device.",
+    "saved": "Saved on this device. It will be sent when you're back online.",
+    "saveFailed": "Could not save on this device.",
+    "dialogTitle": "Notes waiting to be sent",
+    "dialogHint_one": "{{count}} note was written offline. Open it to review and send.",
+    "dialogHint_other": "{{count}} notes were written offline. Open one to review and send.",
+    "voiceNote": "Voice note",
+    "send": "Send",
+    "later": "Later",
+    "dismiss": "Dismiss"
   }
 }

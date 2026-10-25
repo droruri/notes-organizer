@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { OfflineBanner } from '../offline/OfflineBanner';
 import { HeaderSlot } from './headerSlot';
 import { LanguageToggle } from './LanguageToggle';
 
@@ -15,6 +16,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <LanguageToggle />
         </div>
       </header>
+      <OfflineBanner />
       <main className="mx-auto w-full max-w-3xl px-4 py-4 text-start">
         <HeaderSlot value={slot}>{children}</HeaderSlot>
       </main>

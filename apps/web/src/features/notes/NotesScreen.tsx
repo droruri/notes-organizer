@@ -17,6 +17,15 @@ import { api } from '../../lib/api';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ImportDialog, type ImportResult } from '../import/ImportDialog';
 import { ImportMenu } from '../import/ImportMenu';
+import { OutboxDialog } from '../offline/OutboxDialog';
+import {
+  addToOutbox,
+  readOutbox,
+  readOutboxAudio,
+  removeFromOutbox,
+  type OutboxEntry,
+} from '../offline/outbox';
+import { reportNetworkFailure, useOnline } from '../offline/useOnline';
 import { HeaderSlot } from '../shell/headerSlot';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
@@ -73,14 +82,54 @@ export function NotesScreen() {
     await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
     setMode({ kind: 'review', draft });
   };
+  const online = useOnline();
+  const [outbox, setOutbox] = useState(readOutbox);
+  const [outboxDismissed, setOutboxDismissed] = useState(false);
+  const [offlineNotice, setOfflineNotice] = useState<'saved' | 'failed' | null>(null);
+
+  /** Queue a note on the device instead of sending it. */
+  const saveOffline = async (body: string, audio?: Blob) => {
+    const ok = await addToOutbox({ clientId: crypto.randomUUID(), body }, audio);
+    setOutbox(readOutbox());
+    setOfflineNotice(ok ? 'saved' : 'failed');
+    if (ok) {
+      setText('');
+      setMode({ kind: 'list' });
+    }
+  };
+  /** A network-level failure (no HTTP answer) means we are offline after all. */
+  const queueOnNetworkError = async (err: unknown, body: string, audio?: Blob) => {
+    if (err instanceof TypeError) {
+      reportNetworkFailure();
+      await saveOffline(body, audio);
+    }
+  };
   const create = useMutation({
     mutationFn: (body: string) => api.createNote({ body, ...meta() }),
     onSuccess: onDraft,
+    onError: (err, body) => queueOnNetworkError(err, body),
   });
   const createVoice = useMutation({
     mutationFn: (audio: Blob) => api.createVoiceNote(audio, meta()),
     onSuccess: onDraft,
+    onError: (err, audio) => queueOnNetworkError(err, '', audio),
   });
+
+  /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
+  const sendQueued = async (entry: OutboxEntry, body: string) => {
+    const queued = { clientId: entry.clientId, today: localToday(), locale: meta().locale };
+    let draft: NoteCreated;
+    if (entry.hasAudio) {
+      const audio = await readOutboxAudio(entry.clientId);
+      if (!audio) throw new Error('outbox: recording missing');
+      draft = await api.createVoiceNote(audio, queued);
+    } else {
+      draft = await api.createNote({ body, ...queued });
+    }
+    await removeFromOutbox(entry.clientId);
+    setOutbox(readOutbox());
+    await onDraft(draft);
+  };
   const submit = useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof api.updateNote>[1] }) =>
       api.updateNote(id, edit),
@@ -153,9 +202,12 @@ export function NotesScreen() {
         className="flex flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (text.trim()) create.mutate(text);
+          if (!text.trim()) return;
+          if (online) create.mutate(text);
+          else void saveOffline(text);
         }}
       >
+        {!online && <p role="status">{t('offline.banner')}</p>}
         <textarea
           autoFocus
           value={text}
@@ -165,6 +217,11 @@ export function NotesScreen() {
           placeholder={t('notes.placeholder')}
           className="rounded-md border border-line bg-bg px-2 py-1"
         />
+        {offlineNotice === 'failed' && (
+          <p role="alert" className="text-danger">
+            {t('offline.saveFailed')}
+          </p>
+        )}
         {create.isError && (
           <p role="alert" className="text-danger">
             {t('notes.error')}
@@ -187,7 +244,7 @@ export function NotesScreen() {
           </button>
         </div>
         <VoiceRecorder
-          onSend={(audio) => createVoice.mutate(audio)}
+          onSend={(audio) => (online ? createVoice.mutate(audio) : void saveOffline('', audio))}
           pending={createVoice.isPending}
           failed={createVoice.isError}
         />
@@ -201,6 +258,14 @@ export function NotesScreen() {
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
     <section className="flex flex-col gap-4">
+      {online && !outboxDismissed && outbox.length > 0 && (
+        <OutboxDialog
+          entries={outbox}
+          taxonomy={taxonomy.data}
+          onSend={sendQueued}
+          onClose={() => setOutboxDismissed(true)}
+        />
+      )}
       {slot && createPortal(<ImportMenu onImport={() => setImporting(true)} />, slot)}
       {importing && (
         <ImportDialog
@@ -317,6 +382,21 @@ export function NotesScreen() {
               {t('import.dismiss')}
             </button>
           </span>
+        </div>
+      )}
+      {offlineNotice !== null && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
+        >
+          {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
+          <button
+            type="button"
+            onClick={() => setOfflineNotice(null)}
+            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+          >
+            {t('offline.dismiss')}
+          </button>
         </div>
       )}
       {undoId !== null && (
