@@ -1,0 +1,9 @@
+{
+  "app": { "name": "הפתקים שלי" },
+  "language": { "switchTo": "English" },
+  "status": {
+    "checking": "בודק את השרת…",
+    "down": "השרת לא זמין",
+    "up": "השרת פועל"
+  }
+}

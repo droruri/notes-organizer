@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vite-plus';
@@ -5,11 +6,12 @@ import { defineConfig } from 'vite-plus';
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'פרויקט חדש',
-        short_name: 'פרויקט חדש',
+        name: 'הפתקים שלי',
+        short_name: 'הפתקים שלי',
         lang: 'he',
         dir: 'rtl',
         start_url: '/',
