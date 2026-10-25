@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "dev:hosted": "vp dev --mode hosted",
     "build": "vp build",
     "typecheck": "tsc -p . && tsc -p e2e",
     "test": "vp test run",
