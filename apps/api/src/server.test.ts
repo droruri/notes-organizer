@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from './ai/provider';
 import { createPool } from './db';
 import { buildServer } from './server';
-import { allowedEmails, ALLOWED_USER, fakeVerifyToken } from './test-auth';
+import { allowedEmails, ALLOWED_USER, emptyAllowListDb, fakeVerifyToken } from './test-auth';
 
 const auth = { verifyToken: fakeVerifyToken, allowedEmails, ai: createFakeAi() };
 
@@ -61,8 +61,14 @@ describe('auth', () => {
     expect((await get('Bearer nope')).statusCode).toBe(401);
   });
 
-  it('403s for an email not on the allowlist', async () => {
-    const res = await get('Bearer other');
+  it('403s for an email that is not on the allow list', async () => {
+    const empty = buildServer({ db: emptyAllowListDb, ...auth });
+    const res = await empty.inject({
+      method: 'GET',
+      url: '/settings',
+      headers: { authorization: 'Bearer other' },
+    });
+    await empty.close();
     expect(res.statusCode).toBe(403);
     expect(res.json()).toEqual({ error: 'not_allowed' });
   });

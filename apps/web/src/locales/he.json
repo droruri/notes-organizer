@@ -148,6 +148,29 @@
       }
     }
   },
+  "users": {
+    "menu": "משתמשים",
+    "title": "משתמשים",
+    "back": "חזרה",
+    "admin": "מנהל",
+    "emailLabel": "כתובת אימייל של Google",
+    "adminCheckbox": "מנהל",
+    "add": "הוספה",
+    "makeAdmin": "הפיכה למנהל",
+    "removeAdmin": "הסרת הרשאת ניהול",
+    "remove": "הסרה",
+    "confirmRemove": "להסיר את {{email}}? הפתקים שלו נשמרים.",
+    "confirmYes": "כן, להסיר",
+    "cancel": "ביטול",
+    "loading": "טוען…",
+    "errors": {
+      "exists": "האימייל הזה כבר ברשימה.",
+      "invalid_email": "כתובת האימייל לא תקינה.",
+      "last_admin": "אי אפשר להסיר או להוריד את המנהל האחרון.",
+      "cannot_change_self": "אי אפשר להסיר או להוריד את עצמך.",
+      "generic": "משהו השתבש. נסו שוב."
+    }
+  },
   "import": {
     "menu": "תפריט",
     "open": "ייבוא פתקים",

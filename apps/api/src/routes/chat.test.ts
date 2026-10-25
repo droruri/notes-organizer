@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
-import { allowedEmails, fakeVerifyToken } from '../test-auth';
+import { allowListDb as db, allowedEmails, fakeVerifyToken } from '../test-auth';
 import { buildServer } from '../server';
-import type { Db } from '../db';
 
-const db = { query: async () => ({ rows: [] }) } as unknown as Db;
 const today = new Date().toISOString().slice(0, 10);
 const app = buildServer({
   db,

@@ -92,3 +92,15 @@ _Avoid_: Bot, assistant
 **Action card**:
 A change the agent proposes, shown to the user, applied only when the user approves it.
 _Avoid_: Command, tool result
+
+## Access
+
+**Allowed user**:
+An email on the allow list (`allowed_users`) that may sign in. Removing it blocks sign-in on the
+next request but keeps the person's notes.
+_Avoid_: Account, member
+
+**Admin**:
+An allowed user who can manage the allow list. Admin gives no access to anyone else's notes,
+categories or tags.
+_Avoid_: Super-user, owner

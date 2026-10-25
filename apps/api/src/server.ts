@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { AiEnv, createAi, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPool, type Db } from './db';
+import { findAllowed, seedAdmins } from './domain/users/users';
 import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
 import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
@@ -16,6 +17,7 @@ import { linksRoutes } from './routes/links';
 import { notesRoutes } from './routes/notes';
 import { settingsRoutes } from './routes/settings';
 import { taxonomyRoutes } from './routes/taxonomy';
+import { usersRoutes } from './routes/users';
 
 // Wiring only: build the app, register routes, read env. Domain logic lives in src/domain/<area>/.
 
@@ -35,12 +37,25 @@ export function buildServer({
   /** Fetches links safely; defaults to the real network. */
   links?: LinkReader;
   verifyToken: VerifyToken;
+  /** Bootstrap admins: inserted into `allowed_users` on startup, never removed. */
   allowedEmails: ReadonlySet<string>;
   webOrigin?: string;
   /** Request logging; off by default so tests stay silent. */
   logger?: boolean;
 }): FastifyInstance {
   const app = Fastify({ logger });
+  // Seeds once; a failure is retried by the next request instead of locking the owner out.
+  let seeding: Promise<void> | undefined;
+  const seeded = () => {
+    seeding ??= seedAdmins(db, [...allowedEmails]).catch((err: unknown) => {
+      seeding = undefined;
+      throw err;
+    });
+    return seeding;
+  };
+  app.addHook('onReady', async () => {
+    await seeded().catch((err: unknown) => app.log.error({ err }, 'seeding admins failed'));
+  });
   // @fastify/cors v11 allows only GET/HEAD/POST by default; routes also use PUT/PATCH/DELETE.
   void app.register(cors, {
     origin: webOrigin,
@@ -49,9 +64,16 @@ export function buildServer({
   healthRoutes(app, db);
   // Every route registered in this scope requires a signed-in, allowed user.
   void app.register(async (authed) => {
-    authed.addHook('onRequest', requireUser(verifyToken, allowedEmails));
+    authed.addHook(
+      'onRequest',
+      requireUser(verifyToken, async (email) => {
+        await seeded();
+        return findAllowed(db, email);
+      }),
+    );
     await authed.register(rateLimit, { global: false });
     void authed.register(multipart, { limits: { fileSize: MAX_AUDIO_BYTES, files: 1 } });
+    usersRoutes(authed, db);
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
