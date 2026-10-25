@@ -11,6 +11,32 @@ pnpm install
 pnpm dev   # Supabase + API on :3000 + web on :5173
 ```
 
+### Local apps against hosted Supabase + real AI
+
+```sh
+pnpm dev:hosted   # API on :3000 (debugger on :9229) + web on :5173, no local Supabase
+```
+
+Env layers: `.env.example`, then `.env`, then the git-ignored root `.env.hosted` (overrides only).
+The API fails at start if `.env.hosted` is missing. The API keys (`ANTHROPIC_API_KEY`,
+`GROQ_API_KEY`, `JINA_API_KEY`) stay in `.env`; `WEB_ORIGIN`, `PORT` and `VITE_API_URL` stay local.
+
+```sh
+# .env.hosted
+DATABASE_URL=postgresql://postgres.<ref>:<db-password>@<pooler-host>:5432/postgres?sslmode=no-verify
+SUPABASE_URL=https://<ref>.supabase.co
+VITE_SUPABASE_URL=https://<ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<hosted publishable key>
+ALLOWED_EMAILS=<same value as the hosted API>
+AI_FAKE=
+```
+
+> **Warning:** writes hit the real database, and AI calls (Claude, Groq Whisper) are real, paid calls.
+
+The Node debugger listens on port 9229 (attach from WebStorm or `chrome://inspect`). One manual
+step: in the Supabase dashboard, open Authentication → URL Configuration and add
+`http://localhost:5173` as a redirect URL.
+
 ## Deploying
 
 Free hosting: Supabase (database + Google sign-in), Render (API), Cloudflare Pages (web),
