@@ -6,7 +6,8 @@ export type AuthUser = { id: string; email: string };
 /** Resolves the user a bearer token belongs to; rejects when the token is invalid. */
 export type VerifyToken = (token: string) => Promise<AuthUser>;
 
-const Claims = z.object({ sub: z.uuid(), email: z.string().min(1) });
+// `guid`, not `uuid`: any id Postgres' uuid type stores, like the seed user's 1111…-1111.
+const Claims = z.object({ sub: z.guid(), email: z.string().min(1) });
 
 /** Verifies Supabase access tokens against the project's JWKS. */
 export function createTokenVerifier(supabaseUrl: string): VerifyToken {
