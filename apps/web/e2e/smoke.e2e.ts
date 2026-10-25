@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-test('the home page shows that the API is up', async ({ page }) => {
+test('dev sign-in opens the notes screen, loaded from the API', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByText('השרת פועל')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
 });
 
 test('the language toggle switches to English LTR and survives a reload', async ({ page }) => {
