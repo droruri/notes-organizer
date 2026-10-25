@@ -36,10 +36,10 @@ test('filtering by a tag narrows the list', async ({ page }) => {
 
   await composeNote(page, tagged);
   await page.getByLabel('שם חדש').fill(category);
-  await page.getByRole('button', { name: 'הוספה' }).click();
+  await page.getByRole('button', { name: 'הוספה', exact: true }).click();
   await page.getByLabel('שם חדש').fill(tag);
   await page.getByLabel('הוסף אל').selectOption(category);
-  await page.getByRole('button', { name: 'הוספה' }).click();
+  await page.getByRole('button', { name: 'הוספה', exact: true }).click();
   await save(page);
   await expect(page.getByText(tagged)).toBeVisible();
 
