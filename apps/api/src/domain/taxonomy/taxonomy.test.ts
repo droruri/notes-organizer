@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { isUsable, MAX_NAME_LENGTH, normalizeName, sameName } from './taxonomy';
+import { isUsable, MAX_NAME_LENGTH, normalizeName } from './taxonomy';
 
 describe('normalizeName', () => {
   it('trims and collapses whitespace', () => {
@@ -9,13 +9,6 @@ describe('normalizeName', () => {
     expect(normalizeName('   ')).toBeNull();
     expect(normalizeName('a'.repeat(MAX_NAME_LENGTH + 1))).toBeNull();
     expect(normalizeName('a'.repeat(MAX_NAME_LENGTH))).not.toBeNull();
-  });
-});
-
-describe('sameName', () => {
-  it('ignores case', () => {
-    expect(sameName('Work', 'wORK')).toBe(true);
-    expect(sameName('Work', 'Home')).toBe(false);
   });
 });
 

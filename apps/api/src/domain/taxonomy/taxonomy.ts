@@ -8,11 +8,6 @@ export function normalizeName(raw: string): string | null {
   return name.length > 0 && name.length <= MAX_NAME_LENGTH ? name : null;
 }
 
-/** Names clash when they match ignoring case (the DB index uses lower(name)). */
-export function sameName(a: string, b: string): boolean {
-  return a.toLowerCase() === b.toLowerCase();
-}
-
 /** A tag can be picked only when neither it nor its category is deleted. */
 export function isUsable(tag: { deleted: boolean }, category: { deleted: boolean }): boolean {
   return !tag.deleted && !category.deleted;
