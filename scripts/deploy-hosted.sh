@@ -213,6 +213,7 @@ else
 fi
 
 # ── Supabase Google provider (needs the web URL for the redirect allow-list) ─
+# localhost stays on the allow-list so `pnpm dev:hosted` can sign in against this project.
 say "Supabase Google provider"
 m=$(missing SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET WEB_URL)
 if [ -n "$m" ]; then
@@ -220,7 +221,7 @@ if [ -n "$m" ]; then
 else
   cfg=$(jq -n --arg id "$GOOGLE_CLIENT_ID" --arg secret "$GOOGLE_CLIENT_SECRET" --arg web "$WEB_URL" \
     '{external_google_enabled: true, external_google_client_id: $id, external_google_secret: $secret,
-      site_url: $web, uri_allow_list: $web}')
+      site_url: $web, uri_allow_list: ($web + ",http://localhost:5173,http://127.0.0.1:5173")}')
   api PATCH "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" "$SUPABASE_ACCESS_TOKEN" "$cfg" >/dev/null \
     && ok "Google provider on, site URL $WEB_URL" || fail "could not set the Google provider"
 fi
