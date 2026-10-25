@@ -54,7 +54,8 @@ export function requireUser(verifyToken: VerifyToken, findAllowed: FindAllowed) 
     let user: AuthUser;
     try {
       user = await verifyToken(token);
-    } catch {
+    } catch (err) {
+      req.log.warn({ err }, 'access token rejected');
       return reply.code(401).send({ error: 'unauthorized' });
     }
     const allowed = await findAllowed(user.email);
