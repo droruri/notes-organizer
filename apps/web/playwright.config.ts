@@ -23,7 +23,7 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: `VITE_API_URL=${apiUrl} pnpm exec vite build && pnpm exec vite preview --port ${webPort} --strictPort`,
+      command: `VITE_API_URL=${apiUrl} pnpm exec vp build && pnpm exec vp preview --port ${webPort} --strictPort`,
       url: webUrl,
       reuseExistingServer: false,
     },
