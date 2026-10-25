@@ -102,6 +102,9 @@ importers:
       i18next:
         specifier: ^26.5.10
         version: 26.5.10(typescript@6.0.3)
+      idb-keyval:
+        specifier: ^6.3.0
+        version: 6.3.0
       react:
         specifier: ^19.3.0
         version: 19.3.1
@@ -2450,6 +2453,9 @@ packages:
   iceberg-js@0.8.1:
     resolution: {integrity: sha512-1dhVQZXhcHje7798IVM+xoo/1ZdVfzOMIc8/rgVSijRK38EDqOJoGula9N/8ZI5RD8QTxNQtK/Gozpr+qUqRRA==}
     engines: {node: '>=20.0.0'}
+
+  idb-keyval@6.3.0:
+    resolution: {integrity: sha512-um+2dgAWmYsu615EXpWVwSmapJhON0G43t3Ka/EVaohzPQXSMqKEqeDK/oIW3Ow+BXaF2PvSc+oBTFp793A5Ow==}
 
   idb@7.1.1:
     resolution: {integrity: sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ==}
@@ -5739,6 +5745,8 @@ snapshots:
       typescript: 6.0.3
 
   iceberg-js@0.8.1: {}
+
+  idb-keyval@6.3.0: {}
 
   idb@7.1.1: {}
 
