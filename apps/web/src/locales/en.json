@@ -1,0 +1,9 @@
+{
+  "app": { "name": "My Notes" },
+  "language": { "switchTo": "עברית" },
+  "status": {
+    "checking": "Checking the server…",
+    "down": "Server unavailable",
+    "up": "Server is up"
+  }
+}
