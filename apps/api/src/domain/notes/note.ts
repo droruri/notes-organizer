@@ -122,5 +122,6 @@ export function suggestionOf(note: Note): Suggestion {
     dueDate: note.dueDate,
     importance: note.importance,
     urgency: note.urgency,
+    unreadLinks: note.unreadLinks,
   };
 }

@@ -34,6 +34,7 @@ const suggestionOf = (note: Note): Suggestion => ({
   dueDate: note.dueDate,
   importance: note.importance,
   urgency: note.urgency,
+  unreadLinks: note.unreadLinks,
 });
 
 /** The client's local date as YYYY-MM-DD. */

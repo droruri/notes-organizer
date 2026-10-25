@@ -7,7 +7,9 @@ import { z } from 'zod';
 import { AiEnv, createAi, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPool, type Db } from './db';
+import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
 import { healthRoutes } from './routes/health';
+import { linksRoutes } from './routes/links';
 import { notesRoutes } from './routes/notes';
 import { settingsRoutes } from './routes/settings';
 import { taxonomyRoutes } from './routes/taxonomy';
@@ -19,6 +21,7 @@ const DEFAULT_WEB_ORIGIN = 'http://localhost:5173';
 export function buildServer({
   db,
   ai,
+  links = createLinkReader(),
   verifyToken,
   allowedEmails,
   webOrigin = DEFAULT_WEB_ORIGIN,
@@ -26,6 +29,8 @@ export function buildServer({
 }: {
   db: Db;
   ai: Ai;
+  /** Fetches links safely; defaults to the real network. */
+  links?: LinkReader;
   verifyToken: VerifyToken;
   allowedEmails: ReadonlySet<string>;
   webOrigin?: string;
@@ -41,12 +46,13 @@ export function buildServer({
     void authed.register(multipart, { limits: { fileSize: MAX_AUDIO_BYTES, files: 1 } });
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
-    notesRoutes(authed, db, ai);
+    notesRoutes(authed, db, ai, links);
+    linksRoutes(authed, links);
   });
   return app;
 }
 
-const Env = AiEnv.and(
+const Env = AiEnv.and(LinkEnv).and(
   z.object({
     DATABASE_URL: z.string().min(1),
     WEB_ORIGIN: z.url(),
@@ -65,6 +71,7 @@ async function main(): Promise<void> {
   const app = buildServer({
     db: createPool(env.data.DATABASE_URL),
     ai: createAi(env.data),
+    links: createLinkReader({ jinaApiKey: env.data.JINA_API_KEY }),
     verifyToken: createTokenVerifier(env.data.SUPABASE_URL),
     allowedEmails: parseAllowedEmails(env.data.ALLOWED_EMAILS),
     webOrigin: env.data.WEB_ORIGIN,

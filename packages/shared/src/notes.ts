@@ -43,6 +43,8 @@ export const Suggestion = Proposed.extend({
   dueDate: DateString.nullable(),
   importance: Importance.nullable(),
   urgency: Urgency.nullable(),
+  /** Links in the body that Claude could not read (set by the service, not by Claude). */
+  unreadLinks: z.array(z.string()),
 });
 export type Suggestion = z.infer<typeof Suggestion>;
 
@@ -55,6 +57,7 @@ export const Note = z.object({
   urgency: Urgency.nullable(),
   dueDate: DateString.nullable(),
   proposed: Proposed.nullable(),
+  unreadLinks: z.array(z.string()),
   categoryIds: z.array(z.uuid()),
   tagIds: z.array(z.uuid()),
   hasAudio: z.boolean(),
@@ -86,6 +89,8 @@ export const NoteEdit = z.object({
   importance: Importance.nullable().optional(),
   urgency: Urgency.nullable().optional(),
   status: NoteStatus.optional(),
+  /** Replaces the stored list; the web sends the suggestion's list on submit / save. */
+  unreadLinks: z.array(z.string().max(2000)).max(100).optional(),
 });
 export type NoteEdit = z.infer<typeof NoteEdit>;
 

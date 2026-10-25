@@ -15,6 +15,7 @@ const note = (o: Partial<Note> = {}): Note => {
     urgency: null,
     dueDate: null,
     proposed: null,
+    unreadLinks: [],
     categoryIds: [],
     tagIds: [],
     hasAudio: false,
@@ -38,6 +39,13 @@ describe('isOverdue', () => {
 });
 
 describe('filterNotes', () => {
+  it('"Links not read" keeps only notes with unread links', () => {
+    const a = note({ unreadLinks: ['https://a.com'] });
+    const b = note();
+    expect(ids(filterNotes([a, b], f({ unreadLinksOnly: true }), TODAY))).toEqual([a.id]);
+    expect(filterNotes([a, b], f({}), TODAY)).toHaveLength(2);
+  });
+
   it('matches text ignoring case and niqqud', () => {
     const a = note({ body: 'Buy Milk' });
     const b = note({ body: 'שָׁלוֹם עולם' });

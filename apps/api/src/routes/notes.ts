@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { Ai } from '../ai/provider';
 import { currentUser } from '../auth';
 import type { Db } from '../db';
+import type { LinkReader } from '../domain/links/preview';
 import { isTodayPlausible } from '../domain/notes/note';
 import * as service from '../domain/notes/service';
 
@@ -46,7 +47,7 @@ async function readUpload(req: FastifyRequest): Promise<Upload | 'too_large' | '
 
 const Params = z.object({ id: z.uuid() });
 
-export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
+export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkReader): void {
   async function voiceNote(req: FastifyRequest, reply: FastifyReply) {
     const upload = await readUpload(req);
     if (upload === 'too_large') return reply.code(413).send({ error: 'audio_too_large' });
@@ -63,6 +64,7 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
     const result = await service.createVoiceDraft(
       db,
       ai,
+      links,
       currentUser(req).id,
       input.data,
       upload.audio,
@@ -82,6 +84,7 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
     const { created, note, suggestion } = await service.createDraft(
       db,
       ai,
+      links,
       currentUser(req).id,
       body.data,
     );
@@ -131,6 +134,7 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
     const result = await service.analyzeNote(
       db,
       ai,
+      links,
       currentUser(req).id,
       params.data.id,
       body.data,
