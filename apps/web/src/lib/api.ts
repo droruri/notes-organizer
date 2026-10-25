@@ -5,6 +5,10 @@ import {
   AUDIO_MIMES,
   Category,
   HealthResponse,
+  type ImportAnalyze,
+  type ImportConfirm,
+  ImportCreated,
+  ImportProposal,
   LinkPreview,
   Note,
   NoteAnalyze,
@@ -173,6 +177,10 @@ export const api = {
       `/links/preview?url=${encodeURIComponent(url)}${reader ? '&reader=1' : ''}`,
       LinkPreview,
     ),
+  analyzeImport: (input: ImportAnalyze) =>
+    request('POST', '/imports/analyze', ImportProposal, input),
+  confirmImport: (input: ImportConfirm) =>
+    request('POST', '/imports/confirm', ImportCreated, input),
   analyzeNote: (id: string, input: NoteAnalyze) =>
     request('POST', `/notes/${id}/analyze`, Suggestion, input),
 };

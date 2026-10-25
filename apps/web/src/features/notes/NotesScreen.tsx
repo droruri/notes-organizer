@@ -10,10 +10,14 @@ import {
   type NoteFilter,
   type Suggestion,
 } from '@notes/shared';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { ChatPanel } from '../chat/ChatPanel';
+import { ImportDialog, type ImportResult } from '../import/ImportDialog';
+import { ImportMenu } from '../import/ImportMenu';
+import { HeaderSlot } from '../shell/headerSlot';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
@@ -50,6 +54,9 @@ export function NotesScreen() {
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const [chatOpen, setChatOpen] = useState(false);
+  const slot = useContext(HeaderSlot);
+  const [importing, setImporting] = useState(false);
+  const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
   const saveSort = useMutation({
@@ -191,8 +198,24 @@ export function NotesScreen() {
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
   const visible = sortNotes(filterNotes(notes.data, filter, today), sort, today);
+  const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
     <section className="flex flex-col gap-4">
+      {slot && createPortal(<ImportMenu onImport={() => setImporting(true)} />, slot)}
+      {importing && (
+        <ImportDialog
+          taxonomy={taxonomy.data}
+          today={today}
+          locale={locale}
+          onClose={() => setImporting(false)}
+          onImported={(result) => {
+            setImporting(false);
+            setImported(result);
+            void queryClient.invalidateQueries({ queryKey: ['notes'] });
+            void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+          }}
+        />
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t('notes.title')}</h2>
         <div className="flex gap-2">
@@ -261,6 +284,40 @@ export function NotesScreen() {
             void queryClient.invalidateQueries({ queryKey: ['notes'] });
           }}
         />
+      )}
+      {imported && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
+        >
+          {imported.unreadNotes > 0
+            ? t('import.toastUnread', {
+                notes: imported.created.notes,
+                count: imported.unreadNotes,
+              })
+            : t('import.done', { count: imported.created.notes })}
+          <span className="flex gap-2">
+            {imported.unreadNotes > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
+                  setImported(null);
+                }}
+                className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+              >
+                {t('import.show')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setImported(null)}
+              className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+            >
+              {t('import.dismiss')}
+            </button>
+          </span>
+        </div>
       )}
       {undoId !== null && (
         <div

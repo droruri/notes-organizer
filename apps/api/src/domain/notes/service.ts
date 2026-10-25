@@ -12,8 +12,7 @@ import type { Ai } from '../../ai/provider';
 import type { Db } from '../../db';
 import type { LinkReader } from '../links/preview';
 import { withTransaction } from '../../tx';
-import * as taxonomyRepo from '../taxonomy/repository';
-import { getTaxonomy } from '../taxonomy/service';
+import { createPlanned, getTaxonomy } from '../taxonomy/service';
 import { classify } from './classify';
 import { isValidTransition, planLinks, planNewTaxonomy, suggestionOf } from './note';
 import * as repo from './repository';
@@ -149,21 +148,9 @@ export async function updateNote(
     if (!links) return fail('unknown_taxonomy');
 
     // Every check passed: from here on we only write.
-    const created = new Map<string, string>();
-    for (const name of plan.categories) {
-      const category = await taxonomyRepo.insertCategory(tx, userId, name);
-      created.set(name.toLowerCase(), category.id);
-      links.categoryIds.push(category.id);
-    }
-    for (const tag of plan.tags) {
-      if (tag.existingTagId) continue;
-      const categoryId =
-        'id' in tag.category ? tag.category.id : created.get(tag.category.name.toLowerCase());
-      if (categoryId === undefined) throw new Error('planned tag lost its category');
-      const row = await taxonomyRepo.insertTag(tx, categoryId, tag.name);
-      links.tagIds.push(row.id);
-      links.categoryIds.push(categoryId);
-    }
+    const made = await createPlanned(tx, userId, plan);
+    links.categoryIds.push(...made.categoryIds);
+    links.tagIds.push(...made.tagIds);
     await repo.replaceLinks(tx, id, {
       categoryIds: [...new Set(links.categoryIds)],
       tagIds: [...new Set(links.tagIds)],

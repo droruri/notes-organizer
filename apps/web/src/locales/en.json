@@ -146,5 +146,34 @@
         "tag": "Restore tag \"{{name}}\""
       }
     }
+  },
+  "import": {
+    "menu": "Menu",
+    "open": "Import notes",
+    "title": "Import notes",
+    "textLabel": "Text to import",
+    "placeholder": "Paste your old notes here (up to 50,000 characters)…",
+    "file": "Choose a .txt file",
+    "tooLong": "The text is over 50,000 characters.",
+    "analyze": "Analyze",
+    "analyzing": "Claude is splitting and sorting your notes… this can take up to a minute.",
+    "error": "Analysis failed. Try again.",
+    "confirmError": "Saving failed. Nothing was imported.",
+    "newCategories": "New categories",
+    "newTags": "New tags",
+    "notes": "Notes",
+    "none": "Nothing found in the text.",
+    "edit": "Edit",
+    "confirm_one": "Import {{count}} note",
+    "confirm_other": "Import {{count}} notes",
+    "confirming": "Importing…",
+    "cancel": "Cancel",
+    "banner_one": "Claude read {{read}} of {{total}} links. {{count}} note has links that were not read. After import, filter \"Links not read\" and press Re-analyze on each.",
+    "banner_other": "Claude read {{read}} of {{total}} links. {{count}} notes have links that were not read. After import, filter \"Links not read\" and press Re-analyze on each.",
+    "done": "Imported {{count}} notes.",
+    "toastUnread_one": "Imported {{notes}} notes. {{count}} note has links that were not read.",
+    "toastUnread_other": "Imported {{notes}} notes. {{count}} notes have links that were not read.",
+    "show": "Show them",
+    "dismiss": "Dismiss"
   }
 }

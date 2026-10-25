@@ -185,3 +185,25 @@ export async function findAudio(
   );
   return rows[0];
 }
+
+/** Inserts a submitted note (status `todo`) with a server-made client id. Returns its id. */
+export async function insertTodo(
+  db: Queryable,
+  userId: string,
+  note: {
+    body: string;
+    dueDate: string | null;
+    importance: Importance | null;
+    urgency: Urgency | null;
+    unreadLinks: string[];
+  },
+): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(
+    `insert into notes (user_id, client_id, body, status, due_date, importance, urgency, unread_links)
+     values ($1, gen_random_uuid(), $2, 'todo', $3, $4, $5, $6) returning id`,
+    [userId, note.body, note.dueDate, note.importance, note.urgency, note.unreadLinks],
+  );
+  const row = rows[0];
+  if (!row) throw new Error('insert returned no row');
+  return row.id;
+}

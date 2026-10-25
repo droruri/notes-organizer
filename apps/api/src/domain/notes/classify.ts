@@ -53,7 +53,7 @@ export function usableTaxonomy(taxonomy: Taxonomy): Taxonomy {
   };
 }
 
-const SYSTEM = `You organize personal notes. Given a note, suggest where it belongs.
+export const SYSTEM = `You organize personal notes. Given a note, suggest where it belongs.
 - Prefer the user's existing categories and tags (refer to them by id). Propose a new category or tag name only when nothing existing fits.
 - A new tag needs either categoryId (an existing category id) or categoryName (an existing or newly proposed category name).
 - dueDate: a YYYY-MM-DD date only when the note states or implies one, resolved against today's date. Otherwise null.
@@ -87,7 +87,7 @@ export function buildPrompt(input: {
 /** Keeps fetched text from closing the block early. */
 const defang = (s: string) => s.replace(/<(\/?)linked_content/gi, '<$1linked-content');
 
-function linkedContent(links: LinkContext[]): string {
+export function linkedContent(links: LinkContext[]): string {
   const entries = links.map((l) => {
     if (!l.ok) return `- ${defang(l.url)} (unreadable)`;
     const fields = [
