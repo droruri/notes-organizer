@@ -19,7 +19,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter @notes/api dev',
       url: `${apiUrl}/health`,
-      env: { PORT: apiPort, WEB_ORIGIN: webUrl },
+      env: { PORT: apiPort, WEB_ORIGIN: webUrl, AI_FAKE: '1' },
       reuseExistingServer: false,
     },
     {
