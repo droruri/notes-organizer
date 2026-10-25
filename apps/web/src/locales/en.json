@@ -120,6 +120,31 @@
     "send": "Send",
     "searching": "Searching your notes…",
     "error": "The assistant is unavailable. Try again.",
-    "empty": "Ask what categories you have, what is overdue, or what is in progress."
+    "empty": "Ask what categories you have, what is overdue, or what is in progress.",
+    "action": {
+      "approve": "Approve",
+      "dismiss": "Dismiss",
+      "done": "Done",
+      "dismissed": "Dismissed",
+      "nameTaken": "That name already exists.",
+      "categoryDeleted": "The category is deleted.",
+      "failed": "The action failed.",
+      "create": {
+        "category": "Create category \"{{name}}\"",
+        "tag": "Create tag \"{{name}}\" in \"{{category}}\""
+      },
+      "rename": {
+        "category": "Rename category \"{{name}}\" to \"{{newName}}\"",
+        "tag": "Rename tag \"{{name}}\" to \"{{newName}}\""
+      },
+      "delete": {
+        "category": "Delete category \"{{name}}\"",
+        "tag": "Delete tag \"{{name}}\""
+      },
+      "restore": {
+        "category": "Restore category \"{{name}}\"",
+        "tag": "Restore tag \"{{name}}\""
+      }
+    }
   }
 }

@@ -256,6 +256,10 @@ export function NotesScreen() {
             setMode({ kind: 'edit', note });
           }}
           onClose={() => setChatOpen(false)}
+          onTaxonomyChanged={() => {
+            void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+            void queryClient.invalidateQueries({ queryKey: ['notes'] });
+          }}
         />
       )}
       {undoId !== null && (
