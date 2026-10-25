@@ -9,6 +9,7 @@ import {
 } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AudioPlayer } from './AudioPlayer';
 import { StatusStepper } from './StatusStepper';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
@@ -101,6 +102,7 @@ export function NoteEditor({
           className={`${field} text-base text-fg`}
         />
       </label>
+      {note.hasAudio && <AudioPlayer noteId={note.id} />}
       <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={setPicked} />
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm text-muted">

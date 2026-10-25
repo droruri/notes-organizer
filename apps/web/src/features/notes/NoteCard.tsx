@@ -1,5 +1,6 @@
 import { isOverdue, type Note, type Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
+import { AudioPlayer } from './AudioPlayer';
 
 const formatDate = (iso: string, lang: string) =>
   new Date(iso.length === 10 ? `${iso}T00:00:00` : iso).toLocaleDateString(lang);
@@ -31,6 +32,7 @@ export function NoteCard({
       <button type="button" onClick={() => onOpen(note)} className="block w-full text-start">
         <span className="whitespace-pre-wrap break-words">{note.body}</span>
       </button>
+      {note.hasAudio && <AudioPlayer noteId={note.id} />}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <span className="rounded bg-surface-hover px-2">{t(`notes.status.${note.status}`)}</span>
         <span className="text-muted">

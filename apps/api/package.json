@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.88",
+    "@ai-sdk/groq": "^4.0.70",
     "@fastify/cors": "^11.3.0",
+    "@fastify/multipart": "^10.1.6",
     "@notes/shared": "workspace:*",
     "ai": "^7.0.153",
     "fastify": "^5.12.5",

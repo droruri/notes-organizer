@@ -1,5 +1,13 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateObject, isStepCount, streamText, type ModelMessage, type ToolSet } from 'ai';
+import { createGroq } from '@ai-sdk/groq';
+import {
+  experimental_transcribe as transcribe,
+  generateObject,
+  isStepCount,
+  streamText,
+  type ModelMessage,
+  type ToolSet,
+} from 'ai';
 import { z } from 'zod';
 
 // THE ONLY place a model is called (ADR 0001). Everything else depends on the `Ai` port.
@@ -23,13 +31,10 @@ export type Ai = {
   transcribe(args: { audio: Uint8Array; mime: string }): Promise<{ text: string }>;
 };
 
-const notConfigured = (what: string) => async (): Promise<never> => {
-  throw new Error(`${what} is not configured`);
-};
-
 export const AiEnv = z
   .object({
     ANTHROPIC_API_KEY: z.string().optional(),
+    GROQ_API_KEY: z.string().optional(),
     LLM_CLASSIFY_MODEL: z.string().min(1).default('claude-haiku-5-5'),
     LLM_CHAT_MODEL: z.string().min(1).default('claude-sonnet-5-5'),
     AI_FAKE: z.string().optional(),
@@ -37,6 +42,10 @@ export const AiEnv = z
   .refine((env) => isFakeEnabled(env.AI_FAKE) || Boolean(env.ANTHROPIC_API_KEY), {
     message: 'ANTHROPIC_API_KEY is required unless AI_FAKE=1',
     path: ['ANTHROPIC_API_KEY'],
+  })
+  .refine((env) => isFakeEnabled(env.AI_FAKE) || Boolean(env.GROQ_API_KEY), {
+    message: 'GROQ_API_KEY is required unless AI_FAKE=1',
+    path: ['GROQ_API_KEY'],
   });
 export type AiEnv = z.infer<typeof AiEnv>;
 
@@ -48,8 +57,10 @@ function isFakeEnabled(value: string | undefined): boolean {
 export function createAi(env: AiEnv): Ai {
   if (isFakeEnabled(env.AI_FAKE)) return createFakeAi();
   if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is required unless AI_FAKE=1');
+  if (!env.GROQ_API_KEY) throw new Error('GROQ_API_KEY is required unless AI_FAKE=1');
   return createAnthropicAi({
     apiKey: env.ANTHROPIC_API_KEY,
+    groqApiKey: env.GROQ_API_KEY,
     classifyModel: env.LLM_CLASSIFY_MODEL,
     chatModel: env.LLM_CHAT_MODEL,
   });
@@ -57,14 +68,17 @@ export function createAi(env: AiEnv): Ai {
 
 export function createAnthropicAi({
   apiKey,
+  groqApiKey,
   classifyModel,
   chatModel,
 }: {
   apiKey: string;
+  groqApiKey: string;
   classifyModel: string;
   chatModel: string;
 }): Ai {
   const anthropic = createAnthropic({ apiKey });
+  const groq = createGroq({ apiKey: groqApiKey });
   return {
     async extract({ schema, system, prompt }) {
       try {
@@ -90,7 +104,10 @@ export function createAnthropicAi({
         tools,
         stopWhen: isStepCount(maxSteps),
       }),
-    transcribe: notConfigured('transcribe'),
+    async transcribe({ audio }) {
+      const { text } = await transcribe({ model: groq.transcription('whisper-large-v3'), audio });
+      return { text };
+    },
   };
 }
 
@@ -99,7 +116,10 @@ export type FakeTurn = { value: unknown } | { fail: string };
 export type ExtractCall = { system: string; prompt: string };
 
 /** Answers `extract` from a queue of turns (empty queue = failure); records every call. */
-export function createFakeAi(turns: FakeTurn[] = []): Ai & { calls: ExtractCall[] } {
+export function createFakeAi(
+  turns: FakeTurn[] = [],
+  transcript = 'fake transcript',
+): Ai & { calls: ExtractCall[] } {
   const queue = [...turns];
   const calls: ExtractCall[] = [];
   return {
@@ -117,6 +137,6 @@ export function createFakeAi(turns: FakeTurn[] = []): Ai & { calls: ExtractCall[
     chat: () => {
       throw new Error('fake chat is not scripted yet');
     },
-    transcribe: notConfigured('transcribe'),
+    transcribe: async () => ({ text: transcript }),
   };
 }

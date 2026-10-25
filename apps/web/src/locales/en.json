@@ -85,5 +85,21 @@
     "from": "from",
     "to": "to",
     "clear": "Clear filters"
+  },
+  "voice": {
+    "record": "Record",
+    "stop": "Stop",
+    "discard": "Discard",
+    "send": "Send recording",
+    "sending": "Uploading and transcribing…",
+    "elapsed": "Recording time",
+    "denied": "Microphone permission was denied. Allow it in the browser settings.",
+    "noMic": "No microphone found.",
+    "unsupported": "Recording is not supported in this browser.",
+    "failed": "Could not record. Try again.",
+    "uploadFailed": "Could not upload the recording. Try again.",
+    "play": "Play recording",
+    "loading": "Loading…",
+    "audioFailed": "Could not load the recording."
   }
 }

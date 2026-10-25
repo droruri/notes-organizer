@@ -1,5 +1,6 @@
 import {
   ApiError,
+  AUDIO_MIMES,
   Category,
   HealthResponse,
   Note,
@@ -46,11 +47,13 @@ async function request<T>(
   const token = path === '/health' ? null : await accessToken();
   const headers: Record<string, string> = {};
   if (token) headers.authorization = `Bearer ${token}`;
-  if (body !== undefined) headers['content-type'] = 'application/json';
+  // FormData sets its own multipart content-type (with the boundary).
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers['content-type'] = 'application/json';
   const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers,
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(body !== undefined ? { body: isForm ? body : JSON.stringify(body) } : {}),
   });
   const json: unknown = await res.json().catch(() => undefined);
   if (!res.ok) {
@@ -67,6 +70,31 @@ async function request<T>(
 }
 
 const NoContent = z.undefined();
+
+/** `POST /notes` with a recording: the server transcribes it and drafts the note. */
+function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<NoteCreated> {
+  const form = new FormData();
+  form.set('clientId', meta.clientId);
+  form.set('today', meta.today);
+  form.set('locale', meta.locale);
+  form.set('audio', audio, 'voice');
+  return request('POST', '/notes', NoteCreated, form);
+}
+
+/** The recording bytes of a note (an `<audio>` tag cannot send the bearer token). */
+async function noteAudio(id: string): Promise<Blob> {
+  const token = await accessToken();
+  const res = await fetch(`${baseUrl}/notes/${id}/audio`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new ApiRequestError(res.status, undefined, `GET audio failed: ${res.status}`);
+  const blob = await res.blob();
+  const mime = (blob.type.split(';')[0] ?? '').trim();
+  if (!(AUDIO_MIMES as readonly string[]).includes(mime)) {
+    throw new ApiRequestError(res.status, undefined, `GET audio: unexpected type ${blob.type}`);
+  }
+  return blob;
+}
 
 export const api = {
   health: () => request('GET', '/health', HealthResponse),
@@ -85,6 +113,8 @@ export const api = {
   restoreTag: (id: string) => request('POST', `/tags/${id}/restore`, Tag),
   notes: () => request('GET', '/notes', NoteList),
   createNote: (input: NoteCreate) => request('POST', '/notes', NoteCreated, input),
+  createVoiceNote,
+  noteAudio,
   updateNote: (id: string, edit: NoteEdit) => request('PATCH', `/notes/${id}`, Note, edit),
   deleteNote: (id: string) => request('DELETE', `/notes/${id}`, NoContent),
   restoreNote: (id: string) => request('POST', `/notes/${id}/restore`, Note),
