@@ -1,4 +1,4 @@
-import { NoteCreate, NoteEdit } from '@notes/shared';
+import { NoteAnalyze, NoteCreate, NoteEdit } from '@notes/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { Ai } from '../ai/provider';
@@ -38,6 +38,38 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai): void {
     const body = NoteEdit.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
     const result = await service.updateNote(db, currentUser(req).id, params.data.id, body.data);
+    if (!result.ok) return reply.code(STATUS[result.error]).send({ error: result.error });
+    return result.value;
+  });
+  app.delete('/notes/:id', async (req, reply) => {
+    const params = Params.safeParse(req.params);
+    if (!params.success) return reply.code(404).send({ error: 'not_found' });
+    const result = await service.deleteNote(db, currentUser(req).id, params.data.id);
+    if (!result.ok) return reply.code(STATUS[result.error]).send({ error: result.error });
+    return reply.code(204).send();
+  });
+
+  app.post('/notes/:id/restore', async (req, reply) => {
+    const params = Params.safeParse(req.params);
+    if (!params.success) return reply.code(404).send({ error: 'not_found' });
+    const result = await service.restoreNote(db, currentUser(req).id, params.data.id);
+    if (!result.ok) return reply.code(STATUS[result.error]).send({ error: result.error });
+    return result.value;
+  });
+
+  app.post('/notes/:id/analyze', async (req, reply) => {
+    const params = Params.safeParse(req.params);
+    if (!params.success) return reply.code(404).send({ error: 'not_found' });
+    const body = NoteAnalyze.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
+    if (!isTodayPlausible(body.data.today)) return reply.code(400).send({ error: 'invalid_today' });
+    const result = await service.analyzeNote(
+      db,
+      ai,
+      currentUser(req).id,
+      params.data.id,
+      body.data,
+    );
     if (!result.ok) return reply.code(STATUS[result.error]).send({ error: result.error });
     return result.value;
   });

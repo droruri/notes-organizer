@@ -3,16 +3,18 @@ import {
   Urgency,
   type Note,
   type NoteEdit,
+  type NoteStatus,
   type Suggestion,
   type Taxonomy,
 } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { StatusStepper } from './StatusStepper';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
 const field = 'rounded-md border border-line bg-bg px-2 py-1';
 
-/** Review a draft: edit what Claude suggested, then submit. */
+/** Review a draft or edit a note: change any field, re-ask Claude, save, or delete. */
 export function NoteEditor({
   note,
   suggestion,
@@ -21,6 +23,8 @@ export function NoteEditor({
   failed,
   onSubmit,
   onCancel,
+  onReanalyze,
+  onDelete,
 }: {
   note: Note;
   suggestion: Suggestion;
@@ -29,6 +33,8 @@ export function NoteEditor({
   failed: boolean;
   onSubmit: (edit: NoteEdit) => void;
   onCancel: () => void;
+  onReanalyze: () => Promise<Suggestion>;
+  onDelete: () => void;
 }) {
   const { t } = useTranslation();
   const [body, setBody] = useState(note.body);
@@ -42,6 +48,32 @@ export function NoteEditor({
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
   const [urgency, setUrgency] = useState<Urgency | null>(suggestion.urgency);
 
+  const [status, setStatus] = useState<NoteStatus>(note.status === 'draft' ? 'todo' : note.status);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeFailed, setAnalyzeFailed] = useState(false);
+
+  /** Fill the fields with a fresh suggestion; nothing is saved until Submit. */
+  const reanalyze = async () => {
+    setAnalyzing(true);
+    setAnalyzeFailed(false);
+    try {
+      const next = await onReanalyze();
+      setPicked({
+        categoryIds: next.categoryIds,
+        tagIds: next.tagIds,
+        newCategories: next.newCategories,
+        newTags: next.newTags,
+      });
+      setDueDate(next.dueDate ?? '');
+      setImportance(next.importance);
+      setUrgency(next.urgency);
+    } catch {
+      setAnalyzeFailed(true);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const submit = () =>
     onSubmit({
       body,
@@ -49,7 +81,7 @@ export function NoteEditor({
       dueDate: dueDate || null,
       importance,
       urgency,
-      status: 'todo',
+      status,
     });
 
   return (
@@ -117,7 +149,8 @@ export function NoteEditor({
           </select>
         </label>
       </div>
-      {failed && (
+      {note.status !== 'draft' && <StatusStepper status={status} onChange={setStatus} />}
+      {(failed || analyzeFailed) && (
         <p role="alert" className="text-danger">
           {t('notes.error')}
         </p>
@@ -136,6 +169,21 @@ export function NoteEditor({
           className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
         >
           {t('notes.cancel')}
+        </button>
+        <button
+          type="button"
+          onClick={reanalyze}
+          disabled={analyzing}
+          className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover disabled:opacity-50"
+        >
+          {analyzing ? t('notes.reanalyzing') : t('notes.reanalyze')}
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="ms-auto rounded-md border border-line px-4 py-2 text-danger hover:bg-surface-hover"
+        >
+          {t('notes.delete')}
         </button>
       </div>
     </form>

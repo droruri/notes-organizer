@@ -1,4 +1,4 @@
-import { Note, NoteCreated, NoteList, Taxonomy } from '@notes/shared';
+import { Note, NoteCreated, NoteList, Suggestion, Taxonomy } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import type { VerifyToken } from '../auth';
@@ -28,8 +28,12 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
   const mine = { authorization: 'Bearer allowed' };
   const theirs = { authorization: 'Bearer other' };
 
-  const send = (headers: typeof mine, method: 'GET' | 'POST' | 'PATCH', url: string, p?: object) =>
-    app.inject({ method, url, headers, ...(p ? { payload: p } : {}) });
+  const send = (
+    headers: typeof mine,
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    url: string,
+    p?: object,
+  ) => app.inject({ method, url, headers, ...(p ? { payload: p } : {}) });
 
   const clean = async () => {
     await pool.query('delete from notes where user_id = any($1)', [[ME.id, OTHER.id]]);
@@ -177,5 +181,91 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     expect(bad.statusCode).toBe(422);
     expect(bad.json()).toEqual({ error: 'unknown_taxonomy' });
     expect((await send(theirs, 'PATCH', `/notes/${id}`, { body: 'hijack' })).statusCode).toBe(404);
+  });
+
+  async function submitted(body: string) {
+    const id = NoteCreated.parse((await draft(body)).res.json()).note.id;
+    await send(mine, 'PATCH', `/notes/${id}`, { status: 'todo' });
+    return id;
+  }
+
+  it('edits a submitted note, including new names, and steps status one at a time', async () => {
+    const id = await submitted('edit me');
+    const edit = await send(mine, 'PATCH', `/notes/${id}`, {
+      body: 'edited',
+      newCategories: ['Fitness'],
+      urgency: 'critical',
+      importance: 'not_important',
+      dueDate: '2026-11-11',
+      status: 'in_progress',
+    });
+    expect(edit.statusCode).toBe(200);
+    const note = Note.parse(edit.json());
+    expect(note).toMatchObject({
+      body: 'edited',
+      urgency: 'critical',
+      importance: 'not_important',
+      dueDate: '2026-11-11',
+      status: 'in_progress',
+    });
+    expect(note.categoryIds).toHaveLength(1);
+    const back = await send(mine, 'PATCH', `/notes/${id}`, { status: 'todo' });
+    expect(Note.parse(back.json()).status).toBe('todo');
+    const jump = await send(mine, 'PATCH', `/notes/${id}`, { status: 'done' });
+    expect(jump.statusCode).toBe(422);
+    expect(jump.json()).toEqual({ error: 'invalid_transition' });
+    const toDraft = await send(mine, 'PATCH', `/notes/${id}`, { status: 'draft' });
+    expect(toDraft.statusCode).toBe(422);
+  });
+
+  it('soft-deletes, hides from the list, and restores', async () => {
+    const id = await submitted('delete me');
+    expect((await send(mine, 'DELETE', `/notes/${id}`)).statusCode).toBe(204);
+    expect(
+      NoteList.parse((await send(mine, 'GET', '/notes')).json()).some((n) => n.id === id),
+    ).toBe(false);
+    expect((await send(mine, 'DELETE', `/notes/${id}`)).statusCode).toBe(404);
+    expect((await send(theirs, 'POST', `/notes/${id}/restore`)).statusCode).toBe(404);
+    const restored = await send(mine, 'POST', `/notes/${id}/restore`);
+    expect(restored.statusCode).toBe(200);
+    expect(Note.parse(restored.json()).id).toBe(id);
+    expect(
+      NoteList.parse((await send(mine, 'GET', '/notes')).json()).some((n) => n.id === id),
+    ).toBe(true);
+    expect((await send(theirs, 'DELETE', `/notes/${id}`)).statusCode).toBe(404);
+  });
+
+  it('analyze returns a fresh suggestion and writes nothing', async () => {
+    const id = await submitted('analyze me');
+    const scripted = createFakeAi([{ value: { newCategories: ['Fresh'], urgency: 'urgent' } }]);
+    const app2 = buildServer({
+      db: pool,
+      ai: scripted,
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const res = await app2.inject({
+      method: 'POST',
+      url: `/notes/${id}/analyze`,
+      headers: mine,
+      payload: { today, locale: 'en' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(Suggestion.parse(res.json())).toMatchObject({
+      newCategories: ['Fresh'],
+      urgency: 'urgent',
+    });
+    expect(scripted.calls).toHaveLength(1);
+    const after = NoteList.parse((await send(mine, 'GET', '/notes')).json()).find(
+      (n) => n.id === id,
+    );
+    expect(after?.urgency).toBeNull();
+    expect(after?.proposed).toBeNull();
+    const tax = Taxonomy.parse((await send(mine, 'GET', '/taxonomy')).json());
+    expect(tax.categories.some((c) => c.name === 'Fresh')).toBe(false);
+    expect(
+      (await send(theirs, 'POST', `/notes/${id}/analyze`, { today, locale: 'en' })).statusCode,
+    ).toBe(404);
+    await app2.close();
   });
 });

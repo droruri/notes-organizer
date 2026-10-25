@@ -85,3 +85,19 @@ export const NoteEdit = z.object({
 export type NoteEdit = z.infer<typeof NoteEdit>;
 
 export const NoteList = z.array(Note);
+
+/** Body of `POST /notes/:id/analyze`. */
+export const NoteAnalyze = z.object({ today: DateString, locale: Locale });
+export type NoteAnalyze = z.infer<typeof NoteAnalyze>;
+
+const FLOW: NoteStatus[] = ['todo', 'in_progress', 'done'];
+
+/** The legal one-step moves from a status. A draft has none (submit is not a step). */
+export function statusMoves(status: NoteStatus): {
+  back: NoteStatus | null;
+  forward: NoteStatus | null;
+} {
+  const i = FLOW.indexOf(status);
+  if (i === -1) return { back: null, forward: null };
+  return { back: FLOW[i - 1] ?? null, forward: FLOW[i + 1] ?? null };
+}
