@@ -12,6 +12,7 @@
     "@fastify/cors": "^11.3.0",
     "@notes/shared": "workspace:*",
     "fastify": "^5.12.5",
+    "jose": "^6.2.13",
     "pg": "^8.23.0",
     "tsx": "^4.23.15",
     "zod": "^4.6.5"
