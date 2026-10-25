@@ -1,5 +1,6 @@
 import { Category, Tag, Taxonomy } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
+import { createFakeAi } from '../ai/provider';
 import { createPool } from '../db';
 import { buildServer } from '../server';
 import type { VerifyToken } from '../auth';
@@ -20,6 +21,7 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
   const pool = createPool(databaseUrl ?? '');
   const app = buildServer({
     db: pool,
+    ai: createFakeAi(),
     verifyToken: fakeVerifyToken,
     allowedEmails: new Set([...allowedEmails, OTHER_USER.email]),
   });

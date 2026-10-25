@@ -1,13 +1,13 @@
+import { Locale } from '@notes/shared';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { z } from 'zod';
 import en from '../locales/en.json';
 import he from '../locales/he.json';
 
-export const languages = ['he', 'en'] as const;
-export type Language = (typeof languages)[number];
+export const languages = Locale.options;
+export type Language = Locale;
 
-const languageSchema = z.enum(languages);
+const languageSchema = Locale;
 const storageKey = 'language';
 const rtl: Record<Language, 'rtl' | 'ltr'> = { he: 'rtl', en: 'ltr' };
 

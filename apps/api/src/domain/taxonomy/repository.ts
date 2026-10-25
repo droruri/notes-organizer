@@ -1,12 +1,12 @@
 import type { Category, Tag } from '@notes/shared';
-import type { Db } from '../../db';
+import type { Queryable } from '../../tx';
 
 // SQL for categories and tags. Tags have no user_id: ownership is checked through the category.
 
 const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted';
 const TAG_COLS = 't.id, t.category_id as "categoryId", t.name, t.deleted_at is not null as deleted';
 
-export async function listCategories(db: Db, userId: string): Promise<Category[]> {
+export async function listCategories(db: Queryable, userId: string): Promise<Category[]> {
   const { rows } = await db.query<Category>(
     `select ${CATEGORY_COLS} from categories c where c.user_id = $1 order by lower(c.name), c.id`,
     [userId],
@@ -14,7 +14,7 @@ export async function listCategories(db: Db, userId: string): Promise<Category[]
   return rows;
 }
 
-export async function listTags(db: Db, userId: string): Promise<Tag[]> {
+export async function listTags(db: Queryable, userId: string): Promise<Tag[]> {
   const { rows } = await db.query<Tag>(
     `select ${TAG_COLS} from tags t join categories c on c.id = t.category_id
      where c.user_id = $1 order by lower(t.name), t.id`,
@@ -24,7 +24,7 @@ export async function listTags(db: Db, userId: string): Promise<Tag[]> {
 }
 
 export async function findCategory(
-  db: Db,
+  db: Queryable,
   userId: string,
   id: string,
 ): Promise<Category | undefined> {
@@ -37,7 +37,7 @@ export async function findCategory(
 
 /** The tag plus whether its category is deleted. */
 export async function findTag(
-  db: Db,
+  db: Queryable,
   userId: string,
   id: string,
 ): Promise<(Tag & { categoryDeleted: boolean }) | undefined> {
@@ -50,7 +50,11 @@ export async function findTag(
   return rows[0];
 }
 
-export async function insertCategory(db: Db, userId: string, name: string): Promise<Category> {
+export async function insertCategory(
+  db: Queryable,
+  userId: string,
+  name: string,
+): Promise<Category> {
   const { rows } = await db.query<Category>(
     `insert into categories (user_id, name) values ($1, $2)
      returning id, name, deleted_at is not null as deleted`,
@@ -59,7 +63,7 @@ export async function insertCategory(db: Db, userId: string, name: string): Prom
   return rowOrThrow(rows);
 }
 
-export async function insertTag(db: Db, categoryId: string, name: string): Promise<Tag> {
+export async function insertTag(db: Queryable, categoryId: string, name: string): Promise<Tag> {
   const { rows } = await db.query<Tag>(
     `insert into tags (category_id, name) values ($1, $2)
      returning id, category_id as "categoryId", name, deleted_at is not null as deleted`,
@@ -69,7 +73,7 @@ export async function insertTag(db: Db, categoryId: string, name: string): Promi
 }
 
 export async function updateCategory(
-  db: Db,
+  db: Queryable,
   id: string,
   change: { name: string } | { deleted: boolean },
 ): Promise<Category> {
@@ -85,7 +89,7 @@ export async function updateCategory(
 }
 
 export async function updateTag(
-  db: Db,
+  db: Queryable,
   id: string,
   change: { name: string } | { deleted: boolean },
 ): Promise<Tag> {

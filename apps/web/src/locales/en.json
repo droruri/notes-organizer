@@ -19,5 +19,47 @@
       "title": "No access",
       "body": "This account is not allowed to use the app."
     }
+  },
+  "notes": {
+    "title": "Notes",
+    "add": "New note",
+    "placeholder": "What do you want to write down?",
+    "suggest": "Suggest",
+    "suggesting": "Claude is thinking…",
+    "empty": "No notes yet",
+    "draft": "Draft",
+    "submit": "Save",
+    "submitting": "Saving…",
+    "cancel": "Cancel",
+    "error": "Something went wrong. Try again.",
+    "body": "Text",
+    "dueDate": "Due date",
+    "importance": "Importance",
+    "urgency": "Urgency",
+    "none": "—",
+    "importanceValues": {
+      "important": "Important",
+      "not_important": "Not important"
+    },
+    "urgencyValues": {
+      "not_critical": "Not critical",
+      "medium": "Medium",
+      "critical": "Critical",
+      "urgent": "Urgent"
+    },
+    "status": {
+      "draft": "Draft",
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done"
+    },
+    "picker": {
+      "categories": "Categories",
+      "new": "new",
+      "createLabel": "New name",
+      "createIn": "Add to",
+      "newCategory": "New category",
+      "add": "Add"
+    }
   }
 }

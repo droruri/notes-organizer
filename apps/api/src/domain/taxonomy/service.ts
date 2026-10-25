@@ -1,5 +1,6 @@
 import type { Category, Tag, Taxonomy } from '@notes/shared';
 import type { Db } from '../../db';
+import type { Queryable } from '../../tx';
 import * as repo from './repository';
 import { isUsable, normalizeName } from './taxonomy';
 
@@ -23,7 +24,7 @@ async function guarded<T>(write: () => Promise<T>): Promise<Result<T>> {
   }
 }
 
-export async function getTaxonomy(db: Db, userId: string): Promise<Taxonomy> {
+export async function getTaxonomy(db: Queryable, userId: string): Promise<Taxonomy> {
   const [categories, tags] = await Promise.all([
     repo.listCategories(db, userId),
     repo.listTags(db, userId),

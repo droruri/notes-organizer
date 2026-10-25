@@ -1,10 +1,11 @@
 import { HealthResponse } from '@notes/shared';
 import { afterAll, describe, expect, it } from 'vite-plus/test';
+import { createFakeAi } from './ai/provider';
 import { createPool } from './db';
 import { buildServer } from './server';
 import { allowedEmails, ALLOWED_USER, fakeVerifyToken } from './test-auth';
 
-const auth = { verifyToken: fakeVerifyToken, allowedEmails };
+const auth = { verifyToken: fakeVerifyToken, allowedEmails, ai: createFakeAi() };
 
 const databaseUrl = process.env.DATABASE_URL;
 
