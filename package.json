@@ -16,7 +16,9 @@
     "format": "vp fmt",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm typecheck && pnpm -r build",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "deploy:hosted": "scripts/deploy-hosted.sh",
+    "setup:hosted": "scripts/setup-hosted.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
