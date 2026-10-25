@@ -5,11 +5,14 @@ export function Chip({
   label,
   selected,
   isNew = false,
+  deleted = false,
   onClick,
 }: {
   label: string;
   selected: boolean;
   isNew?: boolean;
+  /** Soft-deleted taxonomy: greyed, but still selectable as a filter. */
+  deleted?: boolean;
   onClick: () => void;
 }) {
   const { t } = useTranslation();
@@ -20,7 +23,7 @@ export function Chip({
       onClick={onClick}
       className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm ${
         selected ? 'border-fg bg-surface-hover font-medium' : 'border-line'
-      }`}
+      } ${deleted ? 'text-muted line-through opacity-60' : ''}`}
     >
       {label}
       {isNew && <span className="rounded bg-fg px-1 text-xs text-bg">{t('notes.picker.new')}</span>}

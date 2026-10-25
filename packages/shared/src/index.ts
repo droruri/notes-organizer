@@ -46,3 +46,4 @@ export const NameBody = z.object({ name: z.string() });
 export type NameBody = z.infer<typeof NameBody>;
 
 export * from './notes';
+export * from './noteQuery';

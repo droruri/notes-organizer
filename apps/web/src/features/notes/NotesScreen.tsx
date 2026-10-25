@@ -1,9 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NoteCreated } from '@notes/shared';
+import {
+  DEFAULT_NOTE_SORT,
+  EMPTY_FILTER,
+  NoteSort,
+  filterNotes,
+  sortNotes,
+  type NoteCreated,
+  type NoteFilter,
+} from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { NoteEditor } from './NoteEditor';
+import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
 
 type Mode = { kind: 'list' } | { kind: 'compose' } | { kind: 'review'; draft: NoteCreated };
@@ -18,6 +27,12 @@ export function NotesScreen() {
   const [text, setText] = useState('');
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
+  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
+  const saveSort = useMutation({
+    mutationFn: api.saveSettings,
+    onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
+  });
 
   const create = useMutation({
     mutationFn: (body: string) =>
@@ -112,7 +127,9 @@ export function NotesScreen() {
     );
   }
 
-  const visible = notes.data.filter((n) => n.status !== 'draft');
+  const today = localToday();
+  const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
+  const visible = sortNotes(filterNotes(notes.data, filter, today), sort, today);
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -125,7 +142,27 @@ export function NotesScreen() {
           {t('notes.add')}
         </button>
       </div>
-      <NoteList notes={visible} taxonomy={taxonomy.data} />
+      <div className="flex flex-col gap-3">
+        <NoteFilters filter={filter} onChange={setFilter} taxonomy={taxonomy.data} />
+        <label className="flex items-center gap-2 text-sm">
+          {t('notes.sort.label')}
+          <select
+            value={sort}
+            onChange={(e) => {
+              const next = NoteSort.safeParse(e.target.value);
+              if (next.success) saveSort.mutate({ noteSort: next.data });
+            }}
+            className="rounded-md border border-line bg-bg px-2 py-1"
+          >
+            {NoteSort.options.map((o) => (
+              <option key={o} value={o}>
+                {t(`notes.sort.${o}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <NoteList notes={visible} taxonomy={taxonomy.data} today={today} />
     </section>
   );
 }
