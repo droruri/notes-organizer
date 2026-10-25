@@ -153,3 +153,8 @@ vite.config.ts.timestamp-*
 # IDE
 .idea/
 .vitest/
+
+# Android build output and keystores
+apps/web/android/
+*.keystore
+*.jks

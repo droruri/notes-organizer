@@ -1,0 +1,26 @@
+{
+  "packageId": "app.notes.organizer",
+  "host": "notes-web.pages.dev",
+  "name": "הפתקים שלי",
+  "launcherName": "הפתקים שלי",
+  "display": "standalone",
+  "themeColor": "#0b5c78",
+  "navigationColor": "#0b5c78",
+  "backgroundColor": "#ffffff",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://notes-web.pages.dev/icon-512.png",
+  "maskableIconUrl": "https://notes-web.pages.dev/icon-maskable-512.png",
+  "webManifestUrl": "https://notes-web.pages.dev/manifest.webmanifest",
+  "shareTarget": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": { "path": "./android.keystore", "alias": "notes" },
+  "fallbackType": "customtabs",
+  "features": {},
+  "orientation": "default"
+}
