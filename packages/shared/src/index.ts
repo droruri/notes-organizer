@@ -47,3 +47,4 @@ export type NameBody = z.infer<typeof NameBody>;
 
 export * from './notes';
 export * from './noteQuery';
+export * from './links';

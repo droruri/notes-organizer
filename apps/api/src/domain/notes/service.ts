@@ -1,4 +1,6 @@
 import {
+  extractLinks,
+  type LinkContext,
   MAX_BODY_LENGTH,
   type Note,
   type NoteAnalyze,
@@ -8,6 +10,7 @@ import {
 } from '@notes/shared';
 import type { Ai } from '../../ai/provider';
 import type { Db } from '../../db';
+import type { LinkReader } from '../links/preview';
 import { withTransaction } from '../../tx';
 import * as taxonomyRepo from '../taxonomy/repository';
 import { getTaxonomy } from '../taxonomy/service';
@@ -33,10 +36,20 @@ function rowOrThrow<T>(row: T | undefined): T {
   return row;
 }
 
+export const MAX_READ_LINKS = 3;
+
+/** Read the first links of a body; the rest are passed on as unread URLs. */
+export async function linkContexts(links: LinkReader, body: string): Promise<LinkContext[]> {
+  const urls = extractLinks(body);
+  const read = await links.readAll(urls.slice(0, MAX_READ_LINKS));
+  return [...read, ...urls.slice(MAX_READ_LINKS).map((url): LinkContext => ({ url, ok: false }))];
+}
+
 /** Classify the text and store it as a draft. A repeated `clientId` returns the stored draft. */
 export async function createDraft(
   db: Db,
   ai: Ai,
+  links: LinkReader,
   userId: string,
   input: NoteCreate,
   audio?: repo.Audio,
@@ -50,6 +63,7 @@ export async function createDraft(
     today: input.today,
     locale: input.locale,
     taxonomy,
+    links: await linkContexts(links, input.body),
   });
   const id = await withTransaction(db, async (tx) => {
     const noteId = await repo.insertDraft(tx, userId, {
@@ -59,6 +73,7 @@ export async function createDraft(
       dueDate: suggestion.dueDate,
       importance: suggestion.importance,
       urgency: suggestion.urgency,
+      unreadLinks: suggestion.unreadLinks,
     });
     if (noteId !== null) {
       await repo.replaceLinks(tx, noteId, suggestion);
@@ -75,6 +90,7 @@ export async function createDraft(
 export async function createVoiceDraft(
   db: Db,
   ai: Ai,
+  links: LinkReader,
   userId: string,
   input: Omit<NoteCreate, 'body'>,
   audio: repo.Audio,
@@ -89,7 +105,7 @@ export async function createVoiceDraft(
   }
   const body = text.trim().slice(0, MAX_BODY_LENGTH);
   if (body === '') return fail('empty_transcript');
-  return ok(await createDraft(db, ai, userId, { ...input, body }, audio));
+  return ok(await createDraft(db, ai, links, userId, { ...input, body }, audio));
 }
 
 export function getAudio(db: Db, userId: string, id: string): Promise<repo.Audio | undefined> {
@@ -157,6 +173,7 @@ export async function updateNote(
       ...(edit.dueDate !== undefined ? { dueDate: edit.dueDate } : {}),
       ...(edit.importance !== undefined ? { importance: edit.importance } : {}),
       ...(edit.urgency !== undefined ? { urgency: edit.urgency } : {}),
+      ...(edit.unreadLinks !== undefined ? { unreadLinks: edit.unreadLinks } : {}),
       ...(status !== note.status ? { status } : {}),
       ...(status !== 'draft' ? { proposed: null } : {}),
     });
@@ -177,6 +194,7 @@ export async function restoreNote(db: Db, userId: string, id: string): Promise<R
 export async function analyzeNote(
   db: Db,
   ai: Ai,
+  links: LinkReader,
   userId: string,
   id: string,
   input: NoteAnalyze,
@@ -185,6 +203,12 @@ export async function analyzeNote(
   if (!note) return fail('not_found');
   const taxonomy = await getTaxonomy(db, userId);
   return ok(
-    await classify(ai, { body: note.body, today: input.today, locale: input.locale, taxonomy }),
+    await classify(ai, {
+      body: note.body,
+      today: input.today,
+      locale: input.locale,
+      taxonomy,
+      links: await linkContexts(links, note.body),
+    }),
   );
 }

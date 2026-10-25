@@ -10,6 +10,8 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioPlayer } from './AudioPlayer';
+import { LinkPreviews } from './LinkPreview';
+import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusStepper } from './StatusStepper';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
@@ -45,6 +47,7 @@ export function NoteEditor({
     newCategories: suggestion.newCategories,
     newTags: suggestion.newTags,
   });
+  const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
   const [urgency, setUrgency] = useState<Urgency | null>(suggestion.urgency);
@@ -65,6 +68,7 @@ export function NoteEditor({
         newCategories: next.newCategories,
         newTags: next.newTags,
       });
+      setUnreadLinks(next.unreadLinks);
       setDueDate(next.dueDate ?? '');
       setImportance(next.importance);
       setUrgency(next.urgency);
@@ -83,6 +87,7 @@ export function NoteEditor({
       importance,
       urgency,
       status,
+      unreadLinks,
     });
 
   return (
@@ -102,6 +107,12 @@ export function NoteEditor({
           className={`${field} text-base text-fg`}
         />
       </label>
+      {unreadLinks.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <UnreadLinkChips links={unreadLinks} />
+        </div>
+      )}
+      <LinkPreviews body={body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
       <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={setPicked} />
       <div className="grid gap-3 sm:grid-cols-3">

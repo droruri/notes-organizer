@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import type { VerifyToken } from '../auth';
 import { createPool } from '../db';
+import { createLinkReader } from '../domain/links/preview';
 import { buildServer } from '../server';
 
 const ME = { id: '66666666-6666-4666-8666-666666666666', email: 'notes-me@example.com' };
@@ -94,6 +95,47 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     expect(again.statusCode).toBe(200);
     expect(NoteCreated.parse(again.json()).note.id).toBe(created.note.id);
     expect(fresh.calls).toHaveLength(1);
+    await app2.close();
+  });
+
+  it('stores unread links from a failing link, keeps the draft, and clears them on save', async () => {
+    const links = createLinkReader({
+      lookup: async () => ['93.184.216.34'],
+      fetch: async () => new Response('gone', { status: 404 }),
+    });
+    const app2 = buildServer({
+      db: pool,
+      ai: createFakeAi([{ value: {} }]),
+      links,
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const body = 'read https://dead.test/a later';
+    const res = await app2.inject({
+      method: 'POST',
+      url: '/notes',
+      headers: mine,
+      payload: { body, clientId: crypto.randomUUID(), today, locale: 'en' },
+    });
+    expect(res.statusCode).toBe(201);
+    const created = NoteCreated.parse(res.json());
+    expect(created.suggestion.unreadLinks).toEqual(['https://dead.test/a']);
+    expect(created.note.unreadLinks).toEqual(['https://dead.test/a']);
+
+    const submit = await app2.inject({
+      method: 'PATCH',
+      url: `/notes/${created.note.id}`,
+      headers: mine,
+      payload: { status: 'todo', unreadLinks: ['https://dead.test/a'] },
+    });
+    expect(Note.parse(submit.json()).unreadLinks).toEqual(['https://dead.test/a']);
+    const saved = await app2.inject({
+      method: 'PATCH',
+      url: `/notes/${created.note.id}`,
+      headers: mine,
+      payload: { unreadLinks: [] },
+    });
+    expect(Note.parse(saved.json()).unreadLinks).toEqual([]);
     await app2.close();
   });
 

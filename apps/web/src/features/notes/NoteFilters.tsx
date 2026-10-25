@@ -134,6 +134,14 @@ export function NoteFilters({
               />
             )),
           )}
+          {group(
+            t('links.filter'),
+            <Chip
+              label={t('links.filter')}
+              selected={filter.unreadLinksOnly}
+              onClick={() => set({ unreadLinksOnly: !filter.unreadLinksOnly })}
+            />,
+          )}
           {date(t('notes.created'), 'createdFrom', 'createdTo')}
           {date(t('notes.dueDate'), 'dueFrom', 'dueTo')}
           <button

@@ -101,5 +101,15 @@
     "play": "Play recording",
     "loading": "Loading…",
     "audioFailed": "Could not load the recording."
+  },
+  "links": {
+    "unread": "Link not read",
+    "filter": "Links not read",
+    "open": "Open",
+    "close": "Close",
+    "loading": "Loading…",
+    "failed": "Preview unavailable",
+    "reader": "Reader view",
+    "original": "Open original"
   }
 }

@@ -14,6 +14,8 @@ export type NoteFilter = {
   createdTo: string;
   dueFrom: string;
   dueTo: string;
+  /** Only notes that have at least one unread link. */
+  unreadLinksOnly: boolean;
 };
 
 export const EMPTY_FILTER: NoteFilter = {
@@ -27,6 +29,7 @@ export const EMPTY_FILTER: NoteFilter = {
   createdTo: '',
   dueFrom: '',
   dueTo: '',
+  unreadLinksOnly: false,
 };
 
 /** Case-insensitive, Hebrew niqqud and cantillation marks removed. */
@@ -66,7 +69,8 @@ export function filterNotes(notes: Note[], filter: NoteFilter, _today: string): 
       anyOf(filter.importances, (i) => n.importance === i) &&
       anyOf(filter.urgencies, (u) => n.urgency === u) &&
       inRange(localDay(n.createdAt), filter.createdFrom, filter.createdTo) &&
-      inRange(n.dueDate, filter.dueFrom, filter.dueTo),
+      inRange(n.dueDate, filter.dueFrom, filter.dueTo) &&
+      (!filter.unreadLinksOnly || n.unreadLinks.length > 0),
   );
 }
 

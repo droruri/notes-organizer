@@ -3,6 +3,7 @@ import {
   AUDIO_MIMES,
   Category,
   HealthResponse,
+  LinkPreview,
   Note,
   NoteAnalyze,
   NoteCreate,
@@ -118,6 +119,12 @@ export const api = {
   updateNote: (id: string, edit: NoteEdit) => request('PATCH', `/notes/${id}`, Note, edit),
   deleteNote: (id: string) => request('DELETE', `/notes/${id}`, NoContent),
   restoreNote: (id: string) => request('POST', `/notes/${id}/restore`, Note),
+  linkPreview: (url: string, reader = false) =>
+    request(
+      'GET',
+      `/links/preview?url=${encodeURIComponent(url)}${reader ? '&reader=1' : ''}`,
+      LinkPreview,
+    ),
   analyzeNote: (id: string, input: NoteAnalyze) =>
     request('POST', `/notes/${id}/analyze`, Suggestion, input),
 };
