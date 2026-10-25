@@ -93,6 +93,7 @@ export function NotesScreen() {
       setUndoId(null);
       await queryClient.invalidateQueries({ queryKey: ['notes'] });
     },
+    onError: () => setUndoId(null),
   });
   useEffect(() => {
     if (undoId === null) return;
@@ -220,6 +221,11 @@ export function NotesScreen() {
         today={today}
         onOpen={(note) => setMode({ kind: 'edit', note })}
       />
+      {undo.isError && (
+        <p role="alert" className="text-danger">
+          {t('notes.error')}
+        </p>
+      )}
       {undoId !== null && (
         <div
           role="status"
