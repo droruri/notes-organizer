@@ -26,6 +26,7 @@ import {
   type OutboxEntry,
 } from '../offline/outbox';
 import { reportNetworkFailure, useOnline } from '../offline/useOnline';
+import { takeSharedNote } from '../share/shareTarget';
 import { HeaderSlot } from '../shell/headerSlot';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
@@ -57,8 +58,10 @@ const localToday = () => new Date().toLocaleDateString('en-CA');
 export function NotesScreen() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<Mode>({ kind: 'list' });
-  const [text, setText] = useState('');
+  // A share from another app opens the add-note editor with the shared text.
+  const [shared] = useState(takeSharedNote);
+  const [mode, setMode] = useState<Mode>({ kind: shared === undefined ? 'list' : 'compose' });
+  const [text, setText] = useState(shared ?? '');
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
