@@ -73,8 +73,8 @@ export function NotesScreen() {
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
   });
 
-  const meta = () => ({
-    clientId: crypto.randomUUID(),
+  const meta = (clientId: string = crypto.randomUUID()) => ({
+    clientId,
     today: localToday(),
     locale: i18n.language === 'en' ? ('en' as const) : ('he' as const),
   });
@@ -88,8 +88,12 @@ export function NotesScreen() {
   const [offlineNotice, setOfflineNotice] = useState<'saved' | 'failed' | null>(null);
 
   /** Queue a note on the device instead of sending it. */
-  const saveOffline = async (body: string, audio?: Blob) => {
-    const ok = await addToOutbox({ clientId: crypto.randomUUID(), body }, audio);
+  const saveOffline = async (
+    body: string,
+    audio?: Blob,
+    clientId: string = crypto.randomUUID(),
+  ) => {
+    const ok = await addToOutbox({ clientId, body }, audio);
     setOutbox(readOutbox());
     setOfflineNotice(ok ? 'saved' : 'failed');
     if (ok) {
@@ -97,31 +101,44 @@ export function NotesScreen() {
       setMode({ kind: 'list' });
     }
   };
-  /** A network-level failure (no HTTP answer) means we are offline after all. */
-  const queueOnNetworkError = async (err: unknown, body: string, audio?: Blob) => {
+  /** A network-level failure (no HTTP answer) means we are offline after all. Keeps the clientId so a retry is safe. */
+  const queueOnNetworkError = async (
+    err: unknown,
+    body: string,
+    clientId: string,
+    audio?: Blob,
+  ) => {
     if (err instanceof TypeError) {
       reportNetworkFailure();
-      await saveOffline(body, audio);
+      await saveOffline(body, audio, clientId);
     }
   };
   const create = useMutation({
-    mutationFn: (body: string) => api.createNote({ body, ...meta() }),
+    mutationFn: ({ body, clientId }: { body: string; clientId: string }) =>
+      api.createNote({ body, ...meta(clientId) }),
     onSuccess: onDraft,
-    onError: (err, body) => queueOnNetworkError(err, body),
+    onError: (err, vars) => queueOnNetworkError(err, vars.body, vars.clientId),
   });
   const createVoice = useMutation({
-    mutationFn: (audio: Blob) => api.createVoiceNote(audio, meta()),
+    mutationFn: ({ audio, clientId }: { audio: Blob; clientId: string }) =>
+      api.createVoiceNote(audio, meta(clientId)),
     onSuccess: onDraft,
-    onError: (err, audio) => queueOnNetworkError(err, '', audio),
+    onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio),
   });
 
   /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
   const sendQueued = async (entry: OutboxEntry, body: string) => {
-    const queued = { clientId: entry.clientId, today: localToday(), locale: meta().locale };
+    const queued = meta(entry.clientId);
     let draft: NoteCreated;
     if (entry.hasAudio) {
       const audio = await readOutboxAudio(entry.clientId);
-      if (!audio) throw new Error('outbox: recording missing');
+      if (!audio) {
+        // The recording is gone, so this note can never be sent; drop it instead of leaving it stuck.
+        console.warn('outbox: recording missing; dropping note');
+        await removeFromOutbox(entry.clientId);
+        setOutbox(readOutbox());
+        return;
+      }
       draft = await api.createVoiceNote(audio, queued);
     } else {
       draft = await api.createNote({ body, ...queued });
@@ -203,7 +220,7 @@ export function NotesScreen() {
         onSubmit={(e) => {
           e.preventDefault();
           if (!text.trim()) return;
-          if (online) create.mutate(text);
+          if (online) create.mutate({ body: text, clientId: crypto.randomUUID() });
           else void saveOffline(text);
         }}
       >
@@ -244,7 +261,11 @@ export function NotesScreen() {
           </button>
         </div>
         <VoiceRecorder
-          onSend={(audio) => (online ? createVoice.mutate(audio) : void saveOffline('', audio))}
+          onSend={(audio) =>
+            online
+              ? createVoice.mutate({ audio, clientId: crypto.randomUUID() })
+              : void saveOffline('', audio)
+          }
           pending={createVoice.isPending}
           failed={createVoice.isError}
         />

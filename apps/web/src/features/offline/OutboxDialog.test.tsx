@@ -21,9 +21,12 @@ describe('OutboxDialog', () => {
       <OutboxDialog entries={[entry]} taxonomy={taxonomy} onSend={onSend} onClose={vi.fn()} />,
     );
     fireEvent.click(screen.getByText('call the plumber'));
-    const body = screen.getAllByRole('textbox')[0] as HTMLElement;
+    const body = screen.getAllByRole('textbox')[0];
+    if (!body) throw new Error('no body field');
     fireEvent.change(body, { target: { value: 'call the plumber at 5' } });
-    fireEvent.submit(body.closest('form') as HTMLFormElement);
+    const form = body.closest('form');
+    if (!form) throw new Error('no form');
+    fireEvent.submit(form);
     await waitFor(() => expect(onSend).toHaveBeenCalledWith(entry, 'call the plumber at 5'));
   });
 
@@ -33,7 +36,9 @@ describe('OutboxDialog', () => {
       <OutboxDialog entries={[entry]} taxonomy={taxonomy} onSend={onSend} onClose={vi.fn()} />,
     );
     fireEvent.click(screen.getByText('call the plumber'));
-    fireEvent.submit(screen.getByRole('dialog').querySelector('form') as HTMLFormElement);
+    const form = screen.getByRole('dialog').querySelector('form');
+    if (!form) throw new Error('no form');
+    fireEvent.submit(form);
     expect(await screen.findByRole('alert')).toBeTruthy();
   });
 });

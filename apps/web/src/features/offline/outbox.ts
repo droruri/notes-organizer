@@ -53,6 +53,8 @@ export async function addToOutbox(
     return true;
   } catch (err) {
     console.warn('outbox: could not save', err);
+    // Don't leave a recording behind for a note that was never queued.
+    if (audio) await del(entry.clientId).catch(() => undefined);
     return false;
   }
 }

@@ -76,39 +76,20 @@ export function OutboxDialog({
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 text-start">
         <h2 className="text-lg font-semibold">{t('offline.dialogTitle')}</h2>
-        {open && !open.hasAudio ? (
-          <NoteEditor
-            key={open.clientId}
-            note={draftOf(open)}
-            suggestion={EMPTY_SUGGESTION}
-            taxonomy={taxonomy}
-            busy={busy}
-            failed={failed}
-            onSubmit={(edit) => void send(open, edit.body ?? open.body)}
-            onCancel={() => setOpenId(null)}
-          />
-        ) : open ? (
-          <div className="flex flex-col gap-3">
-            <AudioPreview clientId={open.clientId} />
-            {failed && (
-              <p role="alert" className="text-danger">
-                {t('notes.error')}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void send(open, '')}
-                className="rounded-md bg-fg px-4 py-2 text-bg disabled:opacity-50"
-              >
-                {busy ? t('notes.suggesting') : t('offline.send')}
-              </button>
-              <button type="button" onClick={() => setOpenId(null)} className={button}>
-                {t('notes.cancel')}
-              </button>
-            </div>
-          </div>
+        {open ? (
+          <>
+            {open.hasAudio && <AudioPreview clientId={open.clientId} />}
+            <NoteEditor
+              key={open.clientId}
+              note={draftOf(open)}
+              suggestion={EMPTY_SUGGESTION}
+              taxonomy={taxonomy}
+              busy={busy}
+              failed={failed}
+              onSubmit={(edit) => void send(open, edit.body ?? open.body)}
+              onCancel={() => setOpenId(null)}
+            />
+          </>
         ) : (
           <>
             <p className="text-muted">{t('offline.dialogHint', { count: entries.length })}</p>
