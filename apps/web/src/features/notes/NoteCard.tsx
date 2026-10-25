@@ -8,10 +8,12 @@ export function NoteCard({
   note,
   taxonomy,
   today,
+  onOpen,
 }: {
   note: Note;
   taxonomy: Taxonomy;
   today: string;
+  onOpen: (note: Note) => void;
 }) {
   const { t, i18n } = useTranslation();
   const chips = [
@@ -26,7 +28,9 @@ export function NoteCard({
   const overdue = isOverdue(note, today);
   return (
     <li className="rounded-lg border border-line p-3">
-      <p className="whitespace-pre-wrap break-words">{note.body}</p>
+      <button type="button" onClick={() => onOpen(note)} className="block w-full text-start">
+        <span className="whitespace-pre-wrap break-words">{note.body}</span>
+      </button>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <span className="rounded bg-surface-hover px-2">{t(`notes.status.${note.status}`)}</span>
         <span className="text-muted">

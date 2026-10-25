@@ -128,6 +128,21 @@ export async function updateNote(db: Queryable, id: string, change: NoteChange):
   await db.query(`update notes set ${sets.join(', ')} where id = $1`, values);
 }
 
+/** Soft-delete (`deleted: true`) or restore a note. False when no note of that state is the user's. */
+export async function setDeleted(
+  db: Queryable,
+  userId: string,
+  id: string,
+  deleted: boolean,
+): Promise<boolean> {
+  const { rowCount } = await db.query(
+    `update notes set deleted_at = ${deleted ? 'now()' : 'null'}, updated_at = now()
+     where id = $1 and user_id = $2 and (deleted_at is null) = $3`,
+    [id, userId, deleted],
+  );
+  return (rowCount ?? 0) > 0;
+}
+
 /** Replace the note's links with exactly `links`. */
 export async function replaceLinks(db: Queryable, noteId: string, links: Links): Promise<void> {
   await db.query('delete from note_categories where note_id = $1', [noteId]);

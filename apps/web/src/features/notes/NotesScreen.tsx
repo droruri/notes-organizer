@@ -6,16 +6,34 @@ import {
   filterNotes,
   sortNotes,
   type NoteCreated,
+  type Note,
   type NoteFilter,
+  type Suggestion,
 } from '@notes/shared';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
 
-type Mode = { kind: 'list' } | { kind: 'compose' } | { kind: 'review'; draft: NoteCreated };
+type Mode =
+  | { kind: 'list' }
+  | { kind: 'compose' }
+  | { kind: 'review'; draft: NoteCreated }
+  | { kind: 'edit'; note: Note };
+
+const UNDO_MS = 5000;
+
+const suggestionOf = (note: Note): Suggestion => ({
+  categoryIds: note.categoryIds,
+  tagIds: note.tagIds,
+  newCategories: note.proposed?.newCategories ?? [],
+  newTags: note.proposed?.newTags ?? [],
+  dueDate: note.dueDate,
+  importance: note.importance,
+  urgency: note.urgency,
+});
 
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
@@ -28,6 +46,7 @@ export function NotesScreen() {
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
   const saveSort = useMutation({
     mutationFn: api.saveSettings,
@@ -60,6 +79,31 @@ export function NotesScreen() {
     },
   });
 
+  const remove = useMutation({
+    mutationFn: api.deleteNote,
+    onSuccess: async (_, id) => {
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
+      setMode({ kind: 'list' });
+      setUndoId(id);
+    },
+  });
+  const undo = useMutation({
+    mutationFn: api.restoreNote,
+    onSuccess: async () => {
+      setUndoId(null);
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
+    onError: () => setUndoId(null),
+  });
+  useEffect(() => {
+    if (undoId === null) return;
+    const timer = setTimeout(() => setUndoId(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undoId]);
+
+  const reanalyze = (id: string) =>
+    api.analyzeNote(id, { today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' });
+
   if (!notes.data || !taxonomy.data) {
     return notes.isError || taxonomy.isError ? (
       <p role="alert" className="text-danger">
@@ -70,16 +114,20 @@ export function NotesScreen() {
     );
   }
 
-  if (mode.kind === 'review') {
+  if (mode.kind === 'review' || mode.kind === 'edit') {
+    const note = mode.kind === 'review' ? mode.draft.note : mode.note;
     return (
       <NoteEditor
-        note={mode.draft.note}
-        suggestion={mode.draft.suggestion}
+        key={note.id}
+        note={note}
+        suggestion={mode.kind === 'review' ? mode.draft.suggestion : suggestionOf(note)}
         taxonomy={taxonomy.data}
         busy={submit.isPending}
-        failed={submit.isError}
-        onSubmit={(edit) => submit.mutate({ id: mode.draft.note.id, edit })}
+        failed={submit.isError || remove.isError}
+        onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
         onCancel={() => setMode({ kind: 'list' })}
+        onReanalyze={() => reanalyze(note.id)}
+        onDelete={() => remove.mutate(note.id)}
       />
     );
   }
@@ -167,7 +215,32 @@ export function NotesScreen() {
           {t('notes.error')}
         </p>
       )}
-      <NoteList notes={visible} taxonomy={taxonomy.data} today={today} />
+      <NoteList
+        notes={visible}
+        taxonomy={taxonomy.data}
+        today={today}
+        onOpen={(note) => setMode({ kind: 'edit', note })}
+      />
+      {undo.isError && (
+        <p role="alert" className="text-danger">
+          {t('notes.error')}
+        </p>
+      )}
+      {undoId !== null && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
+        >
+          {t('notes.deleted')}
+          <button
+            type="button"
+            onClick={() => undo.mutate(undoId)}
+            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+          >
+            {t('notes.undo')}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import type { Note, NoteCreate, NoteEdit, Suggestion } from '@notes/shared';
+import type { Note, NoteAnalyze, NoteCreate, NoteEdit, Suggestion } from '@notes/shared';
 import type { Ai } from '../../ai/provider';
 import type { Db } from '../../db';
 import { withTransaction } from '../../tx';
@@ -71,9 +71,9 @@ export async function updateNote(
     if (!note) return fail('not_found');
     const status = edit.status ?? note.status;
     if (!isValidTransition(note.status, status)) return fail('invalid_transition');
-    // New categories and tags are created only by submit; a plain edit may link existing ones.
+    // A draft cannot create taxonomy; submitting it (or editing a submitted note) can.
     const proposesNew = (edit.newCategories?.length ?? 0) > 0 || (edit.newTags?.length ?? 0) > 0;
-    if (proposesNew && status !== 'todo') return fail('invalid_transition');
+    if (proposesNew && status === 'draft') return fail('invalid_transition');
 
     const taxonomy = await getTaxonomy(tx, userId);
     const plan = planNewTaxonomy(edit.newCategories ?? [], edit.newTags ?? [], taxonomy);
@@ -121,4 +121,29 @@ export async function updateNote(
     });
     return ok(rowOrThrow(await repo.findNote(tx, userId, id)));
   });
+}
+
+export async function deleteNote(db: Db, userId: string, id: string): Promise<Result<null>> {
+  return (await repo.setDeleted(db, userId, id, true)) ? ok(null) : fail('not_found');
+}
+
+export async function restoreNote(db: Db, userId: string, id: string): Promise<Result<Note>> {
+  if (!(await repo.setDeleted(db, userId, id, false))) return fail('not_found');
+  return ok(rowOrThrow(await repo.findNote(db, userId, id)));
+}
+
+/** Ask Claude again about the stored text. Writes nothing. */
+export async function analyzeNote(
+  db: Db,
+  ai: Ai,
+  userId: string,
+  id: string,
+  input: NoteAnalyze,
+): Promise<Result<Suggestion>> {
+  const note = await repo.findNote(db, userId, id);
+  if (!note) return fail('not_found');
+  const taxonomy = await getTaxonomy(db, userId);
+  return ok(
+    await classify(ai, { body: note.body, today: input.today, locale: input.locale, taxonomy }),
+  );
 }

@@ -3,11 +3,13 @@ import {
   Category,
   HealthResponse,
   Note,
+  NoteAnalyze,
   NoteCreate,
   NoteCreated,
   NoteEdit,
   NoteList,
   Settings,
+  Suggestion,
   Tag,
   Taxonomy,
 } from '@notes/shared';
@@ -84,6 +86,10 @@ export const api = {
   notes: () => request('GET', '/notes', NoteList),
   createNote: (input: NoteCreate) => request('POST', '/notes', NoteCreated, input),
   updateNote: (id: string, edit: NoteEdit) => request('PATCH', `/notes/${id}`, Note, edit),
+  deleteNote: (id: string) => request('DELETE', `/notes/${id}`, NoContent),
+  restoreNote: (id: string) => request('POST', `/notes/${id}/restore`, Note),
+  analyzeNote: (id: string, input: NoteAnalyze) =>
+    request('POST', `/notes/${id}/analyze`, Suggestion, input),
 };
 
 /** Generic verbs for features that add their own endpoints. */
