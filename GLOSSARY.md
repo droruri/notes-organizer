@@ -39,6 +39,12 @@ _Avoid_: Completion date, deadline
 A `todo` or `in_progress` note whose due date is before the user's today.
 _Avoid_: Late, expired
 
+**Unread link**:
+A link in a note's body that Claude could not read (paywall, blocked site, private video), so
+the note was classified from the URL alone. Shown with a "link not read" chip until a Re-analyze
+reads it.
+_Avoid_: Broken link, failed link
+
 **Importance**:
 Whether a note matters: `important` or `not_important`. Optional.
 _Avoid_: Priority

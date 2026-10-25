@@ -1,6 +1,6 @@
 # Notes Organizer v1, in simple words
 
-**In one sentence:** you capture a note by typing, speaking or sharing from another app. Claude suggests its categories, tags, due date, importance and urgency. You check the draft and submit it. Then you can filter your notes, ask a chat assistant about them, import old notes and keep working offline, on the web or as an Android app.
+**In one sentence:** you capture a note by typing, speaking or sharing from another app. Claude reads the note and the links in it, then suggests its categories, tags, due date, importance and urgency. You check the draft and submit it. Then you can filter your notes, ask a chat assistant about them, import old notes and keep working offline, on the web or as an Android app.
 
 ## The flow after the change
 
@@ -11,7 +11,8 @@ flowchart TD
     C -->|back online| D[Pop-up: review queued notes]:::new
     B -->|yes| E["API: transcribe voice (Groq)"]:::new
     D --> E
-    E --> F["Claude suggests categories, tags, date, levels"]:::new
+    E --> L["Server reads links: title, description, article text"]:::new
+    L --> F["Claude suggests categories, tags, date, levels"]:::new
     F --> G[Draft shown for review]:::new
     G -->|user edits + submits| H[Note saved as 'to do']:::new
     H --> I[Notes list: filters, urgency sort]:::new
@@ -54,8 +55,15 @@ Green = new. Today the app only shows "server is up".
 **What we gain:** you can capture a note hands-free, in Hebrew.
 
 ## Links and videos
+**Today:** none.
 **After the change:** YouTube and Vimeo links play inside the note. Article links show a card, and a tap opens a clean reading view.
-**What we gain:** you don't leave the app to see what a note points to.
+Before Claude classifies a note, the server reads up to 3 of its links:
+- articles: title, description and the start of the text
+- videos: title and description
+
+If a link can't be read (paywall, a site that blocks bots, a private video), the note shows a "link not read" chip. The chip stays after you submit. A "Links not read" filter finds those notes, and Re-analyze tries again.
+**Example:** you share a YouTube link with no text. Claude reads the title "Index funds explained" and suggests Finance › Index investing.
+**What we gain:** you don't leave the app to see what a note points to. Shared links are classified by their content. You can see when a link wasn't read.
 
 ## Chat assistant
 **After the change:** you can ask "What categories do I have?", "Which tags are in Finance?", "Summarize Finance with tags X, Y" or "What's overdue?". It can also suggest adding, renaming, deleting or restoring categories and tags. Nothing changes until you approve the change card.
@@ -63,6 +71,7 @@ Green = new. Today the app only shows "server is up".
 
 ## Import
 **After the change:** you paste text or upload a .txt file. Claude splits it into notes and suggests new categories and tags. You tick what to keep and edit rows, then confirm. Everything is saved together, or nothing is.
+The first 30 links in the file are read. A banner on the review screen says how many were not, for example "Claude read 30 of 47 links. 17 notes have links that were not read." Those rows show the chip. After you confirm, a toast repeats the count, and its "Show them" button opens the "Links not read" filter so you can re-analyze those notes.
 
 ## Offline
 **After the change:** a banner shows when you're offline. Notes you add, voice included, wait on the device. When you're back online, a pop-up opens each note in the add-note screen. Confirming sends it, and it continues as a normal draft.
@@ -74,6 +83,11 @@ Green = new. Today the app only shows "server is up".
 ## Hosting and AI providers
 Everything runs on free tiers: Supabase, Render, Cloudflare Pages. Claude Haiku 5.5 classifies, Claude Sonnet 5.5 chats, and Groq transcribes, all behind one swappable "AI port" (the single module the rest of the code calls for AI). Tests use a scripted fake AI, so they never call a real model.
 
+**Setup:** a setup issue (needs a person) lists every account and key step in order: Supabase, Google OAuth, Anthropic, Groq, Render, Cloudflare and cron-job.org. A wizard, `scripts/setup-hosted.sh`, then asks for each value:
+- It creates `.env` if it is missing, or appends to it. It never overwrites a filled value.
+- It adds any missing key name to `.env.example`, with an empty value.
+- At the end it offers to deploy.
+
 ## Work order
 16 GitHub issues for ralph:
 - Shell and sign-in come first.
@@ -82,5 +96,6 @@ Everything runs on free tiers: Supabase, Render, Cloudflare Pages. Claude Haiku 
 - Deploy, Android and E2E tests come last.
 
 ## Watch out for
-- Ralph can't do the human-only steps: Google OAuth keys, Anthropic/Groq keys, Render/Cloudflare accounts and the Android signing keystore. Those get their own `needs-human` issues.
+- Ralph can't do the human-only steps: Google OAuth keys, Anthropic/Groq keys, Render/Cloudflare accounts and the Android signing keystore. These are listed in the setup issue.
+- Some sites will never be readable. The "link not read" chip and filter are the safety net.
 - Notes added offline after the app was fully closed can still be queued. But the existing notes list can't be read on a cold start while offline.

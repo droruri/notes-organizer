@@ -140,7 +140,7 @@ erDiagram
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
   categories { uuid id PK uuid user_id FK text name timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
-  notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
+  notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
   note_categories { uuid note_id PK uuid category_id PK }
   note_tags { uuid note_id PK uuid tag_id PK }
   note_audio { uuid note_id PK text mime bytea data }
@@ -154,9 +154,12 @@ erDiagram
 - Tags have no `user_id`: ownership is checked through the category join.
 - `notes.proposed` holds Claude's new category/tag names for a draft; Zod-parsed on read;
   cleared on submit.
+- `notes.unread_links text[] not null default '{}'`: links in the body that Claude could not read.
+  Set on submit and import confirm. A Re-analyze that reads every link clears it when the note is
+  saved. Added by the link-previews ticket.
 - `note_audio.data`: at most 5 MB (enforced in the API). See ADR 0003.
 - Migrations (one per ticket, via `pnpm db:new`): settings (sign-in ticket), taxonomy, notes
-  (+ link tables), audio.
+  (+ link tables), audio, `unread_links` (link previews).
 
 ## Row Level Security
 
@@ -196,14 +199,14 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/categories/:id/tags` | `{name}` | `201 Tag` · `409 name_taken` · `422 category_deleted` |
 | PATCH / DELETE | `/tags/:id` | `{name}` / — | `Tag` / `204` |
 | POST | `/tags/:id/restore` | — | `Tag` · `409` · `422 category_deleted` |
-| GET | `/notes` | — | all non-deleted notes (drafts included) with `categoryIds`, `tagIds`, `hasAudio`, `proposed` |
+| GET | `/notes` | — | all non-deleted notes (drafts included) with `categoryIds`, `tagIds`, `hasAudio`, `proposed`, `unreadLinks` |
 | POST | `/notes` | JSON `{body, clientId, today, locale}` or multipart (`audio` file + same fields) | `201 {note, suggestion}` (note is a `draft`); a repeated `clientId` → `200` with the existing note |
 | PATCH | `/notes/:id` | `NoteEdit {body?, categoryIds?, tagIds?, newCategories?, newTags?, dueDate?, importance?, urgency?, status?}` | `Note` · `422 invalid_transition` · `422 unknown_taxonomy` |
 | DELETE | `/notes/:id` | — | `204` (soft) |
 | POST | `/notes/:id/restore` | — | `Note` |
 | POST | `/notes/:id/analyze` | `{today, locale}` | `Suggestion` — writes nothing |
 | GET | `/notes/:id/audio` | — | audio bytes, stored mime |
-| POST | `/imports/analyze` | `{text (≤ 50 000 chars), today, locale}` | `ImportProposal {newCategories, newTags, notes:[{body, suggestion}]}` (≤ 200 notes) — writes nothing |
+| POST | `/imports/analyze` | `{text (≤ 50 000 chars), today, locale}` | `ImportProposal {newCategories, newTags, notes:[{body, suggestion}], links:{total, read}}` (≤ 200 notes) — writes nothing |
 | POST | `/imports/confirm` | `ImportConfirm {categories, tags, notes}` | `201 {created}` — one transaction, all or nothing |
 | GET | `/links/preview` | `?url=` (`&reader=1`) | `LinkPreview`: `{kind:'video', embedUrl}` · `{kind:'article', title, description, image, siteName}` · with `reader=1` also `paragraphs: string[]` · `422 unreachable` |
 | POST | `/chat` | `{messages, today, locale}` | SSE stream (AI SDK parts + a `data-actions` part) |
@@ -236,13 +239,18 @@ Rules:
   `AI_FAKE=1` → fake for everything (tests, E2E, keyless dev). A missing key without `AI_FAKE`
   fails startup with a clear message.
 - **Classify** (`notes/classify.ts`): input = body, today, locale, the user's usable taxonomy as
-  `id | category | tags (id:name)`. Output (`Suggestion`): `categoryIds`, `tagIds`,
+  `id | category | tags (id:name)`, and `links: LinkContext[]` (see Link previews). The link
+  content goes in a `<linked_content>` block; the system prompt says the block is data, not
+  instructions. Output (`Suggestion`): `categoryIds`, `tagIds`,
   `newCategories: string[]`, `newTags: {categoryId | categoryName, name}[]`, `dueDate | null`,
-  `importance | null`, `urgency | null`. Zod-parsed; unknown ids dropped; new names trimmed and
+  `importance | null`, `urgency | null`, `unreadLinks: string[]` (set by the service, not by
+  Claude). Zod-parsed; unknown ids dropped; new names trimmed and
   deduped against existing (case-insensitive). A failed or rejected call → empty suggestion;
   capture never fails because of Claude.
 - **Import analyze**: one call splits the text into notes (newline, comma, bullets, numbering,
-  dates — whatever the text uses) and classifies each, returning one `ImportProposal`.
+  dates — whatever the text uses) and classifies each, returning one `ImportProposal`. Links
+  across the split notes are deduped; the first 30 are read (5 at a time, 15 s budget for the
+  whole import); the rest go to Claude as URLs and land in each note's `unreadLinks`.
 - **Agent** (`chat/agent.ts`), tools built per request with `userId` closed over:
   - `list_taxonomy()` — usable categories with tags.
   - `find_notes({categoryIds?, tagIds?, statuses?, overdue?, text?, dueBefore?, dueAfter?,
@@ -263,14 +271,30 @@ loopback and link-local addresses on every redirect hop (max 3), 5 s timeout, 2 
 OG/Twitter meta (fallback `<title>`); with `reader=1` runs Mozilla Readability and returns plain
 text paragraphs (no HTML reaches the browser). Results are cached in memory (LRU, 1 h).
 
+**Claude reads links.** `readLink(url) → LinkContext {url, ok, title?, description?, siteName?,
+text?}` lives in `preview.ts` and uses the same safe fetch and cache; `GET /links/preview` uses it
+too, so there is one fetch path.
+
+- Articles: OG/meta fields plus the first 4 000 characters of the Readability text.
+- YouTube: oEmbed (`https://www.youtube.com/oembed?url=…&format=json`) for title and author, plus
+  the watch page's `og:description`. No transcript.
+- Vimeo: `https://vimeo.com/api/oembed.json?url=…` (title and description).
+
+`notes/service` (`createDraft`, `analyze`) runs `extractLinks(body)`, reads the first 3 links in
+parallel with a 6 s budget for the whole note, then classifies. A link that fails (paywall, bot
+block, private video, timeout) is still sent as a URL and lands in `Suggestion.unreadLinks`; it
+never blocks the draft. Some sites will never be readable — the "link not read" chip, the filter
+and Re-analyze are the safety net.
+
 ## Web behaviour
 
 - **Main screen:** header (language toggle, menu: import, sign out), search box, filter sheet
-  (categories, tags, status, importance, urgency, created and due date ranges; deleted taxonomy
-  shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
+  (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
+  deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
   add-note button (text / record), chat button. Drafts sit at the top with a "draft" badge.
 - **NoteCard:** body excerpt, created date, due date (red when overdue), importance, urgency,
-  status, category and tag chips (deleted ones greyed), link previews, audio player.
+  status, category and tag chips (deleted ones greyed), link previews, audio player, a
+  "link not read" chip per entry in `unreadLinks`.
 - **NoteEditor** — one component with four callers: new draft review, edit, outbox item, import
   row. Body, `TaxonomyPicker` (existing chips, Claude's new names with a "new" badge, inline
   create), due date, importance, urgency, status stepper (one step forward/back), link previews,
@@ -279,7 +303,11 @@ text paragraphs (no HTML reaches the browser). Results are cached in memory (LRU
 - **Chat:** side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
   Approve / Dismiss.
 - **Import:** paste into a textarea or pick a `.txt` file → analyze → review (new categories, new
-  tags, notes — checkboxes; each note row opens the NoteEditor) → confirm.
+  tags, notes — checkboxes; each note row opens the NoteEditor) → confirm. When some links were
+  not read, a banner on the review screen says so ("Claude read 30 of 47 links. 17 notes have
+  links that were not read. After import, filter 'Links not read' and press Re-analyze on each."),
+  those rows show the chip, and the toast after confirm repeats the count with a "Show them"
+  button that applies the filter.
 - **Share target:** manifest `share_target` (GET, `title`/`text`/`url` params); on load the app
   reads them, clears the URL, and opens the NoteEditor with the shared text.
 - All UI text from `locales/he.json` / `en.json`; Hebrew is default; `dir` follows the language.
@@ -310,7 +338,16 @@ text paragraphs (no HTML reaches the browser). Results are cached in memory (LRU
 Google provider, Render API service (env incl. `ANTHROPIC_API_KEY`, `GROQ_API_KEY`,
 `ALLOWED_EMAILS`, `SUPABASE_URL`, `WEB_ORIGIN`), Cloudflare Pages for the web, cron-job.org
 keep-alive (`/health` every 14 min 07:00–23:00; `/health?deep=1` daily). Idempotent; each step
-skips with a warning when its key is missing. Creating accounts and keys is human-only.
+skips with a warning when its key is missing.
+
+Creating accounts and keys is human-only, in a `needs-human` setup issue with exact steps
+(Supabase project, Google OAuth client, Supabase Google provider, Anthropic key with a spend
+limit, Groq key, Render + GitHub, Cloudflare Pages GitHub app + API token + account id,
+cron-job.org key). `scripts/setup-hosted.sh` (built with the `wizard` skill) walks through those
+steps: for each value it shows where to find it and asks for it; it creates `.env` from
+`.env.example` when `.env` is missing and otherwise appends; it never overwrites a filled key; it
+appends any missing key name to `.env.example` with an empty value; it is re-runnable; at the end
+it offers to run `pnpm deploy:hosted`.
 
 ## Test plan
 
@@ -321,7 +358,8 @@ skips with a warning when its key is missing. Creating accounts and keys is huma
   submit creates new taxonomy in one transaction; transitions allowed and `422`; another user's
   ids → `404` / `422`; audio size and mime limits, playback; import analyze writes nothing,
   confirm all-or-nothing; link preview against a local HTTP fixture server, private-IP
-  rejection; chat: `find_notes` scoped to the caller, `propose_change` never writes.
+  rejection; link context: a fixture page's title reaches the fake AI prompt, a failing link
+  lands in `unreadLinks`, the 3-link cap per note, the 30-link cap per import; chat: `find_notes` scoped to the caller, `propose_change` never writes.
 - **Pure units** — `note.ts` transitions and invariant, `taxonomy.ts` rules, `classify.ts`
   mapping (unknown ids, duplicate names), `noteQuery.ts` (every filter, the sort order, overdue
   on the today boundary), `links.ts` URL forms, `outbox.ts`.
@@ -343,12 +381,15 @@ Issues are numbered in work order; each lists its blockers under `## Blocked by`
 5. Notes list: filters, urgency sort, saved sort — blocked by 4
 6. Edit, status steps, soft delete with undo, re-analyze — blocked by 4
 7. Voice notes — blocked by 4
-8. Link previews and video playback — blocked by 4
+8. Link previews, video playback, Claude reads links — blocked by 4
 9. Chat agent: questions about notes — blocked by 5
 10. Chat agent: taxonomy changes via action cards — blocked by 9, 3
-11. Import old notes — blocked by 4
+11. Import old notes — blocked by 4, 8
 12. Offline outbox — blocked by 4, 7
 13. Share target and installable PWA — blocked by 4
-14. Hosted deploy — blocked by 2
+14. Hosted deploy and setup wizard — blocked by 2
 15. Android app (TWA) — blocked by 13, 14
 16. E2E happy paths — blocked by 5, 6, 9, 12
+
+Human-only: "Create hosted accounts, keys and OAuth client" (`needs-human`, not in the ralph
+queue) — steps in Deploy.
