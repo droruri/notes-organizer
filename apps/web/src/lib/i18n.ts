@@ -1,22 +1,20 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { z } from 'zod';
 import en from '../locales/en.json';
 import he from '../locales/he.json';
 
 export const languages = ['he', 'en'] as const;
 export type Language = (typeof languages)[number];
 
+const languageSchema = z.enum(languages);
 const storageKey = 'language';
 const rtl: Record<Language, 'rtl' | 'ltr'> = { he: 'rtl', en: 'ltr' };
 
-function isLanguage(value: unknown): value is Language {
-  return languages.some((l) => l === value);
-}
-
 function readStoredLanguage(): Language {
   try {
-    const stored = localStorage.getItem(storageKey);
-    if (isLanguage(stored)) return stored;
+    const stored = languageSchema.safeParse(localStorage.getItem(storageKey));
+    if (stored.success) return stored.data;
   } catch {
     // storage blocked: fall back to the default
   }
@@ -24,12 +22,13 @@ function readStoredLanguage(): Language {
 }
 
 function applyLanguage(lng: string) {
-  if (!isLanguage(lng)) return;
-  document.documentElement.lang = lng;
-  document.documentElement.dir = rtl[lng];
+  const parsed = languageSchema.safeParse(lng);
+  if (!parsed.success) return;
+  document.documentElement.lang = parsed.data;
+  document.documentElement.dir = rtl[parsed.data];
   document.title = i18n.t('app.name');
   try {
-    localStorage.setItem(storageKey, lng);
+    localStorage.setItem(storageKey, parsed.data);
   } catch {
     // storage blocked: the choice just won't survive a reload
   }
