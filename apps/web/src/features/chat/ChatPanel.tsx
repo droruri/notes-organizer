@@ -1,6 +1,13 @@
-import { type ChatMessage, type ChatPart, type ChatRequest, type Note } from '@notes/shared';
+import {
+  type AgentAction,
+  type ChatMessage,
+  type ChatPart,
+  type ChatRequest,
+  type Note,
+} from '@notes/shared';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ActionCard } from './ActionCard';
 import { ChatAnswer } from './ChatAnswer';
 import { api } from '../../lib/api';
 
@@ -12,11 +19,14 @@ export function ChatPanel({
   notes,
   onOpenNote,
   onClose,
+  onTaxonomyChanged,
   stream = api.chat,
 }: {
   notes: Note[];
   onOpenNote: (note: Note) => void;
   onClose: () => void;
+  /** Called after an approved action, to refresh the taxonomy and notes queries. */
+  onTaxonomyChanged?: () => void;
   /** The network call; tests pass a scripted one. */
   stream?: StreamChat;
 }) {
@@ -27,6 +37,7 @@ export function ChatPanel({
   const [busy, setBusy] = useState(false);
   const [tool, setTool] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [actions, setActions] = useState<Record<number, AgentAction[]>>({});
   const history = useRef<ChatMessage[]>([]);
 
   const send = async () => {
@@ -54,6 +65,9 @@ export function ChatPanel({
           if (part.type === 'text-delta') {
             setTool(false);
             append(part.delta);
+          } else if (part.type === 'data-actions') {
+            const index = history.current.length - 1;
+            setActions((prev) => ({ ...prev, [index]: [...(prev[index] ?? []), ...part.data] }));
           } else if (part.type === 'tool-input-start') setTool(true);
           else setFailed(true);
         },
@@ -92,7 +106,12 @@ export function ChatPanel({
             {m.role === 'user' ? (
               <p className="whitespace-pre-wrap">{m.content}</p>
             ) : (
-              <ChatAnswer text={m.content} notes={notes} onOpenNote={onOpenNote} />
+              <>
+                <ChatAnswer text={m.content} notes={notes} onOpenNote={onOpenNote} />
+                {(actions[i] ?? []).map((a, j) => (
+                  <ActionCard key={j} action={a} onApplied={() => onTaxonomyChanged?.()} />
+                ))}
+              </>
             )}
           </div>
         ))}

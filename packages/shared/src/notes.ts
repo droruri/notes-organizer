@@ -126,8 +126,39 @@ export const ChatRequest = z.object({
 });
 export type ChatRequest = z.infer<typeof ChatRequest>;
 
+/**
+ * A taxonomy change the chat agent proposes. Nothing is written until the user approves it in the
+ * web app, which then calls the normal taxonomy route. `name` is the current/target name shown on
+ * the card; `newName` is the rename target.
+ */
+export const AgentAction = z.union([
+  z.object({ action: z.literal('create'), kind: z.literal('category'), name: z.string() }),
+  z.object({
+    action: z.literal('create'),
+    kind: z.literal('tag'),
+    categoryId: z.uuid(),
+    categoryName: z.string(),
+    name: z.string(),
+  }),
+  z.object({
+    action: z.literal('rename'),
+    kind: z.enum(['category', 'tag']),
+    id: z.uuid(),
+    name: z.string(),
+    newName: z.string(),
+  }),
+  z.object({
+    action: z.enum(['delete', 'restore']),
+    kind: z.enum(['category', 'tag']),
+    id: z.uuid(),
+    name: z.string(),
+  }),
+]);
+export type AgentAction = z.infer<typeof AgentAction>;
+
 /** The streamed parts the chat panel reads (a subset of the AI SDK's UI message parts). */
 export const ChatPart = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('data-actions'), data: z.array(AgentAction) }),
   z.object({ type: z.literal('text-delta'), delta: z.string() }),
   z.object({ type: z.literal('tool-input-start'), toolName: z.string() }),
   z.object({ type: z.literal('error'), errorText: z.string() }),
