@@ -1,6 +1,8 @@
 import type { LinkContext } from '@notes/shared';
 import { describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../../ai/provider';
+import { allowListDb } from '../../test-auth';
+import { captureLogs } from '../../test-logs';
 import type { LinkReader } from '../links/preview';
 import { analyzeImport, readImportLinks } from './analyze';
 
@@ -76,5 +78,72 @@ describe('readImportLinks', () => {
     const slow = reader({ readAll: () => new Promise(() => undefined) });
     const out = await readImportLinks(slow, ['https://a.test/'], 10);
     expect(out).toEqual([{ url: 'https://a.test/', ok: false }]);
+  });
+});
+
+describe('import analyze outcome logs (in a request)', () => {
+  const headers = { authorization: 'Bearer allowed' };
+  const payload = {
+    text: 'secret import text',
+    today: new Date().toISOString().slice(0, 10),
+    locale: 'en',
+  };
+
+  it('logs import analyzed with counts and no text', async () => {
+    const { app, lines } = captureLogs({
+      db: allowListDb,
+      turns: [{ value: { notes: [{ body: 'secret import text' }] } }],
+    });
+    const res = await app.inject({ method: 'POST', url: '/imports/analyze', headers, payload });
+    await app.close();
+    expect(res.statusCode).toBe(200);
+    expect(lines.find((l) => l.msg === 'import analyzed')).toMatchObject({
+      level: 30,
+      chars: payload.text.length,
+      notes: 1,
+      links: { total: 0, read: 0 },
+    });
+    expect(JSON.stringify(lines)).not.toContain('secret import text');
+  });
+
+  it('warns on ai_unavailable', async () => {
+    const { app, lines } = captureLogs({ db: allowListDb, turns: [{ fail: 'down' }] });
+    await app.inject({ method: 'POST', url: '/imports/analyze', headers, payload });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'import analyze failed')).toMatchObject({
+      level: 40,
+      error: 'ai_unavailable',
+    });
+  });
+
+  it('warns when the link budget expires, and when a read throws', async () => {
+    const { app, lines } = captureLogs({ db: allowListDb });
+    app.get('/slow', async () => {
+      await readImportLinks(
+        reader({ readAll: () => new Promise(() => undefined) }),
+        ['https://a.test/1', 'https://a.test/2'],
+        10,
+      );
+      return {};
+    });
+    app.get('/boom', async () => {
+      await readImportLinks(
+        reader({
+          readAll: async () => {
+            throw new Error('secret');
+          },
+        }),
+        ['https://a.test/1'],
+        1000,
+      );
+      return {};
+    });
+    await app.inject({ method: 'GET', url: '/slow' });
+    await app.inject({ method: 'GET', url: '/boom' });
+    await app.close();
+    expect(lines.filter((l) => l.msg === 'link budget expired')).toEqual([
+      expect.objectContaining({ level: 40, unread: 2 }),
+    ]);
+    expect(lines.find((l) => l.msg === 'import link read failed')).toMatchObject({ level: 40 });
   });
 });

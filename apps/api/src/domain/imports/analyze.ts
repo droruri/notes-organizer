@@ -56,12 +56,15 @@ export async function readImportLinks(
     log().warn({ err: errorSummary(err) }, 'import link read failed');
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let expired = false;
   const deadline = new Promise<void>((resolve) => {
-    timer = setTimeout(resolve, budgetMs);
+    timer = setTimeout(() => {
+      expired = !finished;
+      resolve();
+    }, budgetMs);
   });
   await Promise.race([loop, deadline]);
   clearTimeout(timer);
-  const expired = !finished;
   stopped = true;
   if (expired) {
     const unread = urls.filter((url) => !results.has(url)).length;
