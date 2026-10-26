@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
 import type { Session } from '@supabase/supabase-js';
+import { useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { ApiRequestError } from '../../lib/api';
 
@@ -25,13 +26,18 @@ vi.mock('../../lib/api', async (orig) => ({
   api: { me: h.me },
 }));
 
+import { AuthGate } from './AuthGate';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from './authContext';
 
 const session = { access_token: 't' } as Session;
 
+const mounts = vi.fn();
 function Probe() {
   const { state, isAdmin } = useAuth();
+  useEffect(() => {
+    mounts();
+  }, []);
   return <div data-testid="p">{`${state}:${isAdmin}`}</div>;
 }
 
@@ -90,5 +96,23 @@ describe('AuthProvider', () => {
     h.me.mockRejectedValue(new TypeError('offline'));
     await fire('TOKEN_REFRESHED', session);
     expect(screen.getByTestId('p').textContent).toBe('allowed:true');
+  });
+
+  it('a token refresh does not unmount the children, even if /me fails with a 500', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    mounts.mockClear();
+    render(
+      <AuthProvider>
+        <AuthGate>
+          <Probe />
+        </AuthGate>
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    expect(screen.getByTestId('p')).toBeTruthy();
+    h.me.mockRejectedValue(new ApiRequestError(500, undefined, 'boom'));
+    await fire('TOKEN_REFRESHED', session);
+    expect(screen.getByTestId('p')).toBeTruthy();
+    expect(mounts).toHaveBeenCalledTimes(1);
   });
 });

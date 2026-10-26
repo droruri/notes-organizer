@@ -36,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .catch((err: unknown) => {
           // Offline with a session: keep the last known access, else assume allowed.
           // The API still checks every request, so this grants nothing server-side.
+          // A quiet refresh never signs the user out over a transient failure (5xx, 429).
+          if (event === 'TOKEN_REFRESHED' && access.current) return access.current;
           if (err instanceof TypeError)
             return access.current ?? { state: 'allowed' as const, isAdmin: false };
           throw err;
