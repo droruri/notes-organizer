@@ -41,7 +41,7 @@ export function NoteCard({
         <button
           type="button"
           aria-expanded={expanded}
-          aria-controls={detailsId}
+          aria-controls={expanded ? detailsId : undefined}
           aria-label={t(expanded ? 'notes.collapse' : 'notes.expand')}
           onClick={() => setExpanded((v) => !v)}
           className="-my-2 -me-2 flex size-11 shrink-0 items-center justify-center rounded-md text-muted"

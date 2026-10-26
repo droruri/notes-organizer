@@ -40,7 +40,13 @@ function renderCard(onOpen = vi.fn()) {
 
 beforeEach(async () => {
   await i18n.changeLanguage('en');
-  vi.spyOn(api, 'linkPreview').mockResolvedValue({ kind: 'none' } as never);
+  vi.spyOn(api, 'linkPreview').mockResolvedValue({
+    kind: 'article',
+    title: null,
+    description: null,
+    image: null,
+    siteName: null,
+  });
 });
 afterEach(() => {
   cleanup();
