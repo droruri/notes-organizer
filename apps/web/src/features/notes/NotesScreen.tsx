@@ -193,33 +193,17 @@ export function NotesScreen({
   const reanalyze = (id: string) =>
     api.analyzeNote(id, { today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' });
 
-  if (!notes.data || !taxonomy.data) {
-    return notes.isError || taxonomy.isError ? (
-      <p role="alert" className="notice notice-danger">
-        {t('notes.error')}
-      </p>
-    ) : (
-      <Loading label={t('status.checking')} />
-    );
-  }
-
-  if (mode.kind === 'review' || mode.kind === 'edit') {
-    const note = mode.kind === 'review' ? mode.draft.note : mode.note;
-    return (
-      <NoteEditor
-        key={note.id}
-        note={note}
-        suggestion={mode.kind === 'review' ? mode.draft.suggestion : suggestionOf(note)}
-        taxonomy={taxonomy.data}
-        busy={submit.isPending}
-        failed={submit.isError || remove.isError}
-        onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
-        onCancel={() => setMode({ kind: 'list' })}
-        onReanalyze={() => reanalyze(note.id)}
-        onDelete={() => remove.mutate(note.id)}
-      />
-    );
-  }
+  const offlineToast = offlineNotice !== null && (
+    <Toast
+      actions={
+        <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
+          {t('offline.dismiss')}
+        </button>
+      }
+    >
+      {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
+    </Toast>
+  );
 
   if (mode.kind === 'compose') {
     return (
@@ -290,6 +274,52 @@ export function NotesScreen({
         </div>
         <p className="text-sm text-muted">{t('notes.suggestHint')}</p>
       </form>
+    );
+  }
+
+  if (!notes.data || !taxonomy.data) {
+    if (notes.isError || taxonomy.isError || !online) {
+      return (
+        <section className="flex flex-col items-start gap-4">
+          {online ? (
+            <p role="alert" className="notice notice-danger">
+              {t('notes.error')}
+            </p>
+          ) : (
+            <p role="status" className="notice notice-info">
+              {t('offline.noData')}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setMode({ kind: 'compose' })}
+            className="btn btn-primary"
+          >
+            <Icon name="plus" size={18} />
+            {t('notes.add')}
+          </button>
+          {offlineToast}
+        </section>
+      );
+    }
+    return <Loading label={t('status.checking')} />;
+  }
+
+  if (mode.kind === 'review' || mode.kind === 'edit') {
+    const note = mode.kind === 'review' ? mode.draft.note : mode.note;
+    return (
+      <NoteEditor
+        key={note.id}
+        note={note}
+        suggestion={mode.kind === 'review' ? mode.draft.suggestion : suggestionOf(note)}
+        taxonomy={taxonomy.data}
+        busy={submit.isPending}
+        failed={submit.isError || remove.isError}
+        onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
+        onCancel={() => setMode({ kind: 'list' })}
+        onReanalyze={() => reanalyze(note.id)}
+        onDelete={() => remove.mutate(note.id)}
+      />
     );
   }
 
@@ -431,17 +461,7 @@ export function NotesScreen({
             : t('import.done', { count: imported.created.notes })}
         </Toast>
       )}
-      {offlineNotice !== null && (
-        <Toast
-          actions={
-            <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
-              {t('offline.dismiss')}
-            </button>
-          }
-        >
-          {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
-        </Toast>
-      )}
+      {offlineToast}
       {undoId !== null && (
         <Toast
           actions={

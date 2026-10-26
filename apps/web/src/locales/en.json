@@ -212,6 +212,7 @@
     "dismiss": "Dismiss"
   },
   "offline": {
+    "noData": "You're offline — you can still add a note and it will be sent when you're back online.",
     "banner": "You're offline. New notes are saved on this device.",
     "saved": "Saved on this device. It will be sent when you're back online.",
     "saveFailed": "Could not save on this device.",
