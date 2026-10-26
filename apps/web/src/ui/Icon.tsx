@@ -37,6 +37,7 @@ const PATHS = {
     </>
   ),
   back: <path d="M15 18l-6-6 6-6" />,
+  chevron: <path d="m6 9 6 6 6-6" />,
   send: <path d="M5 12h14M13 6l6 6-6 6" />,
   globe: (
     <>

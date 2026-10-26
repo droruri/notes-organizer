@@ -1,14 +1,9 @@
 import { isOverdue, noteHeading, type Note, type Taxonomy } from '@notes/shared';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
-import { AudioPlayer } from './AudioPlayer';
-import { LinkPreviews } from './LinkPreview';
-import { UnreadLinkChips } from './UnreadLinkChips';
-
-const formatDate = (iso: string, lang: string) =>
-  new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' }).format(
-    new Date(iso.length === 10 ? `${iso}T00:00:00` : iso),
-  );
+import { NoteCardDetails } from './NoteCardDetails';
+import { formatDate } from './formatDate';
 
 export function NoteCard({
   note,
@@ -22,44 +17,44 @@ export function NoteCard({
   onOpen: (note: Note) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const chips = [
-    ...taxonomy.categories
-      .filter((c) => note.categoryIds.includes(c.id))
-      .map((c) => ({ id: c.id, name: c.name, deleted: c.deleted, category: true })),
-    ...taxonomy.categories
-      .flatMap((c) => c.tags)
-      .filter((tag) => note.tagIds.includes(tag.id))
-      .map((tag) => ({ id: tag.id, name: tag.name, deleted: tag.deleted, category: false })),
-  ];
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const heading = noteHeading(note);
   const overdue = isOverdue(note, today);
-  const urgent = note.urgency === 'urgent' || note.urgency === 'critical';
   return (
     <li className={`card slip status-${note.status} flex flex-col gap-3 p-4 ps-5`}>
-      <button
-        type="button"
-        onClick={() => onOpen(note)}
-        className="block w-full rounded-md text-start"
-      >
-        <span
-          dir="auto"
-          className={`block text-[1.0625rem] leading-relaxed break-words whitespace-pre-wrap ${
-            note.status === 'done' || heading.fallback ? 'text-muted' : 'font-semibold'
-          } ${heading.fallback ? 'truncate' : ''}`}
+      <div className="flex items-start gap-1">
+        <button
+          type="button"
+          onClick={() => onOpen(note)}
+          className="block min-w-0 flex-1 rounded-md text-start"
         >
-          {heading.text}
-        </span>
-        {!heading.fallback && (
           <span
             dir="auto"
-            className="mt-1 block leading-relaxed break-words whitespace-pre-wrap text-muted"
+            className={`block text-[1.0625rem] leading-relaxed break-words whitespace-pre-wrap ${
+              note.status === 'done' || heading.fallback ? 'text-muted' : 'font-semibold'
+            } ${heading.fallback ? 'truncate' : ''}`}
           >
-            {note.body}
+            {heading.text}
           </span>
-        )}
-      </button>
-      <LinkPreviews body={note.body} />
-      {note.hasAudio && <AudioPlayer noteId={note.id} />}
+        </button>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          aria-label={t(expanded ? 'notes.collapse' : 'notes.expand')}
+          onClick={() => setExpanded((v) => !v)}
+          className="-my-2 -me-2 flex size-11 shrink-0 items-center justify-center rounded-md text-muted"
+        >
+          <span
+            className={`motion-safe:transition-transform motion-safe:duration-150 ${
+              expanded ? 'rotate-180' : ''
+            }`}
+          >
+            <Icon name="chevron" size={20} />
+          </span>
+        </button>
+      </div>
       <div className="flex flex-wrap items-center gap-1.5 text-sm">
         <span className={`pill pill-dot status-${note.status}`}>
           {t(`notes.status.${note.status}`)}
@@ -74,30 +69,15 @@ export function NoteCard({
             {overdue && ` · ${t('notes.overdue')}`}
           </span>
         )}
-        {note.urgency && (
-          <span className={`pill ${urgent ? 'bg-marker text-marker-fg' : ''}`}>
-            {t(`notes.urgencyValues.${note.urgency}`)}
-          </span>
-        )}
-        {note.importance && (
-          <span className="pill">{t(`notes.importanceValues.${note.importance}`)}</span>
-        )}
-        <UnreadLinkChips links={note.unreadLinks} />
-        {chips.map((c) => (
-          <span
-            key={c.id}
-            className={`tag ${c.category ? 'font-medium text-fg' : ''} ${
-              c.deleted ? 'line-through opacity-60' : ''
-            }`}
-          >
-            {c.category ? c.name : `#${c.name}`}
-          </span>
-        ))}
-        <span className="ms-auto text-xs text-muted tabular-nums">
-          <span className="sr-only">{t('notes.created')}: </span>
-          {formatDate(note.createdAt, i18n.language)}
-        </span>
       </div>
+      {expanded ? (
+        <NoteCardDetails
+          note={note}
+          taxonomy={taxonomy}
+          showBody={!heading.fallback}
+          id={detailsId}
+        />
+      ) : null}
     </li>
   );
 }

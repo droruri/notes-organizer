@@ -74,6 +74,8 @@
       "newCategory": "New category",
       "add": "Add"
     },
+    "expand": "Expand",
+    "collapse": "Collapse",
     "created": "Created",
     "overdue": "Overdue",
     "sort": {
