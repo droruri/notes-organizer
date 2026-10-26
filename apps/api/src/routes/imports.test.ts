@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import type { VerifyToken } from '../auth';
 import { createPool } from '../db';
+import { captureLogs } from '../test-logs';
 import { buildServer } from '../server';
 
 const ME = { id: '88888888-8888-4888-8888-888888888888', email: 'imports-me@example.com' };
@@ -153,5 +154,57 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     });
     expect(res.statusCode).toBe(400);
     await app.close();
+  });
+});
+
+describe.skipIf(!databaseUrl)('imports outcome logs against the local stack', () => {
+  const pool = createPool(databaseUrl ?? '');
+  const headers = { authorization: 'Bearer allowed' };
+  const clean = async () => {
+    await pool.query('delete from notes where user_id = $1', [ME.id]);
+    await pool.query('delete from categories where user_id = $1', [ME.id]);
+  };
+  beforeAll(async () => {
+    await pool.query(
+      `insert into auth.users (id, email, aud, role) values ($1, $2, 'authenticated', 'authenticated')
+       on conflict do nothing`,
+      [ME.id, ME.email],
+    );
+    await clean();
+  });
+  afterAll(async () => {
+    await clean();
+    await pool.end();
+  });
+
+  it('logs import confirmed counts and the unknown-taxonomy rejection', async () => {
+    const { app, lines } = captureLogs({
+      db: pool,
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/imports/confirm',
+      headers,
+      payload: { categories: ['Home'], tags: [], notes: [{ body: 'secret note text' }] },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/imports/confirm',
+      headers,
+      payload: { categories: [], tags: [], notes: [{ body: 'b', newCategories: ['Nope'] }] },
+    });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'import confirmed')).toMatchObject({
+      categories: 1,
+      tags: 0,
+      notes: 1,
+    });
+    expect(lines.find((l) => l.msg === 'import rejected')).toMatchObject({
+      level: 40,
+      error: 'unknown_taxonomy',
+    });
+    expect(JSON.stringify(lines)).not.toContain('secret note text');
   });
 });

@@ -11,6 +11,7 @@ import {
 import type { Ai } from '../../ai/provider';
 import type { Db } from '../../db';
 import type { LinkReader } from '../links/preview';
+import { log, timed } from '../../requestLog';
 import { withTransaction } from '../../tx';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
 import { classify } from './classify';
@@ -45,7 +46,36 @@ export async function linkContexts(links: LinkReader, body: string): Promise<Lin
 }
 
 /** Classify the text and store it as a draft. A repeated `clientId` returns the stored draft. */
-export async function createDraft(
+export function createDraft(
+  db: Db,
+  ai: Ai,
+  links: LinkReader,
+  userId: string,
+  input: NoteCreate,
+  audio?: repo.Audio,
+): Promise<Draft> {
+  return timed('createDraft', {}, async () => {
+    const draft = await createDraftUntimed(db, ai, links, userId, input, audio);
+    if (draft.created) {
+      log().info(
+        {
+          noteId: draft.note.id,
+          links: extractLinks(input.body).length,
+          categories: draft.suggestion.categoryIds.length,
+          tags: draft.suggestion.tagIds.length,
+          newCategories: draft.suggestion.newCategories.length,
+          newTags: draft.suggestion.newTags.length,
+        },
+        'draft saved',
+      );
+    } else {
+      log().info({ noteId: draft.note.id }, 'draft duplicate');
+    }
+    return draft;
+  });
+}
+
+async function createDraftUntimed(
   db: Db,
   ai: Ai,
   links: LinkReader,
@@ -86,7 +116,20 @@ export async function createDraft(
 }
 
 /** Transcribe a recording, then run the normal draft flow with the transcript as the body. */
-export async function createVoiceDraft(
+export function createVoiceDraft(
+  db: Db,
+  ai: Ai,
+  links: LinkReader,
+  userId: string,
+  input: Omit<NoteCreate, 'body'>,
+  audio: repo.Audio,
+): Promise<Result<Draft>> {
+  return timed('createVoiceDraft', {}, () =>
+    createVoiceDraftUntimed(db, ai, links, userId, input, audio),
+  );
+}
+
+async function createVoiceDraftUntimed(
   db: Db,
   ai: Ai,
   links: LinkReader,
@@ -103,7 +146,10 @@ export async function createVoiceDraft(
     return fail('transcription_failed');
   }
   const body = text.trim().slice(0, MAX_BODY_LENGTH);
-  if (body === '') return fail('empty_transcript');
+  if (body === '') {
+    log().warn({}, 'empty transcript');
+    return fail('empty_transcript');
+  }
   return ok(await createDraft(db, ai, links, userId, { ...input, body }, audio));
 }
 
@@ -116,12 +162,32 @@ export function listNotes(db: Db, userId: string): Promise<Note[]> {
 }
 
 /** Apply an edit. `status: 'todo'` on a draft submits it. All or nothing. */
-export async function updateNote(
+export function updateNote(
   db: Db,
   userId: string,
   id: string,
   edit: NoteEdit,
 ): Promise<Result<Note>> {
+  return timed('updateNote', { noteId: id }, async () => {
+    const result = await updateNoteUntimed(db, userId, id, edit);
+    if (result.ok) {
+      log().info(
+        { noteId: id, from: result.value.from, to: result.value.note.status },
+        'note updated',
+      );
+      return ok(result.value.note);
+    }
+    log().warn({ noteId: id, error: result.error }, 'note update failed');
+    return result;
+  });
+}
+
+async function updateNoteUntimed(
+  db: Db,
+  userId: string,
+  id: string,
+  edit: NoteEdit,
+): Promise<Result<{ note: Note; from: Note['status'] }>> {
   return withTransaction(db, async (tx) => {
     const note = await repo.findNote(tx, userId, id, true);
     if (!note) return fail('not_found');
@@ -164,21 +230,41 @@ export async function updateNote(
       ...(status !== note.status ? { status } : {}),
       ...(status !== 'draft' ? { proposed: null } : {}),
     });
-    return ok(rowOrThrow(await repo.findNote(tx, userId, id)));
+    return ok({ note: rowOrThrow(await repo.findNote(tx, userId, id)), from: note.status });
   });
 }
 
-export async function deleteNote(db: Db, userId: string, id: string): Promise<Result<null>> {
-  return (await repo.setDeleted(db, userId, id, true)) ? ok(null) : fail('not_found');
+export function deleteNote(db: Db, userId: string, id: string): Promise<Result<null>> {
+  return timed('deleteNote', { noteId: id }, async () => {
+    if (!(await repo.setDeleted(db, userId, id, true))) return fail('not_found');
+    log().info({ noteId: id }, 'note deleted');
+    return ok(null);
+  });
 }
 
-export async function restoreNote(db: Db, userId: string, id: string): Promise<Result<Note>> {
-  if (!(await repo.setDeleted(db, userId, id, false))) return fail('not_found');
-  return ok(rowOrThrow(await repo.findNote(db, userId, id)));
+export function restoreNote(db: Db, userId: string, id: string): Promise<Result<Note>> {
+  return timed('restoreNote', { noteId: id }, async () => {
+    if (!(await repo.setDeleted(db, userId, id, false))) return fail('not_found');
+    log().info({ noteId: id }, 'note restored');
+    return ok(rowOrThrow(await repo.findNote(db, userId, id)));
+  });
 }
 
 /** Ask Claude again about the stored text. Writes nothing. */
-export async function analyzeNote(
+export function analyzeNote(
+  db: Db,
+  ai: Ai,
+  links: LinkReader,
+  userId: string,
+  id: string,
+  input: NoteAnalyze,
+): Promise<Result<Suggestion>> {
+  return timed('analyzeNote', { noteId: id }, () =>
+    analyzeNoteUntimed(db, ai, links, userId, id, input),
+  );
+}
+
+async function analyzeNoteUntimed(
   db: Db,
   ai: Ai,
   links: LinkReader,

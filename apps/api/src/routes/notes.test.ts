@@ -5,6 +5,7 @@ import type { VerifyToken } from '../auth';
 import { createPool } from '../db';
 import { createLinkReader } from '../domain/links/preview';
 import { buildServer } from '../server';
+import { captureLogs } from '../test-logs';
 
 const ME = { id: '66666666-6666-4666-8666-666666666666', email: 'notes-me@example.com' };
 const OTHER = { id: '77777777-7777-4777-8777-777777777777', email: 'notes-other@example.com' };
@@ -450,5 +451,70 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       );
       await silent.close();
     });
+  });
+});
+
+describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () => {
+  const pool = createPool(databaseUrl ?? '');
+  const headers = { authorization: 'Bearer allowed' };
+  const clean = async () => {
+    await pool.query('delete from notes where user_id = $1', [ME.id]);
+    await pool.query('delete from categories where user_id = $1', [ME.id]);
+  };
+  beforeAll(async () => {
+    await pool.query(
+      `insert into auth.users (id, email, aud, role) values ($1, $2, 'authenticated', 'authenticated')
+       on conflict do nothing`,
+      [ME.id, ME.email],
+    );
+    await clean();
+  });
+  afterAll(async () => {
+    await clean();
+    await pool.end();
+  });
+
+  it('logs draft saved, draft duplicate, note updated, deleted and restored', async () => {
+    const { app, lines } = captureLogs({
+      db: pool,
+      turns: [{ value: { body: 'x' } }, { value: { body: 'x' } }],
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const payload = {
+      body: 'secret note text',
+      clientId: crypto.randomUUID(),
+      today,
+      locale: 'en',
+    };
+    const first = await app.inject({ method: 'POST', url: '/notes', headers, payload });
+    const noteId = first.json().note.id;
+    await app.inject({ method: 'POST', url: '/notes', headers, payload });
+    await app.inject({
+      method: 'PATCH',
+      url: `/notes/${noteId}`,
+      headers,
+      payload: { status: 'todo' },
+    });
+    await app.inject({ method: 'DELETE', url: `/notes/${noteId}`, headers });
+    await app.inject({ method: 'POST', url: `/notes/${noteId}/restore`, headers });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'draft saved')).toMatchObject({
+      noteId,
+      links: 0,
+      categories: 0,
+      tags: 0,
+      newCategories: 0,
+      newTags: 0,
+    });
+    expect(lines.find((l) => l.msg === 'draft duplicate')).toMatchObject({ noteId });
+    expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({
+      noteId,
+      from: 'draft',
+      to: 'todo',
+    });
+    expect(lines.find((l) => l.msg === 'note deleted')).toMatchObject({ noteId });
+    expect(lines.find((l) => l.msg === 'note restored')).toMatchObject({ noteId });
+    expect(JSON.stringify(lines)).not.toContain('secret note text');
   });
 });
