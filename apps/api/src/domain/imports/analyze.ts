@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import type { Ai } from '../../ai/provider';
 import type { LinkReader } from '../links/preview';
+import { errorSummary, log, timed } from '../../requestLog';
 import {
   linkedContent,
   mapSuggestion,
@@ -40,6 +41,7 @@ export async function readImportLinks(
 ): Promise<LinkContext[]> {
   const results = new Map<string, LinkContext>();
   let stopped = false;
+  let finished = false;
   const loop = (async () => {
     const first = urls.slice(0, MAX_READ_IMPORT_LINKS);
     for (let i = 0; i < first.length && !stopped; i += READ_BATCH) {
@@ -48,14 +50,23 @@ export async function readImportLinks(
       if (stopped) return;
       for (const context of read) results.set(context.url, context);
     }
-  })().catch(() => undefined);
+    finished = true;
+  })().catch((err) => {
+    finished = true;
+    log().warn({ err: errorSummary(err) }, 'import link read failed');
+  });
   let timer: ReturnType<typeof setTimeout> | undefined;
   const deadline = new Promise<void>((resolve) => {
     timer = setTimeout(resolve, budgetMs);
   });
   await Promise.race([loop, deadline]);
   clearTimeout(timer);
+  const expired = !finished;
   stopped = true;
+  if (expired) {
+    const unread = urls.filter((url) => !results.has(url)).length;
+    log().warn({ unread }, 'link budget expired');
+  }
   return urls.map((url) => results.get(url) ?? { url, ok: false });
 }
 
@@ -88,12 +99,31 @@ export type AnalyzeResult =
   | { ok: true; value: ImportProposal }
   | { ok: false; error: AnalyzeFailure };
 
-export async function analyzeImport(
+export function analyzeImport(
   ai: Ai,
   reader: LinkReader,
   taxonomy: Taxonomy,
   input: ImportAnalyze,
   budgetMs = IMPORT_LINK_BUDGET_MS,
+): Promise<AnalyzeResult> {
+  return timed('analyzeImport', {}, async () => {
+    const result = await analyzeImportUntimed(ai, reader, taxonomy, input, budgetMs);
+    if (result.ok) {
+      const { notes, links } = result.value;
+      log().info({ chars: input.text.length, notes: notes.length, links }, 'import analyzed');
+    } else {
+      log().warn({ error: result.error }, 'import analyze failed');
+    }
+    return result;
+  });
+}
+
+async function analyzeImportUntimed(
+  ai: Ai,
+  reader: LinkReader,
+  taxonomy: Taxonomy,
+  input: ImportAnalyze,
+  budgetMs: number,
 ): Promise<AnalyzeResult> {
   const usable = usableTaxonomy(taxonomy);
   const urls = extractLinks(input.text);
