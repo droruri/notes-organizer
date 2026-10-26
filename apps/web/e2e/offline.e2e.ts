@@ -37,21 +37,14 @@ test('saved notes show offline after a reload, with the waiting section', async 
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
   await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
-  const count = await page
-    .getByText(/^\d+ פתקים?$|פתקים/)
-    .first()
-    .textContent();
+  const countText = page.getByText(/^\d+ פתקים$/).first();
+  const count = await countText.textContent();
   // Let the persister flush to IndexedDB, then go offline and cold-start.
   await page.waitForTimeout(1500);
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
-  expect(
-    await page
-      .getByText(/^\d+ פתקים?$|פתקים/)
-      .first()
-      .textContent(),
-  ).toBe(count);
+  await expect(countText).toHaveText(count ?? '');
 
   await page.getByRole('button', { name: 'פתק חדש' }).click();
   await page.getByRole('textbox').fill('waiting e2e note');
@@ -61,7 +54,9 @@ test('saved notes show offline after a reload, with the waiting section', async 
   await expect(page.getByText('ממתינים לשליחה (1)')).toBeVisible();
   await expect(page.getByText('waiting e2e note')).toBeVisible();
 
-  // Back online: the list refetches.
+  // Back online: the list refetches from the API and the waiting section goes away.
+  const refetch = page.waitForRequest(/\/(notes)(\?|$)/);
   await context.setOffline(false);
+  await refetch;
   await expect(page.getByText('ממתינים לשליחה (1)')).toBeHidden();
 });

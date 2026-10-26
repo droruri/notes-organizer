@@ -2,7 +2,7 @@ import type { PersistedClient, Persister } from '@tanstack/react-query-persist-c
 import type { Query } from '@tanstack/react-query';
 import { NoteList, Settings, Taxonomy } from '@notes/shared';
 import { del, get, set } from 'idb-keyval';
-import type { ZodType } from 'zod';
+import { z, type ZodType } from 'zod';
 
 const KEY = 'notes-query-cache-v1';
 
@@ -24,22 +24,42 @@ function schemaFor(queryKey: readonly unknown[]): ZodType | undefined {
 export const shouldDehydrateQuery = (query: Query) =>
   query.state.status === 'success' && schemaFor(query.queryKey) !== undefined;
 
+type PersistedQuery = PersistedClient['clientState']['queries'][number];
+
+const Envelope = z.object({
+  timestamp: z.number(),
+  buster: z.string(),
+  clientState: z.object({ queries: z.array(z.unknown()) }),
+});
+
+/** The fields restore reads from each query; the rest is what our own dehydrate wrote. */
+const QueryFields = z.object({
+  queryHash: z.string(),
+  queryKey: z.array(z.unknown()),
+  state: z.object({ data: z.unknown() }),
+});
+
+function isPersistedQuery(value: unknown): value is PersistedQuery {
+  return QueryFields.safeParse(value).success;
+}
+
 /** IndexedDB is a boundary: keep only queries whose data still matches its schema. */
 export function parsePersisted(value: unknown): PersistedClient | undefined {
-  if (typeof value !== 'object' || value === null) return undefined;
-  const client = value as Partial<PersistedClient>;
-  const queries = client.clientState?.queries;
-  if (typeof client.timestamp !== 'number' || typeof client.buster !== 'string') return undefined;
-  if (!Array.isArray(queries)) return undefined;
-  const kept = queries.filter((q) => {
-    const schema = Array.isArray(q?.queryKey) ? schemaFor(q.queryKey) : undefined;
-    const ok = schema?.safeParse(q.state?.data).success === true;
-    if (!ok) console.warn('query cache: dropped an invalid persisted query');
-    return ok;
-  });
+  const envelope = Envelope.safeParse(value);
+  if (!envelope.success) return undefined;
+  const kept: PersistedQuery[] = [];
+  for (const q of envelope.data.clientState.queries) {
+    if (!isPersistedQuery(q)) {
+      console.warn('query cache: dropped an invalid persisted query');
+      continue;
+    }
+    const schema = schemaFor(q.queryKey);
+    if (schema?.safeParse(q.state.data).success) kept.push(q);
+    else console.warn('query cache: dropped an invalid persisted query');
+  }
   return {
-    timestamp: client.timestamp,
-    buster: client.buster,
+    timestamp: envelope.data.timestamp,
+    buster: envelope.data.buster,
     clientState: { mutations: [], queries: kept },
   };
 }

@@ -24,17 +24,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
   const access = useRef<{ state: AuthState; isAdmin: boolean } | null>(null);
+  const userId = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     // Any way of ending up signed out wipes the cached notes (memory and disk).
     const signedOut = () => {
       access.current = null;
+      userId.current = null;
       void clearCache(queryClient);
       setState('signedOut');
     };
     const apply = (event: string, session: Session | null) => {
       if (!session) return signedOut();
+      // Another user on this device: the cache and the last access belong to the previous one.
+      if (userId.current !== null && userId.current !== session.user.id) {
+        access.current = null;
+        void clearCache(queryClient);
+      }
+      userId.current = session.user.id;
       // Only the first check and a fresh sign-in show the loading state; a token refresh
       // re-checks quietly so the screens (and text being typed) stay mounted.
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') setState('loading');
