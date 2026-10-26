@@ -45,7 +45,8 @@ const PATHS = {
       <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
     </>
   ),
-  play: <path d="M7 4.5v15l12-7.5z" />,
+  // Shifted 1 unit toward the point so the triangle looks centered.
+  play: <path d="M8 4.5v15l12-7.5z" />,
   upload: <path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />,
   logout: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />,
   users: (
@@ -84,12 +85,12 @@ export function Icon({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
-      className={`${MIRRORED.has(name) ? 'rtl:-scale-x-100' : ''} ${className}`}
+      className={`icon ${MIRRORED.has(name) ? 'rtl:-scale-x-100' : ''} ${className}`}
       {...rest}
     >
       {PATHS[name]}

@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
 import { useEscape } from '../../ui/useEscape';
+import { useExit } from '../../ui/useExit';
 
 export function ReaderSheet({ url, onClose }: { url: string; onClose: () => void }) {
   const { t } = useTranslation();
@@ -13,19 +14,24 @@ export function ReaderSheet({ url, onClose }: { url: string; onClose: () => void
     staleTime: 60 * 60 * 1000,
     retry: false,
   });
-  useEscape(onClose);
+  const { closing, exit, onTransitionEnd } = useExit();
+  const close = () => exit(onClose);
+  useEscape(close);
   const paragraphs = reader.data?.kind === 'article' ? (reader.data.paragraphs ?? []) : [];
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={t('links.reader')}
-      className="backdrop enter-fade flex items-end justify-center sm:items-center sm:p-6"
+      onTransitionEnd={onTransitionEnd}
+      className={`backdrop enter-fade ${closing ? 'closing ' : ''}flex items-end justify-center sm:items-center sm:p-6`}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) close();
       }}
     >
-      <div className="enter-sheet flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[20px] bg-surface text-fg shadow-2xl sm:rounded-[20px]">
+      <div
+        className={`enter-sheet ${closing ? 'closing ' : ''}flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[20px] bg-surface text-fg shadow-2xl sm:rounded-[20px]`}
+      >
         <div className="flex items-center gap-2 border-b border-line px-5 py-3">
           <a
             href={url}
@@ -37,7 +43,7 @@ export function ReaderSheet({ url, onClose }: { url: string; onClose: () => void
           </a>
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
             aria-label={t('links.close')}
             className="btn btn-ghost btn-icon btn-sm ms-auto"
           >

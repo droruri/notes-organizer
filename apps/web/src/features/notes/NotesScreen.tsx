@@ -244,7 +244,7 @@ export function NotesScreen({
             {t('offline.banner')}
           </p>
         )}
-        <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[textarea:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
+        <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -330,7 +330,7 @@ export function NotesScreen({
             {t('notes.add')}
           </button>
           {waiting}
-          {offlineToast}
+          <div className="toast-stack">{offlineToast}</div>
         </section>
       );
     }
@@ -400,7 +400,7 @@ export function NotesScreen({
           <button
             type="button"
             onClick={() => setMode({ kind: 'compose' })}
-            className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_rgb(11_92_120/0.55)]"
+            className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
           >
             <Icon name="plus" size={18} />
             {t('notes.add')}
@@ -464,48 +464,50 @@ export function NotesScreen({
           }}
         />
       )}
-      {imported && (
-        <Toast
-          actions={
-            <>
-              {imported.unreadNotes > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
-                    setImported(null);
-                  }}
-                  className="btn btn-sm"
-                >
-                  {t('import.show')}
+      <div className="toast-stack">
+        {imported && (
+          <Toast
+            actions={
+              <>
+                {imported.unreadNotes > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
+                      setImported(null);
+                    }}
+                    className="btn btn-sm"
+                  >
+                    {t('import.show')}
+                  </button>
+                )}
+                <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
+                  {t('import.dismiss')}
                 </button>
-              )}
-              <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
-                {t('import.dismiss')}
+              </>
+            }
+          >
+            {imported.unreadNotes > 0
+              ? t('import.toastUnread', {
+                  notes: imported.created.notes,
+                  count: imported.unreadNotes,
+                })
+              : t('import.done', { count: imported.created.notes })}
+          </Toast>
+        )}
+        {offlineToast}
+        {undoId !== null && (
+          <Toast
+            actions={
+              <button type="button" onClick={() => undo.mutate(undoId)} className="btn btn-sm">
+                {t('notes.undo')}
               </button>
-            </>
-          }
-        >
-          {imported.unreadNotes > 0
-            ? t('import.toastUnread', {
-                notes: imported.created.notes,
-                count: imported.unreadNotes,
-              })
-            : t('import.done', { count: imported.created.notes })}
-        </Toast>
-      )}
-      {offlineToast}
-      {undoId !== null && (
-        <Toast
-          actions={
-            <button type="button" onClick={() => undo.mutate(undoId)} className="btn btn-sm">
-              {t('notes.undo')}
-            </button>
-          }
-        >
-          {t('notes.deleted')}
-        </Toast>
-      )}
+            }
+          >
+            {t('notes.deleted')}
+          </Toast>
+        )}
+      </div>
     </section>
   );
 }
