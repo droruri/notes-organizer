@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vite-plus/test';
 import { z } from 'zod';
 import { createFakeAi, withLogging } from './ai/provider';
 import { createPool } from './db';
+import { createLinkReader, withLinkLogging, type LinkReader } from './domain/links/preview';
 import { LogEnv, log, timed } from './requestLog';
 import { buildServer } from './server';
 import {
@@ -30,7 +31,7 @@ const Line = z.looseObject({
 });
 type Line = z.infer<typeof Line>;
 
-function capture(db: Parameters<typeof buildServer>[0]['db']) {
+function capture(db: Parameters<typeof buildServer>[0]['db'], links?: LinkReader) {
   const lines: Line[] = [];
   const stream = new Writable({
     write(chunk: Buffer, _enc, cb) {
@@ -45,6 +46,7 @@ function capture(db: Parameters<typeof buildServer>[0]['db']) {
   const app = buildServer({
     db,
     ai: createFakeAi(),
+    ...(links ? { links } : {}),
     verifyToken: fakeVerifyToken,
     allowedEmails,
     logger: { level: 'debug', stream },
@@ -230,6 +232,83 @@ describe('AI call logging', () => {
       outputTokens: 1,
     });
     expect(JSON.stringify(lines)).not.toContain(SECRET);
+  });
+});
+
+describe('link reader logging', () => {
+  const URL_WITH_TOKEN = 'https://example.test/private/path?token=abc123';
+  const nullReader: LinkReader = {
+    preview: async () => null,
+    read: async (url) => ({ url, ok: false }),
+    readAll: async (urls) => urls.map((url) => ({ url, ok: urls[0] !== url })),
+  };
+
+  it('logs link unreachable with the host, never the full URL', async () => {
+    const { app, lines } = capture(allowListDb, nullReader);
+    const res = await app.inject({
+      method: 'GET',
+      url: `/links/preview?url=${encodeURIComponent(URL_WITH_TOKEN)}`,
+      headers: { authorization: 'Bearer allowed' },
+    });
+    await app.close();
+    expect(res.statusCode).toBe(422);
+    expect(lines.find((l) => l.msg === 'link unreachable')).toMatchObject({
+      level: 40,
+      host: 'example.test',
+      ms: expect.any(Number),
+    });
+    const text = JSON.stringify(lines);
+    expect(text).not.toContain('abc123');
+    expect(text).not.toContain('/private/path');
+  });
+
+  it('logs links read with counts and failed hosts, skipped for no links', async () => {
+    const { app, lines } = capture(allowListDb);
+    const reader = withLinkLogging(nullReader);
+    app.get('/read', async () =>
+      reader.readAll([URL_WITH_TOKEN, 'https://ok.test/a', 'not a url']),
+    );
+    app.get('/none', async () => reader.readAll([]));
+    await app.inject({ method: 'GET', url: '/read' });
+    await app.inject({ method: 'GET', url: '/none' });
+    await app.close();
+    const read = lines.filter((l) => l.msg === 'links read');
+    expect(read).toHaveLength(1);
+    expect(read[0]).toMatchObject({
+      level: 30,
+      read: 2,
+      failed: 1,
+      failedHosts: ['example.test'],
+    });
+    expect(lines.find((l) => l.msg === 'links read start')).toMatchObject({ count: 3 });
+    expect(JSON.stringify(lines)).not.toContain('abc123');
+  });
+
+  it('keeps the reader-internal cause at debug, host only', async () => {
+    const reader = withLinkLogging(
+      createLinkReader({
+        lookup: async () => ['93.184.216.34'],
+        fetch: async () => {
+          throw Object.assign(new Error('connect to secret'), { code: 'ECONNRESET' });
+        },
+      }),
+    );
+    const { app, lines } = capture(allowListDb, reader);
+    await app.inject({
+      method: 'GET',
+      url: `/links/preview?url=${encodeURIComponent(URL_WITH_TOKEN)}`,
+      headers: { authorization: 'Bearer allowed' },
+    });
+    await app.close();
+    const cause = lines.filter((l) => l.msg === 'link fetch failed');
+    expect(cause.length).toBeGreaterThan(0);
+    expect(cause[0]).toMatchObject({
+      level: 20,
+      host: 'example.test',
+      err: { code: 'ECONNRESET' },
+    });
+    expect(lines.filter((l) => l.level >= 30 && l.msg === 'link fetch failed')).toEqual([]);
+    expect(JSON.stringify(lines)).not.toContain('abc123');
   });
 });
 
