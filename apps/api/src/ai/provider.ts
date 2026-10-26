@@ -13,6 +13,7 @@ import {
 } from 'ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { z } from 'zod';
+import { errorSummary, log } from '../requestLog';
 
 // THE ONLY place a model is called (ADR 0001). Everything else depends on the `Ai` port.
 
@@ -34,6 +35,62 @@ export type Ai = {
   }): ChatStream;
   transcribe(args: { audio: Uint8Array; mime: string }): Promise<{ text: string }>;
 };
+
+/**
+ * Logs every call on `ai` to the request's logger. Never logs prompts, messages, transcripts or
+ * note text (the provider's error text on a failed `extract` is the one deliberate exception).
+ */
+export function withLogging(ai: Ai): Ai {
+  const since = (started: number) => Math.round(performance.now() - started);
+  return {
+    async extract(args) {
+      const logger = log();
+      const started = performance.now();
+      logger.debug('ai extract start');
+      const result = await ai.extract(args);
+      const ms = since(started);
+      if (result.ok) logger.debug({ ms }, 'ai extract end');
+      else logger.warn({ ms, error: result.error }, 'ai extract failed');
+      return result;
+    },
+    chat(args) {
+      const logger = log();
+      const started = performance.now();
+      const stream = ai.chat(args);
+      // Reads the finished stream's promises; they reject when the stream fails.
+      Promise.all([stream.finishReason, stream.steps, stream.totalUsage]).then(
+        ([finishReason, steps, usage]) =>
+          logger.info(
+            {
+              ms: since(started),
+              finishReason,
+              steps: steps.length,
+              tools: steps.reduce((n, step) => n + step.toolCalls.length, 0),
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
+            },
+            'chat finished',
+          ),
+        (err: unknown) =>
+          logger.warn({ err: errorSummary(err), ms: since(started) }, 'chat stream failed'),
+      );
+      return stream;
+    },
+    async transcribe(args) {
+      const logger = log();
+      const started = performance.now();
+      logger.debug({ mime: args.mime, bytes: args.audio.byteLength }, 'transcription start');
+      try {
+        const result = await ai.transcribe(args);
+        logger.info({ ms: since(started), chars: result.text.length }, 'transcription end');
+        return result;
+      } catch (err) {
+        logger.warn({ err: errorSummary(err), ms: since(started) }, 'transcription failed');
+        throw err;
+      }
+    },
+  };
+}
 
 export const AiEnv = z
   .object({
