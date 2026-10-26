@@ -1,4 +1,9 @@
-import type { FastifyBaseLogger, FastifyInstance, FastifyRequest } from 'fastify';
+import type {
+  FastifyBaseLogger,
+  FastifyInstance,
+  FastifyRequest,
+  FastifyServerOptions,
+} from 'fastify';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { z } from 'zod';
 
@@ -34,6 +39,13 @@ export function addLogFields(req: FastifyRequest, fields: Record<string, unknown
   req.log = req.log.child(fields);
 }
 
+/** Name and code only: a message or stack can echo note text or provider payloads. */
+function errorSummary(err: unknown): { name: string; code?: string } {
+  if (!(err instanceof Error)) return { name: 'unknown' };
+  const code = Reflect.get(err, 'code');
+  return typeof code === 'string' ? { name: err.name, code } : { name: err.name };
+}
+
 /** Runs `fn` with `debug` start/end lines (`ms` on end); on throw logs `error` with `err` + `ms`, rethrows. */
 export async function timed<T>(
   name: string,
@@ -48,9 +60,27 @@ export async function timed<T>(
     logger.debug({ ...fields, ms: Math.round(performance.now() - started) }, `${name} end`);
     return result;
   } catch (err) {
-    logger.error({ ...fields, err, ms: Math.round(performance.now() - started) }, `${name} failed`);
+    const ms = Math.round(performance.now() - started);
+    logger.error({ ...fields, err: errorSummary(err), ms }, `${name} failed`);
     throw err;
   }
+}
+
+/** Fastify's request line without its query string: `/links/preview?url=…` carries a pasted link. */
+export function withoutQueryInRequestLog(
+  logger: NonNullable<FastifyServerOptions['logger']>,
+): NonNullable<FastifyServerOptions['logger']> {
+  if (typeof logger !== 'object' || logger === null || 'child' in logger) return logger;
+  return {
+    ...logger,
+    serializers: {
+      ...logger.serializers,
+      req: (req: { method: string; url: string }) => ({
+        method: req.method,
+        url: req.url.replace(/\?.*$/, ''),
+      }),
+    },
+  };
 }
 
 /** Registers the hooks that make `log()` work and log every 4xx/5xx JSON `error` body. */

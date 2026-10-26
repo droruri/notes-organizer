@@ -10,7 +10,7 @@ import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken 
 import { createPool, type Db } from './db';
 import { findAllowed, seedAdmins } from './domain/users/users';
 import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
-import { LogEnv, registerRequestLogging } from './requestLog';
+import { LogEnv, registerRequestLogging, withoutQueryInRequestLog } from './requestLog';
 import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
 import { importsRoutes } from './routes/imports';
@@ -44,7 +44,7 @@ export function buildServer({
   /** Fastify logger options (`{ level, stream }`); off by default so tests stay silent. */
   logger?: FastifyServerOptions['logger'];
 }): FastifyInstance {
-  const app = Fastify({ logger });
+  const app = Fastify({ logger: withoutQueryInRequestLog(logger) });
   registerRequestLogging(app);
   // Seeds once; a failure is retried by the next request instead of locking the owner out.
   let seeding: Promise<void> | undefined;

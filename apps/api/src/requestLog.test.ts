@@ -1,5 +1,6 @@
 import { Writable } from 'node:stream';
 import { describe, expect, it, vi } from 'vite-plus/test';
+import { z } from 'zod';
 import { createFakeAi } from './ai/provider';
 import { createPool } from './db';
 import { LogEnv, log, timed } from './requestLog';
@@ -12,14 +13,27 @@ import {
   fakeVerifyToken,
 } from './test-auth';
 
-type Line = { reqId?: string; userId?: string; msg?: string; status?: number; error?: string };
+const Line = z.looseObject({
+  level: z.number(),
+  msg: z.string().optional(),
+  reqId: z.string().optional(),
+  userId: z.string().optional(),
+  status: z.number().optional(),
+  error: z.string().optional(),
+  ms: z.number().optional(),
+  err: z.object({ name: z.string(), code: z.string().optional() }).optional(),
+});
+type Line = z.infer<typeof Line>;
 
 function capture(db: Parameters<typeof buildServer>[0]['db']) {
   const lines: Line[] = [];
   const stream = new Writable({
     write(chunk: Buffer, _enc, cb) {
-      for (const l of chunk.toString().split('\n').filter(Boolean))
-        lines.push(JSON.parse(l) as Line);
+      for (const l of chunk.toString().split('\n').filter(Boolean)) {
+        const line = Line.safeParse(JSON.parse(l));
+        if (!line.success) throw line.error;
+        lines.push(line.data);
+      }
       cb();
     },
   });
@@ -100,6 +114,37 @@ describe('log() and timed()', () => {
         throw new Error('boom');
       }),
     ).rejects.toThrow('boom');
+  });
+
+  it('timed logs debug start/end with ms, and error with err + ms on throw', async () => {
+    const { app, lines } = capture(allowListDb);
+    app.get('/timed-ok', async () => timed('work', { noteId: 'n1' }, async () => 7));
+    app.get('/timed-bad', async (_req, reply) => {
+      try {
+        await timed('work', { noteId: 'n2' }, async () => {
+          throw Object.assign(new Error('secret note text'), { code: 'BOOM' });
+        });
+        return { ok: true };
+      } catch {
+        return reply.code(500).send({ ok: false });
+      }
+    });
+    await app.inject({ method: 'GET', url: '/timed-ok' });
+    await app.inject({ method: 'GET', url: '/timed-bad' });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'work start')).toMatchObject({ level: 20, noteId: 'n1' });
+    expect(lines.find((l) => l.msg === 'work end')).toMatchObject({
+      level: 20,
+      noteId: 'n1',
+      ms: expect.any(Number),
+    });
+    expect(lines.find((l) => l.msg === 'work failed')).toMatchObject({
+      level: 50,
+      noteId: 'n2',
+      ms: expect.any(Number),
+      err: { name: 'Error', code: 'BOOM' },
+    });
+    expect(JSON.stringify(lines)).not.toContain('secret note text');
   });
 });
 
