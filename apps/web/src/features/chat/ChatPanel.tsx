@@ -13,6 +13,7 @@ import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
 import { useEscape } from '../../ui/useEscape';
+import { useExit } from '../../ui/useExit';
 
 type StreamChat = (input: ChatRequest, onPart: (part: ChatPart) => void) => Promise<void>;
 
@@ -43,7 +44,10 @@ export function ChatPanel({
   const [actions, setActions] = useState<Record<number, AgentAction[]>>({});
   const slow = useSlow(busy);
   const history = useRef<ChatMessage[]>([]);
-  useEscape(onClose);
+  const { closing, exit, onTransitionEnd } = useExit();
+  const close = () => exit(onClose);
+  const openNote = (note: Note) => exit(() => onOpenNote(note));
+  useEscape(close);
 
   const send = async () => {
     const content = input.trim();
@@ -89,7 +93,8 @@ export function ChatPanel({
     <aside
       role="dialog"
       aria-label={t('chat.title')}
-      className="enter-drawer fixed inset-0 z-30 flex flex-col bg-surface pt-[env(safe-area-inset-top)] md:inset-y-0 md:start-auto md:end-0 md:w-[26rem] md:shadow-[0_0_0_1px_rgb(var(--shadow-rgb)/0.08),0_24px_64px_-16px_rgb(var(--shadow-rgb)/0.35)]"
+      onTransitionEnd={onTransitionEnd}
+      className={`enter-drawer ${closing ? 'closing ' : ''}fixed inset-0 z-30 flex flex-col bg-surface pt-[env(safe-area-inset-top)] md:inset-y-0 md:start-auto md:end-0 md:w-[26rem] md:shadow-[0_0_0_1px_rgb(var(--shadow-rgb)/0.08),0_24px_64px_-16px_rgb(var(--shadow-rgb)/0.35)]`}
     >
       <header className="flex items-center gap-3 border-b border-line px-4 py-3">
         <span className="grid size-8 place-items-center rounded-full bg-marker text-marker-fg">
@@ -98,7 +103,7 @@ export function ChatPanel({
         <h2 className="font-semibold">{t('chat.title')}</h2>
         <button
           type="button"
-          onClick={onClose}
+          onClick={close}
           aria-label={t('chat.close')}
           className="btn btn-ghost btn-icon btn-sm ms-auto"
         >
@@ -125,7 +130,7 @@ export function ChatPanel({
               <p className="whitespace-pre-wrap">{m.content}</p>
             ) : (
               <>
-                <ChatAnswer text={m.content} notes={notes} onOpenNote={onOpenNote} />
+                <ChatAnswer text={m.content} notes={notes} onOpenNote={openNote} />
                 {(actions[i] ?? []).map((a, j) => (
                   <ActionCard key={j} action={a} onApplied={() => onTaxonomyChanged?.()} />
                 ))}
