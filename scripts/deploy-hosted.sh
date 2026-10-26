@@ -237,11 +237,15 @@ if [ -n "$RENDER_ID" ]; then
     # PUT replaces the whole set, so this is every variable the API reads on Render.
     envs=$(jq -n --arg db "$DB_URL?sslmode=no-verify" --arg sb "$SUPABASE_URL_HOSTED" --arg web "$WEB_URL" \
       --arg allowed "$ALLOWED_EMAILS" --arg ak "$ANTHROPIC_API_KEY" --arg gk "$GROQ_API_KEY" --arg jk "${JINA_API_KEY:-}" \
+      --arg cm "${LLM_CLASSIFY_MODEL:-}" --arg chm "${LLM_CHAT_MODEL:-}" \
       '[{key: "NODE_VERSION", value: "24"}, {key: "DATABASE_URL", value: $db},
         {key: "SUPABASE_URL", value: $sb}, {key: "WEB_ORIGIN", value: $web},
         {key: "ALLOWED_EMAILS", value: $allowed},
         {key: "ANTHROPIC_API_KEY", value: $ak}, {key: "GROQ_API_KEY", value: $gk}]
-        + (if $jk != "" then [{key: "JINA_API_KEY", value: $jk}] else [] end)')
+        + (if $jk != "" then [{key: "JINA_API_KEY", value: $jk}] else [] end)
+        # Optional: unset, the API falls back to its own default model.
+        + (if $cm != "" then [{key: "LLM_CLASSIFY_MODEL", value: $cm}] else [] end)
+        + (if $chm != "" then [{key: "LLM_CHAT_MODEL", value: $chm}] else [] end)')
     api PUT "$R/services/$RENDER_ID/env-vars" "$RENDER_API_KEY" "$envs" >/dev/null \
       && ok "env vars set" || fail "could not set env vars"
     api POST "$R/services/$RENDER_ID/deploys" "$RENDER_API_KEY" '{}' >/dev/null \
