@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiRequestError } from '../../lib/api';
 import { supabase } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
@@ -20,23 +20,37 @@ async function checkAccess(): Promise<{ state: AuthState; isAdmin: boolean }> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>('loading');
   const [isAdmin, setIsAdmin] = useState(false);
+  const access = useRef<{ state: AuthState; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const apply = (session: Session | null) => {
-      if (!session) return setState('signedOut');
-      setState('loading');
+    const apply = (event: string, session: Session | null) => {
+      if (!session) {
+        access.current = null;
+        return setState('signedOut');
+      }
+      // Only the first check and a fresh sign-in show the loading state; a token refresh
+      // re-checks quietly so the screens (and text being typed) stay mounted.
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') setState('loading');
       checkAccess()
-        .then((access) => {
+        .catch((err: unknown) => {
+          // Offline with a session: keep the last known access, else assume allowed.
+          // The API still checks every request, so this grants nothing server-side.
+          if (err instanceof TypeError)
+            return access.current ?? { state: 'allowed' as const, isAdmin: false };
+          throw err;
+        })
+        .then((result) => {
           if (cancelled) return;
-          setIsAdmin(access.isAdmin);
-          setState(access.state);
+          access.current = result;
+          setIsAdmin(result.isAdmin);
+          setState(result.state);
         })
         .catch(() => !cancelled && setState('signedOut'));
     };
-    const { data } = supabase().auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase().auth.onAuthStateChange((event, session) => {
       // Defer: supabase-js forbids calling its own methods inside this callback.
-      setTimeout(() => apply(session), 0);
+      setTimeout(() => apply(event, session), 0);
     });
     return () => {
       cancelled = true;
