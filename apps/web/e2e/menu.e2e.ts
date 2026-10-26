@@ -23,13 +23,17 @@ test('the app menu is visible in a share-target compose launch', async ({ page }
   await expect(menuButton(page)).toBeVisible();
 });
 
-test('the menu popover stays inside a 320px viewport', async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 640 });
-  await page.goto('/');
-  await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await menuButton(page).click();
-  const box = await page.getByRole('menu').boundingBox();
-  expect(box).not.toBeNull();
-  expect(box?.x).toBeGreaterThanOrEqual(0);
-  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
-});
+for (const dir of ['rtl', 'ltr'] as const) {
+  test(`the menu popover stays inside a 320px viewport (${dir})`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
+    if (dir === 'ltr') await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('dir', dir);
+    await page.getByRole('button', { name: dir === 'rtl' ? 'תפריט' : 'Menu' }).click();
+    const box = await page.getByRole('menu').boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.x).toBeGreaterThanOrEqual(0);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
+  });
+}

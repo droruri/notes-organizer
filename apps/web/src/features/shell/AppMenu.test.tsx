@@ -1,7 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { AppMenu } from './AppMenu';
 
+beforeEach(() => {
+  document.documentElement.dir = 'rtl';
+});
 afterEach(cleanup);
 
 const handlers = () => ({ onNotes: vi.fn(), onImport: vi.fn(), onSignOut: vi.fn() });
