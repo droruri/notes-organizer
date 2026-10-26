@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { z } from 'zod';
+import { errorSummary, log } from '../../requestLog';
 
 // The one safe fetch path for links: `GET /links/preview` and Claude's link reading both use it.
 // Only public http(s) hosts, checked on every redirect hop; bounded time and size; cached.
@@ -60,6 +61,48 @@ type Parsed = {
 };
 
 class UnsafeUrl extends Error {}
+
+/** Hostname only: a full URL can carry private paths or tokens. */
+export function hostOf(url: string): string {
+  return URL.canParse(url) ? new URL(url).hostname : 'invalid';
+}
+
+/** Logs link reads to the request's logger. Hostnames only, never full URLs. */
+export function withLinkLogging(reader: LinkReader): LinkReader {
+  const since = (started: number) => Math.round(performance.now() - started);
+  return {
+    async preview(url, withReader) {
+      const logger = log();
+      const host = hostOf(url);
+      const started = performance.now();
+      logger.debug({ host, withReader }, 'link preview start');
+      const result = await reader.preview(url, withReader);
+      const ms = since(started);
+      if (result === null) logger.warn({ host, ms }, 'link unreachable');
+      logger.debug({ host, withReader, ms }, 'link preview end');
+      return result;
+    },
+    read: (url) => reader.read(url),
+    async readAll(urls) {
+      const logger = log();
+      if (urls.length === 0) return reader.readAll(urls);
+      const started = performance.now();
+      logger.debug({ count: urls.length }, 'links read start');
+      const results = await reader.readAll(urls);
+      const failed = results.filter((r) => !r.ok);
+      logger.info(
+        {
+          ms: since(started),
+          read: results.length - failed.length,
+          failed: failed.length,
+          failedHosts: failed.map((r) => hostOf(r.url)),
+        },
+        'links read',
+      );
+      return results;
+    },
+  };
+}
 
 export function isPublicAddress(address: string): boolean {
   const kind = isIP(address);
@@ -252,6 +295,7 @@ export function createLinkReader(options: LinkReaderOptions = {}): LinkReader {
       return await get(url, ua, ctx, accept);
     } catch (err) {
       if (err instanceof UnsafeUrl) throw err;
+      log().debug({ host: hostOf(url), err: errorSummary(err) }, 'link fetch failed');
       return null; // network error: eligible for the retry / reader
     }
   }
@@ -267,7 +311,8 @@ export function createLinkReader(options: LinkReaderOptions = {}): LinkReader {
       });
       const text = await readCapped(res);
       return { status: res.status, url, type: 'text/html', text };
-    } catch {
+    } catch (err) {
+      log().debug({ host: hostOf(url), err: errorSummary(err) }, 'link reader fallback failed');
       return null;
     }
   }
@@ -283,7 +328,8 @@ export function createLinkReader(options: LinkReaderOptions = {}): LinkReader {
       if (res === null || res.status < 200 || res.status >= 300) return null;
       if (!/html|xml|text\/plain/i.test(res.type)) return null;
       return res;
-    } catch {
+    } catch (err) {
+      log().debug({ host: hostOf(url), err: errorSummary(err) }, 'link address refused');
       return null; // unsafe address or hop limit
     }
   }

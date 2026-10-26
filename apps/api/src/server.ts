@@ -9,7 +9,12 @@ import { AiEnv, createAi, withLogging, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPool, type Db } from './db';
 import { findAllowed, seedAdmins } from './domain/users/users';
-import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
+import {
+  createLinkReader,
+  LinkEnv,
+  withLinkLogging,
+  type LinkReader,
+} from './domain/links/preview';
 import { LogEnv, registerRequestLogging, withoutQueryInRequestLog } from './requestLog';
 import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
@@ -27,7 +32,7 @@ const DEFAULT_WEB_ORIGIN = 'http://localhost:5173';
 export function buildServer({
   db,
   ai: rawAi,
-  links = createLinkReader(),
+  links: rawLinks = createLinkReader(),
   verifyToken,
   allowedEmails,
   webOrigin = DEFAULT_WEB_ORIGIN,
@@ -45,6 +50,7 @@ export function buildServer({
   logger?: FastifyServerOptions['logger'];
 }): FastifyInstance {
   const ai = withLogging(rawAi);
+  const links = withLinkLogging(rawLinks);
   const app = Fastify({ logger: withoutQueryInRequestLog(logger) });
   registerRequestLogging(app);
   // Seeds once; a failure is retried by the next request instead of locking the owner out.
