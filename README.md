@@ -18,7 +18,7 @@ pnpm dev:hosted   # API on :3000 (debugger on :9229) + web on :5173, no local Su
 ```
 
 Env layers: `.env.example`, then `.env`, then the git-ignored root `.env.hosted` (overrides only).
-The API fails at start if `.env.hosted` is missing. The API keys (`ANTHROPIC_API_KEY`,
+The API fails at start if `.env.hosted` is missing. The API keys (`GOOGLE_GENERATIVE_AI_API_KEY`,
 `GROQ_API_KEY`, `JINA_API_KEY`) stay in `.env`; `WEB_ORIGIN`, `PORT` and `VITE_API_URL` stay local.
 
 ```sh
@@ -31,7 +31,7 @@ ALLOWED_EMAILS=<same value as the hosted API>
 AI_FAKE=
 ```
 
-> **Warning:** writes hit the real database, and AI calls (Claude, Groq Whisper) are real, paid calls.
+> **Warning:** writes hit the real database, and AI calls (Gemini with Groq as fallback, Groq Whisper) are real calls on free tiers.
 
 The Node debugger listens on port 9229 (attach from WebStorm or `chrome://inspect`). One manual
 step: in the Supabase dashboard, open Authentication → URL Configuration and add

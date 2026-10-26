@@ -229,7 +229,7 @@ fi
 # ── Render env vars + deploy (now that WEB_URL is known) ─────────────────────
 if [ -n "$RENDER_ID" ]; then
   say "Render env vars"
-  m=$(missing DB_URL WEB_URL ANTHROPIC_API_KEY GROQ_API_KEY ALLOWED_EMAILS)
+  m=$(missing DB_URL WEB_URL GOOGLE_GENERATIVE_AI_API_KEY GROQ_API_KEY ALLOWED_EMAILS)
   if [ -n "$m" ]; then
     skip "need$m — env vars and deploy not touched"
   elif [ "$ALLOWED_EMAILS" = dev@notes.local ]; then
@@ -237,11 +237,11 @@ if [ -n "$RENDER_ID" ]; then
   else
     # PUT replaces the whole set, so this is every variable the API reads on Render.
     envs=$(jq -n --arg db "$DB_URL?sslmode=no-verify" --arg sb "$SUPABASE_URL_HOSTED" --arg web "$WEB_URL" \
-      --arg allowed "$ALLOWED_EMAILS" --arg ak "$ANTHROPIC_API_KEY" --arg gk "$GROQ_API_KEY" --arg jk "${JINA_API_KEY:-}" \
+      --arg allowed "$ALLOWED_EMAILS" --arg ak "$GOOGLE_GENERATIVE_AI_API_KEY" --arg gk "$GROQ_API_KEY" --arg jk "${JINA_API_KEY:-}" \
       '[{key: "NODE_VERSION", value: "24"}, {key: "DATABASE_URL", value: $db},
         {key: "SUPABASE_URL", value: $sb}, {key: "WEB_ORIGIN", value: $web},
         {key: "ALLOWED_EMAILS", value: $allowed},
-        {key: "ANTHROPIC_API_KEY", value: $ak}, {key: "GROQ_API_KEY", value: $gk}]
+        {key: "GOOGLE_GENERATIVE_AI_API_KEY", value: $ak}, {key: "GROQ_API_KEY", value: $gk}]
         + (if $jk != "" then [{key: "JINA_API_KEY", value: $jk}] else [] end)')
     api PUT "$R/services/$RENDER_ID/env-vars" "$RENDER_API_KEY" "$envs" >/dev/null \
       && ok "env vars set" || fail "could not set env vars"
