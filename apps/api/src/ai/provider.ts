@@ -131,15 +131,27 @@ export function createAi(env: AiEnv): Ai {
   });
 }
 
+/** How long the primary model may take to answer (or open its stream) before the fallback runs. */
+const PRIMARY_TIMEOUT_MS = 20_000;
+
 /**
- * `primary`, but when it throws the same call (generate, or opening a stream) runs once on
+ * `primary`, but when it throws or is slower than the timeout the same call (generate, or opening a stream) runs once on
  * `fallback` and one warning is logged. A failure after a stream has started is not retried.
  */
 export function withFallback(
   primary: Exclude<LanguageModel, string>,
   fallback: Exclude<LanguageModel, string>,
   warn: (message: string) => void = console.warn,
+  timeoutMs: number = PRIMARY_TIMEOUT_MS,
 ): LanguageModel {
+  /** Rejects when `call` takes longer than `timeoutMs`, so a slow primary hands over to the fallback. */
+  const within = <T>(call: () => PromiseLike<T>): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
+    });
+    return Promise.race([Promise.resolve(call()), timeout]).finally(() => clearTimeout(timer));
+  };
   const note = (err: unknown) =>
     warn(
       `ai: primary model failed, using fallback: ${err instanceof Error ? err.message : String(err)}`,
@@ -152,7 +164,7 @@ export function withFallback(
       specificationVersion: 'v4',
       wrapGenerate: async ({ doGenerate, params }) => {
         try {
-          return await doGenerate();
+          return await within(doGenerate);
         } catch (err) {
           note(err);
           return fallbackV4.doGenerate(params);
@@ -160,7 +172,7 @@ export function withFallback(
       },
       wrapStream: async ({ doStream, params }) => {
         try {
-          return await doStream();
+          return await within(doStream);
         } catch (err) {
           note(err);
           return fallbackV4.doStream(params);

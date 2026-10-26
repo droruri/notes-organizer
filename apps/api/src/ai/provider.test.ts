@@ -108,3 +108,20 @@ describe('model fallback', () => {
     await expect(result.text).rejects.toThrow();
   });
 });
+
+describe('slow primary', () => {
+  it('hands over to the fallback when the primary is slower than the timeout', async () => {
+    const warn = vi.fn();
+    const slow = new MockLanguageModelV4({ doGenerate: () => new Promise(() => {}) });
+    const ai = createAiFromModels({
+      classify: withFallback(slow, generating('{"a":"fallback"}'), warn, 20),
+      chat: withFallback(slow, streaming('fallback answer'), warn, 20),
+      transcription,
+    });
+    expect(await ai.extract({ schema, system: 's', prompt: 'p' })).toEqual({
+      ok: true,
+      value: { a: 'fallback' },
+    });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+  });
+});

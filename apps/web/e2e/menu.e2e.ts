@@ -19,7 +19,7 @@ test('the app menu is visible on the list and in compose, and signs out', async 
 test('the app menu is visible in a share-target compose launch', async ({ page }) => {
   await page.goto('/?text=hello');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('textbox')).toHaveValue('hello');
+  await expect(page.getByRole('textbox', { name: 'טקסט' })).toHaveValue('hello');
   await expect(menuButton(page)).toBeVisible();
 });
 

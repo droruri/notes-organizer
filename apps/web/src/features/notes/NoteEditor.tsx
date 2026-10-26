@@ -1,4 +1,5 @@
 import {
+  EMPTY_SUGGESTION,
   Importance,
   MAX_TITLE_LENGTH,
   Urgency,
@@ -11,6 +12,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { useSlow } from '../../ui/useSlow';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -46,6 +48,7 @@ export function NoteEditor({
   const { t } = useTranslation();
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
+  const slow = useSlow(busy);
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
@@ -101,12 +104,13 @@ export function NoteEditor({
         <h2 className="text-2xl font-bold tracking-tight">
           {note.status === 'draft' ? t('notes.reviewTitle') : t('notes.editTitle')}
         </h2>
-        {note.status === 'draft' && (
-          <span className="marker inline-flex items-center gap-1">
-            <Icon name="spark" size={13} />
-            {t('notes.suggested')}
-          </span>
-        )}
+        {note.status === 'draft' &&
+          JSON.stringify(suggestion) !== JSON.stringify(EMPTY_SUGGESTION) && (
+            <span className="marker inline-flex items-center gap-1">
+              <Icon name="spark" size={13} />
+              {t('notes.suggested')}
+            </span>
+          )}
       </div>
       <label className="label">
         {t('notes.noteTitle')}
@@ -192,7 +196,7 @@ export function NoteEditor({
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-line bg-bg/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <button type="submit" disabled={busy || body.trim() === ''} className="btn btn-primary">
           {busy && <span aria-hidden="true" className="spinner" />}
-          {busy ? t('notes.submitting') : t('notes.submit')}
+          {busy ? (slow ? t('notes.submittingSlow') : t('notes.submitting')) : t('notes.submit')}
         </button>
         <button type="button" onClick={onCancel} className="btn btn-ghost">
           {t('notes.cancel')}

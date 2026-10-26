@@ -215,17 +215,20 @@ export function NotesScreen({
   const reanalyze = (id: string) =>
     api.analyzeNote(id, { today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' });
 
-  const offlineToast = offlineNotice !== null && (
-    <Toast
-      actions={
-        <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
-          {t('offline.dismiss')}
-        </button>
-      }
-    >
-      {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
-    </Toast>
-  );
+  // The "saved on this device" toast has done its job once the queue has been sent.
+  const offlineToast = offlineNotice !== null &&
+    !(offlineNotice === 'saved' && outbox.length === 0) && (
+      <Toast
+        onClose={() => setOfflineNotice(null)}
+        actions={
+          <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
+            {t('offline.dismiss')}
+          </button>
+        }
+      >
+        {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
+      </Toast>
+    );
 
   if (mode.kind === 'compose') {
     return (
@@ -466,6 +469,7 @@ export function NotesScreen({
       )}
       {imported && (
         <Toast
+          onClose={() => setImported(null)}
           actions={
             <>
               {imported.unreadNotes > 0 && (

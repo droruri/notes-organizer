@@ -11,6 +11,7 @@ import { ActionCard } from './ActionCard';
 import { ChatAnswer } from './ChatAnswer';
 import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
+import { useSlow } from '../../ui/useSlow';
 import { useEscape } from '../../ui/useEscape';
 
 type StreamChat = (input: ChatRequest, onPart: (part: ChatPart) => void) => Promise<void>;
@@ -40,6 +41,7 @@ export function ChatPanel({
   const [tool, setTool] = useState(false);
   const [failed, setFailed] = useState(false);
   const [actions, setActions] = useState<Record<number, AgentAction[]>>({});
+  const slow = useSlow(busy);
   const history = useRef<ChatMessage[]>([]);
   useEscape(onClose);
 
@@ -134,7 +136,7 @@ export function ChatPanel({
         {tool && (
           <p role="status" className="flex items-center gap-2 text-sm text-muted">
             <span aria-hidden="true" className="spinner" />
-            {t('chat.searching')}
+            {slow ? t('chat.searchingSlow') : t('chat.searching')}
           </p>
         )}
         {failed && (

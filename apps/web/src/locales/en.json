@@ -36,6 +36,7 @@
     "draft": "Draft",
     "submit": "Save",
     "submitting": "Saving…",
+    "submittingSlow": "Still working, this is taking a while…",
     "cancel": "Cancel",
     "reanalyze": "Re-analyze",
     "reanalyzing": "Claude is thinking…",
@@ -135,6 +136,7 @@
     "placeholder": "Ask about your notes…",
     "send": "Send",
     "searching": "Searching your notes…",
+    "searchingSlow": "Still working, this is taking a while…",
     "error": "The assistant is unavailable. Try again.",
     "empty": "Ask what categories you have, what is overdue, or what is in progress.",
     "action": {
