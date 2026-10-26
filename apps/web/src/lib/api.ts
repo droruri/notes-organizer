@@ -88,6 +88,7 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
   form.set('clientId', meta.clientId);
   form.set('today', meta.today);
   form.set('locale', meta.locale);
+  if (meta.title) form.set('title', meta.title);
   form.set('audio', audio, 'voice');
   return request('POST', '/notes', NoteCreated, form);
 }

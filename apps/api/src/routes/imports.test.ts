@@ -53,7 +53,14 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
 
   it('analyze returns a proposal and writes nothing', async () => {
     const app = serverWith([
-      { value: { notes: [{ body: 'buy milk', newCategories: ['Home'] }, { body: 'call mom' }] } },
+      {
+        value: {
+          notes: [
+            { body: 'buy milk', title: 'Milk', newCategories: ['Home'] },
+            { body: 'call mom' },
+          ],
+        },
+      },
     ]);
     const res = await app.inject({
       method: 'POST',
@@ -65,6 +72,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     const proposal = ImportProposal.parse(res.json());
     expect(proposal.notes).toHaveLength(2);
     expect(proposal.newCategories).toEqual(['Home']);
+    expect(proposal.notes.map((n) => n.suggestion.title)).toEqual(['Milk', null]);
     expect(await counts()).toEqual({ notes: 0, categories: 0 });
     await app.close();
   });
@@ -93,6 +101,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
         notes: [
           {
             body: 'wash up https://x.test/a',
+            title: 'Wash up',
             newCategories: ['Home'],
             newTags: [{ categoryName: 'Home', name: 'Chores' }],
             unreadLinks: ['https://x.test/a'],
@@ -108,6 +117,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     );
     const wash = notes.find((n) => n.body.startsWith('wash up'));
     expect(wash?.status).toBe('todo');
+    expect(wash?.title).toBe('Wash up');
     expect(wash?.unreadLinks).toEqual(['https://x.test/a']);
     expect(wash?.categoryIds).toHaveLength(1);
     expect(wash?.tagIds).toHaveLength(1);
