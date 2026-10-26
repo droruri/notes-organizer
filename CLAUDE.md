@@ -59,6 +59,10 @@ Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralp
 - UI text is Hebrew, RTL.
 - `pg` return types: `timestamptz` → `Date`; `numeric`, `bigint` and `extract(epoch …)` →
   **string**. Cast in SQL (`::float8`, `::int`) or parse explicitly — don't type them as numbers.
+- Logging follows `docs/logging.md`: every new domain entry function a route calls gets `timed()`,
+  one `info` outcome line, and a `warn` for every failure it catches. A swallowed error without a
+  log is a bug. Logs never contain note text, prompts, transcripts, tokens or emails. Use `log()`
+  from the logging module, never `console.*` or a logger parameter.
 
 ## Planning
 
@@ -91,6 +95,10 @@ Once the user approves the plan, the next action is publishing those tickets wit
 issues in this repo, label `ready-for-agent`, blockers listed as `#N` under `## Blocked by` — the
 format `run-ralph.sh` parses. Create blockers first, so issue number order is work order.
 Implementation then runs through the ralph loop.
+
+Every plan that adds or changes an API route, domain function or port says, per ticket, which log
+lines it adds (outcome, warnings) — following `docs/logging.md` — and the ticket's acceptance
+criteria include a captured-log test for them.
 
 `improve-codebase-architecture` and `to-tickets` are model-disabled skills: Read
 `~/.claude/plugins/cache/claude-plugins-official/mattpocock-skills/*/skills/engineering/<name>/SKILL.md`
