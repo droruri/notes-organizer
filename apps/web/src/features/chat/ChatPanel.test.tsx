@@ -10,6 +10,7 @@ const NOTE_ID = 'b1111111-1111-4111-8111-111111111111';
 const GHOST_ID = 'b9999999-9999-4999-8999-999999999999';
 const note: Note = {
   id: NOTE_ID,
+  title: null,
   clientId: NOTE_ID,
   body: 'Pay the electricity bill',
   status: 'todo',

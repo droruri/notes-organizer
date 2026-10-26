@@ -25,6 +25,18 @@ const taxonomy: Taxonomy = {
 };
 const raw = (r: object) => RawSuggestion.parse(r);
 
+describe('mapSuggestion title', () => {
+  it('trims and caps the title, and maps empty or missing to null', () => {
+    const title = (t: string | null | undefined) =>
+      mapSuggestion(raw(t === undefined ? {} : { title: t }), taxonomy).title;
+    expect(title('  Pay rent  ')).toBe('Pay rent');
+    expect(title('x'.repeat(300))).toBe('x'.repeat(200));
+    expect(title('   ')).toBeNull();
+    expect(title(null)).toBeNull();
+    expect(title(undefined)).toBeNull();
+  });
+});
+
 describe('mapSuggestion', () => {
   it('drops unknown ids and dedupes known ones', () => {
     const s = mapSuggestion(raw({ categoryIds: [C1, C1, 'nope'], tagIds: [T1, 'nope'] }), {

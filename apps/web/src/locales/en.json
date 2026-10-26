@@ -44,6 +44,7 @@
     "undo": "Undo",
     "moveTo": "Move to {{status}}",
     "error": "Something went wrong. Try again.",
+    "noteTitle": "Title (optional)",
     "body": "Text",
     "dueDate": "Due date",
     "importance": "Importance",

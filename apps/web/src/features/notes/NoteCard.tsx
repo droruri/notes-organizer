@@ -1,4 +1,4 @@
-import { isOverdue, type Note, type Taxonomy } from '@notes/shared';
+import { isOverdue, noteHeading, type Note, type Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { AudioPlayer } from './AudioPlayer';
@@ -31,6 +31,7 @@ export function NoteCard({
       .filter((tag) => note.tagIds.includes(tag.id))
       .map((tag) => ({ id: tag.id, name: tag.name, deleted: tag.deleted, category: false })),
   ];
+  const heading = noteHeading(note);
   const overdue = isOverdue(note, today);
   const urgent = note.urgency === 'urgent' || note.urgency === 'critical';
   return (
@@ -43,11 +44,19 @@ export function NoteCard({
         <span
           dir="auto"
           className={`block text-[1.0625rem] leading-relaxed break-words whitespace-pre-wrap ${
-            note.status === 'done' ? 'text-muted' : ''
-          }`}
+            note.status === 'done' || heading.fallback ? 'text-muted' : 'font-semibold'
+          } ${heading.fallback ? 'truncate' : ''}`}
         >
-          {note.body}
+          {heading.text}
         </span>
+        {!heading.fallback && (
+          <span
+            dir="auto"
+            className="mt-1 block leading-relaxed break-words whitespace-pre-wrap text-muted"
+          >
+            {note.body}
+          </span>
+        )}
       </button>
       <LinkPreviews body={note.body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}

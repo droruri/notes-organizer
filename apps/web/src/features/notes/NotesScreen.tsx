@@ -8,6 +8,7 @@ import {
   type NoteCreated,
   type Note,
   type NoteFilter,
+  MAX_TITLE_LENGTH,
   suggestionOf,
 } from '@notes/shared';
 import { useEffect, useState } from 'react';
@@ -61,6 +62,7 @@ export function NotesScreen({
   useEffect(clearSharedNote, []);
   const [mode, setMode] = useState<Mode>({ kind: shared === undefined ? 'list' : 'compose' });
   const [text, setText] = useState(shared ?? '');
+  const [title, setTitle] = useState('');
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
@@ -108,12 +110,14 @@ export function NotesScreen({
     body: string,
     audio?: Blob,
     clientId: string = crypto.randomUUID(),
+    title: string = '',
   ) => {
-    const ok = await addToOutbox({ clientId, body }, audio);
+    const ok = await addToOutbox({ clientId, body, ...(title.trim() ? { title } : {}) }, audio);
     setOutbox(readOutbox());
     setOfflineNotice(ok ? 'saved' : 'failed');
     if (ok) {
       setText('');
+      setTitle('');
       setMode({ kind: 'list' });
     }
   };
@@ -123,17 +127,19 @@ export function NotesScreen({
     body: string,
     clientId: string,
     audio?: Blob,
+    title?: string,
   ) => {
     if (err instanceof TypeError) {
       reportNetworkFailure();
-      await saveOffline(body, audio, clientId);
+      await saveOffline(body, audio, clientId, title);
     }
   };
   const create = useMutation({
-    mutationFn: ({ body, clientId }: { body: string; clientId: string }) =>
-      api.createNote({ body, ...meta(clientId) }),
+    mutationFn: ({ body, title, clientId }: { body: string; title: string; clientId: string }) =>
+      api.createNote({ body, ...(title.trim() ? { title } : {}), ...meta(clientId) }),
     onSuccess: onDraft,
-    onError: (err, vars) => queueOnNetworkError(err, vars.body, vars.clientId),
+    onError: (err, vars) =>
+      queueOnNetworkError(err, vars.body, vars.clientId, undefined, vars.title),
   });
   const createVoice = useMutation({
     mutationFn: ({ audio, clientId }: { audio: Blob; clientId: string }) =>
@@ -157,7 +163,11 @@ export function NotesScreen({
       }
       draft = await api.createVoiceNote(audio, queued);
     } else {
-      draft = await api.createNote({ body, ...queued });
+      draft = await api.createNote({
+        body,
+        ...(entry.title ? { title: entry.title } : {}),
+        ...queued,
+      });
     }
     await removeFromOutbox(entry.clientId);
     setOutbox(readOutbox());
@@ -172,6 +182,7 @@ export function NotesScreen({
         queryClient.invalidateQueries({ queryKey: ['taxonomy'] }),
       ]);
       setText('');
+      setTitle('');
       setMode({ kind: 'list' });
     },
   });
@@ -220,8 +231,8 @@ export function NotesScreen({
         onSubmit={(e) => {
           e.preventDefault();
           if (!text.trim()) return;
-          if (online) create.mutate({ body: text, clientId: crypto.randomUUID() });
-          else void saveOffline(text);
+          if (online) create.mutate({ body: text, title, clientId: crypto.randomUUID() });
+          else void saveOffline(text, undefined, undefined, title);
         }}
       >
         <h2 className="text-2xl font-bold tracking-tight">{t('notes.add')}</h2>
@@ -231,6 +242,15 @@ export function NotesScreen({
           </p>
         )}
         <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[textarea:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={MAX_TITLE_LENGTH}
+            dir="auto"
+            aria-label={t('notes.noteTitle')}
+            placeholder={t('notes.noteTitle')}
+            className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
+          />
           <textarea
             autoFocus
             value={text}

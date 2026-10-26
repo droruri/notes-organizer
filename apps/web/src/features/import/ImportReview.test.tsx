@@ -15,6 +15,7 @@ const suggestion = {
   dueDate: null,
   importance: null,
   urgency: null,
+  title: null,
   unreadLinks: [],
 };
 const proposal: ImportProposal = {

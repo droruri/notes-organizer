@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import type { Note } from './index';
+import { noteHeading, type Note } from './index';
 import { EMPTY_FILTER, filterNotes, isOverdue, sortNotes } from './noteQuery';
 
 const TODAY = '2026-10-25';
@@ -9,6 +9,7 @@ const note = (o: Partial<Note> = {}): Note => {
   return {
     id: `id-${seq}`,
     clientId: `c-${seq}`,
+    title: null,
     body: 'x',
     status: 'todo',
     importance: null,
@@ -26,6 +27,23 @@ const note = (o: Partial<Note> = {}): Note => {
 };
 const ids = (ns: Note[]) => ns.map((n) => n.id);
 const f = (o: Partial<typeof EMPTY_FILTER>) => ({ ...EMPTY_FILTER, ...o });
+
+describe('noteHeading', () => {
+  it('uses the title, else the first non-empty body line', () => {
+    expect(noteHeading(note({ title: ' Hi ', body: 'a\nb' }))).toEqual({
+      text: 'Hi',
+      fallback: false,
+    });
+    expect(noteHeading(note({ body: '\n  \n first line \nsecond' }))).toEqual({
+      text: 'first line',
+      fallback: true,
+    });
+    expect(noteHeading(note({ title: '  ', body: 'only' }))).toEqual({
+      text: 'only',
+      fallback: true,
+    });
+  });
+});
 
 describe('isOverdue', () => {
   it('is false on the due day and true the day after', () => {

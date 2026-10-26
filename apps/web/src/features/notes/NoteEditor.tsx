@@ -1,5 +1,6 @@
 import {
   Importance,
+  MAX_TITLE_LENGTH,
   Urgency,
   type Note,
   type NoteEdit,
@@ -43,6 +44,7 @@ export function NoteEditor({
   onDelete?: (() => void) | undefined;
 }) {
   const { t } = useTranslation();
+  const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
@@ -61,6 +63,8 @@ export function NoteEditor({
     try {
       const next = await onReanalyze?.();
       if (!next) return;
+      // Functional update: a title typed while the AI ran must not be overwritten.
+      setTitle((cur) => (cur.trim() ? cur : (next.title ?? '')));
       setPicked(pickedFrom(next));
       setUnreadLinks(next.unreadLinks);
       setDueDate(next.dueDate ?? '');
@@ -75,6 +79,7 @@ export function NoteEditor({
 
   const submit = () =>
     onSubmit({
+      title: title.trim() || null,
       body,
       ...picked,
       dueDate: dueDate || null,
@@ -103,6 +108,16 @@ export function NoteEditor({
           </span>
         )}
       </div>
+      <label className="label">
+        {t('notes.noteTitle')}
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={MAX_TITLE_LENGTH}
+          dir="auto"
+          className={`${field} text-fg`}
+        />
+      </label>
       <label className="label">
         {t('notes.body')}
         <textarea
