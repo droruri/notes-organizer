@@ -169,10 +169,9 @@ describe('AI call logging', () => {
       error: 'fake: no scripted turn',
       ms: expect.any(Number),
     });
-    const reqIds = new Set(
-      lines.filter((l) => l.msg === 'incoming request' || l === failed).map((l) => l.reqId),
-    );
-    expect(reqIds.size).toBe(1);
+    const incoming = lines.find((l) => l.msg === 'incoming request');
+    expect(failed?.reqId).toEqual(expect.any(String));
+    expect(failed?.reqId).toBe(incoming?.reqId);
     expect(JSON.stringify(lines)).not.toContain(SECRET);
   });
 
@@ -222,6 +221,7 @@ describe('AI call logging', () => {
     });
     await app.close();
     expect(res.statusCode).toBe(200);
+    await vi.waitFor(() => expect(lines.some((l) => l.msg === 'chat finished')).toBe(true));
     expect(lines.find((l) => l.msg === 'chat finished')).toMatchObject({
       level: 30,
       finishReason: 'stop',
