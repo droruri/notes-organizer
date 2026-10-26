@@ -52,7 +52,7 @@ export function TaxonomyScreen({
       const code = err instanceof ApiRequestError ? err.code : undefined;
       setError(
         code === 'name_taken'
-          ? t('taxonomy.errors.nameTaken')
+          ? t('chat.action.nameTaken')
           : code === 'category_deleted'
             ? t('taxonomy.errors.categoryDeleted')
             : code === 'invalid_name'
@@ -171,6 +171,7 @@ export function TaxonomyScreen({
                         type="button"
                         className="btn btn-ghost btn-sm"
                         aria-label={t('taxonomy.restoreItem', { name: c.name })}
+                        disabled={run.isPending}
                         onClick={() => write(() => taxonomyApi.restoreCategory(c.id))}
                       >
                         {t('taxonomy.restore')}
@@ -181,6 +182,7 @@ export function TaxonomyScreen({
                           type="button"
                           className="btn btn-ghost btn-sm"
                           aria-label={t('taxonomy.renameItem', { name: c.name })}
+                          disabled={run.isPending}
                           onClick={() =>
                             startEdit({ type: 'rename', kind: 'category', id: c.id }, c.name)
                           }
@@ -191,6 +193,7 @@ export function TaxonomyScreen({
                           type="button"
                           className="btn btn-ghost btn-sm btn-danger"
                           aria-label={t('taxonomy.deleteItem', { name: c.name })}
+                          disabled={run.isPending}
                           onClick={() => write(() => taxonomyApi.deleteCategory(c.id))}
                         >
                           {t('taxonomy.delete')}
@@ -232,6 +235,7 @@ export function TaxonomyScreen({
                             type="button"
                             className="btn btn-ghost btn-sm"
                             aria-label={t('taxonomy.restoreItem', { name: tag.name })}
+                            disabled={run.isPending}
                             onClick={() => write(() => taxonomyApi.restoreTag(tag.id))}
                           >
                             {t('taxonomy.restore')}
@@ -242,6 +246,7 @@ export function TaxonomyScreen({
                               type="button"
                               className="btn btn-ghost btn-sm"
                               aria-label={t('taxonomy.renameItem', { name: tag.name })}
+                              disabled={run.isPending}
                               onClick={() =>
                                 startEdit({ type: 'rename', kind: 'tag', id: tag.id }, tag.name)
                               }
@@ -252,6 +257,7 @@ export function TaxonomyScreen({
                               type="button"
                               className="btn btn-ghost btn-sm btn-danger"
                               aria-label={t('taxonomy.deleteItem', { name: tag.name })}
+                              disabled={run.isPending}
                               onClick={() => write(() => taxonomyApi.deleteTag(tag.id))}
                             >
                               {t('taxonomy.delete')}
@@ -274,6 +280,7 @@ export function TaxonomyScreen({
                     type="button"
                     className="btn btn-ghost btn-sm self-start"
                     aria-label={t('taxonomy.addTagTo', { name: c.name })}
+                    disabled={run.isPending}
                     onClick={() => startEdit({ type: 'addTag', categoryId: c.id }, '')}
                   >
                     <Icon name="plus" size={14} />

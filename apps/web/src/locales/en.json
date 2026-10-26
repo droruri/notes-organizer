@@ -181,7 +181,6 @@
     "save": "Save",
     "cancel": "Cancel",
     "errors": {
-      "nameTaken": "That name already exists.",
       "categoryDeleted": "The category is deleted.",
       "invalidName": "That name is not valid.",
       "generic": "Something went wrong. Try again."

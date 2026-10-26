@@ -182,7 +182,6 @@
     "save": "שמירה",
     "cancel": "ביטול",
     "errors": {
-      "nameTaken": "השם כבר קיים.",
       "categoryDeleted": "הקטגוריה נמחקה.",
       "invalidName": "השם אינו תקין.",
       "generic": "משהו השתבש. נסה שוב."

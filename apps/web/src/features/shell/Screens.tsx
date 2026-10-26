@@ -22,13 +22,24 @@ export function Screens() {
             setTagId(null);
             setView('notes');
           }}
-          onTaxonomy={() => setView('taxonomy')}
+          onTaxonomy={() => {
+            setTagId(null);
+            setView('taxonomy');
+          }}
           onImport={() => {
+            setTagId(null);
             setView('notes');
             setImporting(true);
           }}
           onSignOut={() => void signOut()}
-          {...(isAdmin ? { onUsers: () => setView('users') } : {})}
+          {...(isAdmin
+            ? {
+                onUsers: () => {
+                  setTagId(null);
+                  setView('users');
+                },
+              }
+            : {})}
         />,
         slot,
       )
