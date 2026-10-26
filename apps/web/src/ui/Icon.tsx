@@ -46,6 +46,7 @@ const PATHS = {
   ),
   play: <path d="M7 4.5v15l12-7.5z" />,
   upload: <path d="M12 15V3M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />,
+  logout: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />,
   users: (
     <>
       <circle cx="9" cy="8" r="4" />
@@ -64,7 +65,7 @@ const PATHS = {
 } satisfies Record<string, ReactNode>;
 
 /** Icons whose meaning follows reading direction; flipped under dir="rtl". */
-const MIRRORED: ReadonlySet<IconName> = new Set<IconName>(['back', 'send']);
+const MIRRORED: ReadonlySet<IconName> = new Set<IconName>(['back', 'send', 'logout']);
 
 export type IconName = keyof typeof PATHS;
 

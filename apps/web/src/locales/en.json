@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "My Notes"
+    "name": "My Notes",
+    "menu": "Menu"
   },
   "language": {
     "switchTo": "עברית"
@@ -183,7 +184,6 @@
     }
   },
   "import": {
-    "menu": "Menu",
     "open": "Import notes",
     "title": "Import notes",
     "textLabel": "Text to import",

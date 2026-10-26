@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '../../ui/Icon';
+import { Icon, type IconName } from '../../ui/Icon';
 
-/** The header menu: "Import notes", plus "Users" for an admin (`onUsers` set). */
-export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUsers?: () => void }) {
+type Props = {
+  onNotes: () => void;
+  onImport: () => void;
+  onSignOut: () => void;
+  /** Set for an admin: shows the "Users" item. */
+  onUsers?: () => void;
+};
+
+/** The app menu in the header: Notes, Import notes, Users (admin only), Sign out. */
+export function AppMenu({ onNotes, onImport, onUsers, onSignOut }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -26,6 +34,12 @@ export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUser
       document.removeEventListener('pointerdown', onPointer);
     };
   }, [open]);
+  const items: { icon: IconName; label: string; onPick: () => void }[] = [
+    { icon: 'note', label: t('notes.title'), onPick: onNotes },
+    { icon: 'upload', label: t('import.open'), onPick: onImport },
+    ...(onUsers ? [{ icon: 'users' as const, label: t('users.menu'), onPick: onUsers }] : []),
+    { icon: 'logout', label: t('auth.signOut'), onPick: onSignOut },
+  ];
   return (
     <div ref={root} className="relative">
       <button
@@ -34,39 +48,28 @@ export function ImportMenu({ onImport, onUsers }: { onImport: () => void; onUser
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        aria-label={t('import.menu')}
+        aria-label={t('app.menu')}
         className="btn btn-ghost btn-icon btn-sm"
       >
         <Icon name="menu" size={18} />
       </button>
       {open && (
         <div role="menu" className="menu enter-pop">
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onImport();
-            }}
-            className="menu-item"
-          >
-            <Icon name="upload" size={16} className="text-muted" />
-            {t('import.open')}
-          </button>
-          {onUsers && (
+          {items.map((item) => (
             <button
+              key={item.icon}
               type="button"
               role="menuitem"
               onClick={() => {
                 setOpen(false);
-                onUsers();
+                item.onPick();
               }}
               className="menu-item"
             >
-              <Icon name="users" size={16} className="text-muted" />
-              {t('users.menu')}
+              <Icon name={item.icon} size={16} className="text-muted" />
+              {item.label}
             </button>
-          )}
+          ))}
         </div>
       )}
     </div>
