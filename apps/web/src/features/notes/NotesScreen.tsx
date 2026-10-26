@@ -110,8 +110,9 @@ export function NotesScreen({
     body: string,
     audio?: Blob,
     clientId: string = crypto.randomUUID(),
+    title: string = '',
   ) => {
-    const ok = await addToOutbox({ clientId, body }, audio);
+    const ok = await addToOutbox({ clientId, body, ...(title.trim() ? { title } : {}) }, audio);
     setOutbox(readOutbox());
     setOfflineNotice(ok ? 'saved' : 'failed');
     if (ok) {
@@ -126,17 +127,19 @@ export function NotesScreen({
     body: string,
     clientId: string,
     audio?: Blob,
+    title?: string,
   ) => {
     if (err instanceof TypeError) {
       reportNetworkFailure();
-      await saveOffline(body, audio, clientId);
+      await saveOffline(body, audio, clientId, title);
     }
   };
   const create = useMutation({
     mutationFn: ({ body, title, clientId }: { body: string; title: string; clientId: string }) =>
       api.createNote({ body, ...(title.trim() ? { title } : {}), ...meta(clientId) }),
     onSuccess: onDraft,
-    onError: (err, vars) => queueOnNetworkError(err, vars.body, vars.clientId),
+    onError: (err, vars) =>
+      queueOnNetworkError(err, vars.body, vars.clientId, undefined, vars.title),
   });
   const createVoice = useMutation({
     mutationFn: ({ audio, clientId }: { audio: Blob; clientId: string }) =>
@@ -160,7 +163,11 @@ export function NotesScreen({
       }
       draft = await api.createVoiceNote(audio, queued);
     } else {
-      draft = await api.createNote({ body, ...queued });
+      draft = await api.createNote({
+        body,
+        ...(entry.title ? { title: entry.title } : {}),
+        ...queued,
+      });
     }
     await removeFromOutbox(entry.clientId);
     setOutbox(readOutbox());
@@ -225,7 +232,7 @@ export function NotesScreen({
           e.preventDefault();
           if (!text.trim()) return;
           if (online) create.mutate({ body: text, title, clientId: crypto.randomUUID() });
-          else void saveOffline(text);
+          else void saveOffline(text, undefined, undefined, title);
         }}
       >
         <h2 className="text-2xl font-bold tracking-tight">{t('notes.add')}</h2>

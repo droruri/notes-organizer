@@ -32,7 +32,7 @@ export const RawSuggestion = z.object({
   dueDate: DateString.nullish(),
   importance: Importance.nullish(),
   urgency: Urgency.nullish(),
-  title: z.string().nullish(),
+  title: z.string().nullish().catch(null),
 });
 export type RawSuggestion = z.infer<typeof RawSuggestion>;
 
@@ -163,7 +163,12 @@ export function mapSuggestion(raw: RawSuggestion, taxonomy: Taxonomy): Suggestio
     dueDate: raw.dueDate ?? null,
     importance: raw.importance ?? null,
     urgency: raw.urgency ?? null,
-    title: raw.title?.trim().slice(0, MAX_TITLE_LENGTH).trim() || null,
+    // Cap by code points, not UTF-16 units, so an emoji is never cut in half.
+    title:
+      Array.from(raw.title?.trim() ?? '')
+        .slice(0, MAX_TITLE_LENGTH)
+        .join('')
+        .trim() || null,
     unreadLinks: [],
   };
 }

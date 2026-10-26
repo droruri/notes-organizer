@@ -6,6 +6,7 @@ const KEY = 'notes-outbox-v1';
 export const OutboxEntry = z.object({
   clientId: z.uuid(),
   body: z.string(),
+  title: z.string().optional(),
   createdAt: z.string(),
   hasAudio: z.boolean(),
 });
