@@ -1,5 +1,6 @@
 import {
   DateString,
+  EMPTY_SUGGESTION,
   type LinkContext,
   Importance,
   Urgency,
@@ -12,17 +13,6 @@ import type { Ai } from '../../ai/provider';
 import { normalizeName } from '../taxonomy/taxonomy';
 
 // Classify prompt + Suggestion mapping. Claude's output is untrusted: parsed, then mapped to ids.
-
-export const EMPTY_SUGGESTION: Suggestion = {
-  categoryIds: [],
-  tagIds: [],
-  newCategories: [],
-  newTags: [],
-  dueDate: null,
-  importance: null,
-  urgency: null,
-  unreadLinks: [],
-};
 
 /** What the model is asked to return. Lenient on shape; `mapSuggestion` makes it trustworthy. */
 export const RawSuggestion = z.object({

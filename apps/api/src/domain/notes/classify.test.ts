@@ -1,14 +1,7 @@
-import type { Taxonomy } from '@notes/shared';
+import { EMPTY_SUGGESTION, type Taxonomy } from '@notes/shared';
 import { describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../../ai/provider';
-import {
-  SYSTEM,
-  buildPrompt,
-  classify,
-  EMPTY_SUGGESTION,
-  mapSuggestion,
-  RawSuggestion,
-} from './classify';
+import { SYSTEM, buildPrompt, classify, mapSuggestion, RawSuggestion } from './classify';
 
 const C1 = '11111111-1111-4111-8111-111111111111';
 const C2 = '22222222-2222-4222-8222-222222222222';

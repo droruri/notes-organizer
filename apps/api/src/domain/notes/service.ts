@@ -7,6 +7,7 @@ import {
   NoteCreate,
   NoteEdit,
   Suggestion,
+  suggestionOf,
 } from '@notes/shared';
 import type { Ai } from '../../ai/provider';
 import type { Db } from '../../db';
@@ -15,7 +16,7 @@ import { log, timed } from '../../requestLog';
 import { withTransaction } from '../../tx';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
 import { classify } from './classify';
-import { isValidTransition, planLinks, planNewTaxonomy, suggestionOf } from './note';
+import { isValidTransition, planLinks, planNewTaxonomy } from './note';
 import * as repo from './repository';
 
 export type Failure =

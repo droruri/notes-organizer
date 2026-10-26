@@ -8,7 +8,7 @@ import {
   type NoteCreated,
   type Note,
   type NoteFilter,
-  type Suggestion,
+  suggestionOf,
 } from '@notes/shared';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -40,17 +40,6 @@ type Mode =
   | { kind: 'edit'; note: Note };
 
 const UNDO_MS = 5000;
-
-const suggestionOf = (note: Note): Suggestion => ({
-  categoryIds: note.categoryIds,
-  tagIds: note.tagIds,
-  newCategories: note.proposed?.newCategories ?? [],
-  newTags: note.proposed?.newTags ?? [],
-  dueDate: note.dueDate,
-  importance: note.importance,
-  urgency: note.urgency,
-  unreadLinks: note.unreadLinks,
-});
 
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');

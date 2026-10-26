@@ -66,6 +66,32 @@ export const Note = z.object({
 });
 export type Note = z.infer<typeof Note>;
 
+/** A suggestion with nothing proposed. */
+export const EMPTY_SUGGESTION: Suggestion = {
+  categoryIds: [],
+  tagIds: [],
+  newCategories: [],
+  newTags: [],
+  dueDate: null,
+  importance: null,
+  urgency: null,
+  unreadLinks: [],
+};
+
+/** The suggestion a draft was created with, rebuilt from the stored draft. */
+export function suggestionOf(note: Note): Suggestion {
+  return {
+    categoryIds: note.categoryIds,
+    tagIds: note.tagIds,
+    newCategories: note.proposed?.newCategories ?? [],
+    newTags: note.proposed?.newTags ?? [],
+    dueDate: note.dueDate,
+    importance: note.importance,
+    urgency: note.urgency,
+    unreadLinks: note.unreadLinks,
+  };
+}
+
 /** Body of `POST /notes` (JSON). `id`, `status` and the owner are decided by the server. */
 export const NoteCreate = z.object({
   body: NoteBody,
