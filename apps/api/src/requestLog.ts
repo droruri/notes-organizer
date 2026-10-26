@@ -40,7 +40,7 @@ export function addLogFields(req: FastifyRequest, fields: Record<string, unknown
 }
 
 /** Name and code only: a message or stack can echo note text or provider payloads. */
-function errorSummary(err: unknown): { name: string; code?: string } {
+export function errorSummary(err: unknown): { name: string; code?: string } {
   if (!(err instanceof Error)) return { name: 'unknown' };
   const code = Reflect.get(err, 'code');
   return typeof code === 'string' ? { name: err.name, code } : { name: err.name };

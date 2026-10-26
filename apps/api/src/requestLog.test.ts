@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { z } from 'zod';
-import { createFakeAi } from './ai/provider';
+import { createFakeAi, withLogging } from './ai/provider';
 import { createPool } from './db';
 import { LogEnv, log, timed } from './requestLog';
 import { buildServer } from './server';
@@ -21,6 +21,11 @@ const Line = z.looseObject({
   status: z.number().optional(),
   error: z.string().optional(),
   ms: z.number().optional(),
+  finishReason: z.string().optional(),
+  steps: z.number().optional(),
+  inputTokens: z.number().optional(),
+  outputTokens: z.number().optional(),
+  chars: z.number().optional(),
   err: z.object({ name: z.string(), code: z.string().optional() }).optional(),
 });
 type Line = z.infer<typeof Line>;
@@ -145,6 +150,86 @@ describe('log() and timed()', () => {
       err: { name: 'Error', code: 'BOOM' },
     });
     expect(JSON.stringify(lines)).not.toContain('secret note text');
+  });
+});
+
+describe('AI call logging', () => {
+  const SECRET = 'secret note text';
+
+  it('logs a failed extract with the error text, and never the prompt', async () => {
+    const { app, lines } = capture(allowListDb);
+    const ai = withLogging(createFakeAi());
+    app.get('/probe', async () => ai.extract({ schema: z.string(), system: 's', prompt: SECRET }));
+    await app.inject({ method: 'GET', url: '/probe' });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'ai extract start')).toBeDefined();
+    const failed = lines.find((l) => l.msg === 'ai extract failed');
+    expect(failed).toMatchObject({
+      level: 40,
+      error: 'fake: no scripted turn',
+      ms: expect.any(Number),
+    });
+    const reqIds = new Set(
+      lines.filter((l) => l.msg === 'incoming request' || l === failed).map((l) => l.reqId),
+    );
+    expect(reqIds.size).toBe(1);
+    expect(JSON.stringify(lines)).not.toContain(SECRET);
+  });
+
+  it('logs transcription start/end, and a throw as a warning that is rethrown', async () => {
+    const { app, lines } = capture(allowListDb);
+    const ok = withLogging(createFakeAi([], SECRET));
+    const broken = createFakeAi();
+    broken.transcribe = async () => {
+      throw new Error(SECRET);
+    };
+    const bad = withLogging(broken);
+    const audio = new Uint8Array(4);
+    app.get('/ok', async () => ok.transcribe({ audio, mime: 'audio/webm' }));
+    app.get('/bad', async (_req, reply) =>
+      bad.transcribe({ audio, mime: 'audio/webm' }).catch(() => reply.code(502).send({})),
+    );
+    await app.inject({ method: 'GET', url: '/ok' });
+    const res = await app.inject({ method: 'GET', url: '/bad' });
+    await app.close();
+    expect(res.statusCode).toBe(502);
+    expect(lines.find((l) => l.msg === 'transcription start')).toMatchObject({
+      mime: 'audio/webm',
+      bytes: 4,
+    });
+    expect(lines.find((l) => l.msg === 'transcription end')).toMatchObject({
+      level: 30,
+      chars: SECRET.length,
+    });
+    expect(lines.find((l) => l.msg === 'transcription failed')).toMatchObject({
+      level: 40,
+      err: { name: 'Error' },
+    });
+    expect(JSON.stringify(lines)).not.toContain(SECRET);
+  });
+
+  it('POST /chat logs chat finished with step and token counts', async () => {
+    const { app, lines } = capture(allowListDb);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/chat',
+      headers: { authorization: 'Bearer allowed' },
+      payload: {
+        messages: [{ role: 'user', content: SECRET }],
+        today: new Date().toISOString().slice(0, 10),
+        locale: 'en',
+      },
+    });
+    await app.close();
+    expect(res.statusCode).toBe(200);
+    expect(lines.find((l) => l.msg === 'chat finished')).toMatchObject({
+      level: 30,
+      finishReason: 'stop',
+      steps: 1,
+      inputTokens: 1,
+      outputTokens: 1,
+    });
+    expect(JSON.stringify(lines)).not.toContain(SECRET);
   });
 });
 

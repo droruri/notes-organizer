@@ -5,7 +5,7 @@ import { MAX_AUDIO_BYTES } from '@notes/shared';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { AiEnv, createAi, type Ai } from './ai/provider';
+import { AiEnv, createAi, withLogging, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPool, type Db } from './db';
 import { findAllowed, seedAdmins } from './domain/users/users';
@@ -26,7 +26,7 @@ const DEFAULT_WEB_ORIGIN = 'http://localhost:5173';
 
 export function buildServer({
   db,
-  ai,
+  ai: rawAi,
   links = createLinkReader(),
   verifyToken,
   allowedEmails,
@@ -44,6 +44,7 @@ export function buildServer({
   /** Fastify logger options (`{ level, stream }`); off by default so tests stay silent. */
   logger?: FastifyServerOptions['logger'];
 }): FastifyInstance {
+  const ai = withLogging(rawAi);
   const app = Fastify({ logger: withoutQueryInRequestLog(logger) });
   registerRequestLogging(app);
   // Seeds once; a failure is retried by the next request instead of locking the owner out.
