@@ -129,6 +129,7 @@
     "original": "Open original"
   },
   "chat": {
+    "loading": "Loading…",
     "title": "Ask about your notes",
     "open": "Ask",
     "close": "Close",
@@ -213,6 +214,7 @@
     }
   },
   "import": {
+    "loading": "Loading…",
     "open": "Import notes",
     "title": "Import notes",
     "textLabel": "Text to import",
