@@ -1,0 +1,156 @@
+import { Writable } from 'node:stream';
+import { describe, expect, it, vi } from 'vite-plus/test';
+import { z } from 'zod';
+import { createFakeAi } from './ai/provider';
+import { createPool } from './db';
+import { LogEnv, log, timed } from './requestLog';
+import { buildServer } from './server';
+import {
+  allowListDb,
+  allowedEmails,
+  ALLOWED_USER,
+  emptyAllowListDb,
+  fakeVerifyToken,
+} from './test-auth';
+
+const Line = z.looseObject({
+  level: z.number(),
+  msg: z.string().optional(),
+  reqId: z.string().optional(),
+  userId: z.string().optional(),
+  status: z.number().optional(),
+  error: z.string().optional(),
+  ms: z.number().optional(),
+  err: z.object({ name: z.string(), code: z.string().optional() }).optional(),
+});
+type Line = z.infer<typeof Line>;
+
+function capture(db: Parameters<typeof buildServer>[0]['db']) {
+  const lines: Line[] = [];
+  const stream = new Writable({
+    write(chunk: Buffer, _enc, cb) {
+      for (const l of chunk.toString().split('\n').filter(Boolean)) {
+        const line = Line.safeParse(JSON.parse(l));
+        if (!line.success) throw line.error;
+        lines.push(line.data);
+      }
+      cb();
+    },
+  });
+  const app = buildServer({
+    db,
+    ai: createFakeAi(),
+    verifyToken: fakeVerifyToken,
+    allowedEmails,
+    logger: { level: 'debug', stream },
+  });
+  return { app, lines };
+}
+
+describe('request logging', () => {
+  it('correlates reqId and userId on an invalid body', async () => {
+    const { app, lines } = capture(allowListDb);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/notes',
+      headers: { authorization: 'Bearer allowed' },
+      payload: { nope: 1 },
+    });
+    await app.close();
+    expect(res.statusCode).toBe(400);
+    const rejected = lines.find((l) => l.msg === 'request rejected');
+    expect(rejected).toMatchObject({ status: 400, error: 'invalid_body', userId: ALLOWED_USER.id });
+    const ids = new Set(lines.filter((l) => l.msg !== undefined).map((l) => l.reqId));
+    expect(ids.size).toBe(1);
+    expect(lines.some((l) => l.msg === 'incoming request')).toBe(true);
+  });
+
+  it('logs 401 and 403 rejections with their code', async () => {
+    const a = capture(allowListDb);
+    await a.app.inject({ method: 'GET', url: '/settings' });
+    await a.app.close();
+    expect(a.lines.find((l) => l.msg === 'request rejected')).toMatchObject({
+      status: 401,
+      error: 'unauthorized',
+    });
+    const b = capture(emptyAllowListDb);
+    await b.app.inject({
+      method: 'GET',
+      url: '/settings',
+      headers: { authorization: 'Bearer other' },
+    });
+    await b.app.close();
+    expect(b.lines.find((l) => l.msg === 'request rejected')).toMatchObject({
+      status: 403,
+      error: 'not_allowed',
+    });
+  });
+
+  it('stays silent by default', async () => {
+    const app = buildServer({
+      db: createPool('postgresql://unused@127.0.0.1:1/none'),
+      ai: createFakeAi(),
+      verifyToken: fakeVerifyToken,
+      allowedEmails,
+    });
+    const write = vi.spyOn(process.stdout, 'write');
+    await app.inject({ method: 'GET', url: '/settings' });
+    expect(write).not.toHaveBeenCalled();
+    write.mockRestore();
+    await app.close();
+  });
+});
+
+describe('log() and timed()', () => {
+  it('log() outside a request is silent and usable', () => {
+    expect(log().level).toBe('silent');
+    expect(() => log().child({ a: 1 }).info('x')).not.toThrow();
+  });
+
+  it('timed returns the result and rethrows failures', async () => {
+    expect(await timed('ok', {}, async () => 7)).toBe(7);
+    await expect(
+      timed('bad', {}, async () => {
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+  });
+
+  it('timed logs debug start/end with ms, and error with err + ms on throw', async () => {
+    const { app, lines } = capture(allowListDb);
+    app.get('/timed-ok', async () => timed('work', { noteId: 'n1' }, async () => 7));
+    app.get('/timed-bad', async (_req, reply) => {
+      try {
+        await timed('work', { noteId: 'n2' }, async () => {
+          throw Object.assign(new Error('secret note text'), { code: 'BOOM' });
+        });
+        return { ok: true };
+      } catch {
+        return reply.code(500).send({ ok: false });
+      }
+    });
+    await app.inject({ method: 'GET', url: '/timed-ok' });
+    await app.inject({ method: 'GET', url: '/timed-bad' });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'work start')).toMatchObject({ level: 20, noteId: 'n1' });
+    expect(lines.find((l) => l.msg === 'work end')).toMatchObject({
+      level: 20,
+      noteId: 'n1',
+      ms: expect.any(Number),
+    });
+    expect(lines.find((l) => l.msg === 'work failed')).toMatchObject({
+      level: 50,
+      noteId: 'n2',
+      ms: expect.any(Number),
+      err: { name: 'Error', code: 'BOOM' },
+    });
+    expect(JSON.stringify(lines)).not.toContain('secret note text');
+  });
+});
+
+describe('LogEnv', () => {
+  it('defaults to info and rejects unknown levels', () => {
+    expect(LogEnv.parse({}).LOG_LEVEL).toBe('info');
+    expect(LogEnv.safeParse({ LOG_LEVEL: 'loud' }).success).toBe(false);
+  });
+});

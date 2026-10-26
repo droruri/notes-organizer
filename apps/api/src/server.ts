@@ -2,7 +2,7 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import { MAX_AUDIO_BYTES } from '@notes/shared';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { AiEnv, createAi, type Ai } from './ai/provider';
@@ -10,6 +10,7 @@ import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken 
 import { createPool, type Db } from './db';
 import { findAllowed, seedAdmins } from './domain/users/users';
 import { createLinkReader, LinkEnv, type LinkReader } from './domain/links/preview';
+import { LogEnv, registerRequestLogging, withoutQueryInRequestLog } from './requestLog';
 import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
 import { importsRoutes } from './routes/imports';
@@ -40,10 +41,11 @@ export function buildServer({
   /** Bootstrap admins: inserted into `allowed_users` on startup, never removed. */
   allowedEmails: ReadonlySet<string>;
   webOrigin?: string;
-  /** Request logging; off by default so tests stay silent. */
-  logger?: boolean;
+  /** Fastify logger options (`{ level, stream }`); off by default so tests stay silent. */
+  logger?: FastifyServerOptions['logger'];
 }): FastifyInstance {
-  const app = Fastify({ logger });
+  const app = Fastify({ logger: withoutQueryInRequestLog(logger) });
+  registerRequestLogging(app);
   // Seeds once; a failure is retried by the next request instead of locking the owner out.
   let seeding: Promise<void> | undefined;
   const seeded = () => {
@@ -84,15 +86,17 @@ export function buildServer({
   return app;
 }
 
-const Env = AiEnv.and(LinkEnv).and(
-  z.object({
-    DATABASE_URL: z.string().min(1),
-    WEB_ORIGIN: z.url(),
-    SUPABASE_URL: z.url(),
-    ALLOWED_EMAILS: z.string().min(1),
-    PORT: z.coerce.number().int().positive().default(3000),
-  }),
-);
+const Env = AiEnv.and(LinkEnv)
+  .and(LogEnv)
+  .and(
+    z.object({
+      DATABASE_URL: z.string().min(1),
+      WEB_ORIGIN: z.url(),
+      SUPABASE_URL: z.url(),
+      ALLOWED_EMAILS: z.string().min(1),
+      PORT: z.coerce.number().int().positive().default(3000),
+    }),
+  );
 
 async function main(): Promise<void> {
   const env = Env.safeParse(process.env);
@@ -107,7 +111,7 @@ async function main(): Promise<void> {
     verifyToken: createTokenVerifier(env.data.SUPABASE_URL),
     allowedEmails: parseAllowedEmails(env.data.ALLOWED_EMAILS),
     webOrigin: env.data.WEB_ORIGIN,
-    logger: true,
+    logger: { level: env.data.LOG_LEVEL },
   });
   await app.listen({ port: env.data.PORT, host: '0.0.0.0' });
 }
