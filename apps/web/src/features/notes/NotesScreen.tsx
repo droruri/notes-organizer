@@ -10,13 +10,11 @@ import {
   type NoteFilter,
   type Suggestion,
 } from '@notes/shared';
-import { useContext, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ImportDialog, type ImportResult } from '../import/ImportDialog';
-import { ImportMenu } from '../import/ImportMenu';
 import { OutboxDialog } from '../offline/OutboxDialog';
 import {
   addToOutbox,
@@ -27,7 +25,6 @@ import {
 } from '../offline/outbox';
 import { reportNetworkFailure, useOnline } from '../offline/useOnline';
 import { clearSharedNote, peekSharedNote } from '../share/shareTarget';
-import { HeaderSlot } from '../shell/headerSlot';
 import { Loading } from '../../ui/Loading';
 import { Icon } from '../../ui/Icon';
 import { Toast } from '../../ui/Toast';
@@ -58,7 +55,13 @@ const suggestionOf = (note: Note): Suggestion => ({
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
 
-export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
+export function NotesScreen({
+  importing,
+  onImportClose,
+}: {
+  importing: boolean;
+  onImportClose: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   // A share from another app opens the add-note editor with the shared text.
@@ -70,8 +73,6 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const [chatOpen, setChatOpen] = useState(false);
-  const slot = useContext(HeaderSlot);
-  const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
@@ -306,19 +307,14 @@ export function NotesScreen({ onUsers }: { onUsers?: () => void }) {
           onClose={() => setOutboxDismissed(true)}
         />
       )}
-      {slot &&
-        createPortal(
-          <ImportMenu onImport={() => setImporting(true)} {...(onUsers ? { onUsers } : {})} />,
-          slot,
-        )}
       {importing && (
         <ImportDialog
           taxonomy={taxonomy.data}
           today={today}
           locale={locale}
-          onClose={() => setImporting(false)}
+          onClose={onImportClose}
           onImported={(result) => {
-            setImporting(false);
+            onImportClose();
             setImported(result);
             void queryClient.invalidateQueries({ queryKey: ['notes'] });
             void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
