@@ -150,7 +150,8 @@ export function withFallback(
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
     });
-    return Promise.race([Promise.resolve(call()), timeout]).finally(() => clearTimeout(timer));
+    // `.then(call)` (not `Promise.resolve(call())`) so a synchronous throw becomes a rejection the race handles.
+    return Promise.race([Promise.resolve().then(call), timeout]).finally(() => clearTimeout(timer));
   };
   const note = (err: unknown) =>
     warn(

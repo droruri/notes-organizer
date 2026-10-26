@@ -62,6 +62,23 @@ function setup(title: string | null, next: Suggestion) {
 }
 
 describe('NoteEditor title', () => {
+  it('shows the suggested badge only when the suggestion has content', () => {
+    const { unmount } = render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={{ ...EMPTY_SUGGESTION, title: 'AI' }}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={() => undefined}
+        onCancel={() => undefined}
+        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+      />,
+    );
+    expect(screen.getByText('Suggested by Claude')).toBeTruthy();
+    unmount();
+  });
+
   it('re-analyze keeps a typed title', async () => {
     const { input, analyze } = setup('Mine', { ...EMPTY_SUGGESTION, title: 'AI' });
     await analyze();

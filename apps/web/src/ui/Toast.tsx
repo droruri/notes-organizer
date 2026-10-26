@@ -10,7 +10,7 @@ export function Toast({
 }: {
   children: ReactNode;
   actions: ReactNode;
-  onClose?: () => void;
+  onClose?: (() => void) | undefined;
 }) {
   const close = useEffectEvent(() => onClose?.());
   const closable = onClose !== undefined;

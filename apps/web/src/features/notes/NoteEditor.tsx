@@ -1,5 +1,4 @@
 import {
-  EMPTY_SUGGESTION,
   Importance,
   MAX_TITLE_LENGTH,
   Urgency,
@@ -49,6 +48,10 @@ export function NoteEditor({
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const slow = useSlow(busy);
+  // Any field Claude filled in counts; comparing JSON would depend on key order.
+  const hasSuggestion = Object.values(suggestion).some((v) =>
+    Array.isArray(v) ? v.length > 0 : v !== null,
+  );
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
@@ -104,13 +107,12 @@ export function NoteEditor({
         <h2 className="text-2xl font-bold tracking-tight">
           {note.status === 'draft' ? t('notes.reviewTitle') : t('notes.editTitle')}
         </h2>
-        {note.status === 'draft' &&
-          JSON.stringify(suggestion) !== JSON.stringify(EMPTY_SUGGESTION) && (
-            <span className="marker inline-flex items-center gap-1">
-              <Icon name="spark" size={13} />
-              {t('notes.suggested')}
-            </span>
-          )}
+        {note.status === 'draft' && hasSuggestion && (
+          <span className="marker inline-flex items-center gap-1">
+            <Icon name="spark" size={13} />
+            {t('notes.suggested')}
+          </span>
+        )}
       </div>
       <label className="label">
         {t('notes.noteTitle')}

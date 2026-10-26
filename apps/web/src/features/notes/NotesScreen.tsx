@@ -219,7 +219,8 @@ export function NotesScreen({
   const offlineToast = offlineNotice !== null &&
     !(offlineNotice === 'saved' && outbox.length === 0) && (
       <Toast
-        onClose={() => setOfflineNotice(null)}
+        // Only the "saved" notice closes by itself; a failure stays until the user dismisses it.
+        onClose={offlineNotice === 'saved' ? () => setOfflineNotice(null) : undefined}
         actions={
           <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
             {t('offline.dismiss')}
