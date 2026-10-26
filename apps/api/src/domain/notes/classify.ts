@@ -54,7 +54,7 @@ export function usableTaxonomy(taxonomy: Taxonomy): Taxonomy {
 }
 
 export const SYSTEM = `You organize personal notes. Given a note, suggest where it belongs.
-- Prefer the user's existing categories and tags (refer to them by id). Propose a new category or tag name only when nothing existing fits.
+- Pick the best-fitting existing categories and tags (refer to them by id). Also propose one new category name in newCategories when it would describe the note clearly better than the best existing match, even if an existing one fits loosely. Never repeat an existing category name. Propose a new tag name only when no existing tag fits.
 - A new tag needs either categoryId (an existing category id) or categoryName (an existing or newly proposed category name).
 - dueDate: a YYYY-MM-DD date only when the note states or implies one, resolved against today's date. Otherwise null.
 - importance and urgency: only when the note makes them clear, otherwise null.
@@ -128,6 +128,9 @@ export function mapSuggestion(raw: RawSuggestion, taxonomy: Taxonomy): Suggestio
     return name;
   };
   for (const name of raw.newCategories) addNewCategory(name);
+  // A name among the ids is a new category; UUID-shaped unknown ids are dropped.
+  for (const id of raw.categoryIds)
+    if (!categories.has(id) && !z.uuid().safeParse(id).success) addNewCategory(id);
 
   const newTags: Suggestion['newTags'] = [];
   for (const tag of raw.newTags) {

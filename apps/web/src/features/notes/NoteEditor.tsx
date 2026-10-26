@@ -14,6 +14,7 @@ import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusStepper } from './StatusStepper';
+import { pickedFrom } from './picked';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
 const field = 'field';
@@ -43,12 +44,7 @@ export function NoteEditor({
 }) {
   const { t } = useTranslation();
   const [body, setBody] = useState(note.body);
-  const [picked, setPicked] = useState<Picked>({
-    categoryIds: suggestion.categoryIds,
-    tagIds: suggestion.tagIds,
-    newCategories: suggestion.newCategories,
-    newTags: suggestion.newTags,
-  });
+  const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
@@ -65,12 +61,7 @@ export function NoteEditor({
     try {
       const next = await onReanalyze?.();
       if (!next) return;
-      setPicked({
-        categoryIds: next.categoryIds,
-        tagIds: next.tagIds,
-        newCategories: next.newCategories,
-        newTags: next.newTags,
-      });
+      setPicked(pickedFrom(next));
       setUnreadLinks(next.unreadLinks);
       setDueDate(next.dueDate ?? '');
       setImportance(next.importance);

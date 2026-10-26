@@ -8,6 +8,8 @@ export type Picked = {
   tagIds: string[];
   newCategories: string[];
   newTags: NewTag[];
+  /** Names Claude offered as new categories; chips stay toggleable even when not selected. */
+  offeredCategories?: string[];
 };
 
 const toggle = (list: string[], id: string) =>
@@ -65,12 +67,20 @@ export function TaxonomyPicker({
     }
     setName('');
   };
-  const removeNewCategory = (n: string) =>
-    onChange({
-      ...value,
-      newCategories: value.newCategories.filter((x) => x !== n),
-      newTags: value.newTags.filter((tag) => !('categoryName' in tag && tag.categoryName === n)),
-    });
+  const toggleNewCategory = (n: string) =>
+    value.newCategories.includes(n)
+      ? onChange({
+          ...value,
+          newCategories: value.newCategories.filter((x) => x !== n),
+          newTags: value.newTags.filter(
+            (tag) => !('categoryName' in tag && tag.categoryName === n),
+          ),
+        })
+      : onChange({ ...value, newCategories: [...value.newCategories, n] });
+  const offered = [
+    ...(value.offeredCategories ?? []),
+    ...value.newCategories.filter((n) => !(value.offeredCategories ?? []).includes(n)),
+  ];
   const removeNewTag = (tag: NewTag) =>
     onChange({ ...value, newTags: value.newTags.filter((x) => x !== tag) });
   const categoryLabel = (tag: NewTag) =>
@@ -93,8 +103,14 @@ export function TaxonomyPicker({
             onClick={() => toggleCategory(c.id)}
           />
         ))}
-        {value.newCategories.map((n) => (
-          <Chip key={n} label={n} isNew selected onClick={() => removeNewCategory(n)} />
+        {offered.map((n) => (
+          <Chip
+            key={n}
+            label={n}
+            isNew
+            selected={value.newCategories.includes(n)}
+            onClick={() => toggleNewCategory(n)}
+          />
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
