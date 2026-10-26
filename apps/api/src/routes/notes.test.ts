@@ -429,7 +429,10 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     });
 
     it('stores a typed title on a voice note, else the AI title', async () => {
-      const scripted = createFakeAi([{ value: { title: 'AI title' } }], 'call the dentist');
+      const scripted = createFakeAi(
+        [{ value: { title: 'AI title' } }, { value: { title: 'AI title' } }],
+        'call the dentist',
+      );
       const app2 = buildServer({
         db: pool,
         ai: scripted,
