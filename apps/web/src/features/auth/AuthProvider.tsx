@@ -43,15 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         void clearCache(queryClient);
       }
       userId.current = session.user.id;
-      // Only the first check and a fresh sign-in show the loading state; a token refresh
-      // re-checks quietly so the screens (and text being typed) stay mounted.
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') setState('loading');
+      // Loading shows only while access for this user is unknown (first load, sign-in after
+      // sign-out, a different user). Otherwise (token refresh, or supabase-js re-emitting
+      // SIGNED_IN on tab refocus) re-check quietly so the screens and typed text stay mounted.
+      const quiet = access.current !== null;
+      if (!quiet) setState('loading');
       checkAccess()
         .catch((err: unknown) => {
           // Offline with a session: keep the last known access, else assume allowed.
           // The API still checks every request, so this grants nothing server-side.
-          // A quiet refresh never signs the user out over a transient failure (5xx, 429).
-          if (event === 'TOKEN_REFRESHED' && access.current) return access.current;
+          // A quiet re-check never signs the user out over a transient failure (5xx, 429).
+          if (quiet && access.current) return access.current;
           if (err instanceof TypeError)
             return access.current ?? { state: 'allowed' as const, isAdmin: false };
           throw err;

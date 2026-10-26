@@ -126,6 +126,53 @@ describe('AuthProvider', () => {
     expect(mounts).toHaveBeenCalledTimes(1);
   });
 
+  it('a same-user SIGNED_IN (tab refocus) keeps the children mounted while /me is pending', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    mounts.mockClear();
+    render(
+      <AuthProvider>
+        <AuthGate>
+          <Probe />
+        </AuthGate>
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    h.me.mockReturnValue(new Promise(() => {}));
+    await fire('SIGNED_IN', session);
+    expect(screen.getByTestId('p')).toBeTruthy();
+    expect(mounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('a same-user SIGNED_IN keeps the children mounted and signed in when /me fails with a 500', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    mounts.mockClear();
+    render(
+      <AuthProvider>
+        <AuthGate>
+          <Probe />
+        </AuthGate>
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    h.me.mockRejectedValue(new ApiRequestError(500, undefined, 'boom'));
+    await fire('SIGNED_IN', session);
+    expect(screen.getByTestId('p').textContent).toBe('allowed:false');
+    expect(mounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('a 403 on a quiet re-check moves to notAllowed', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    h.me.mockRejectedValue(new ApiRequestError(403, undefined, 'no'));
+    await fire('SIGNED_IN', session);
+    expect(screen.getByTestId('p').textContent).toBe('notAllowed:false');
+  });
+
   it('clears the in-memory and persisted cache on sign-out and on any signed-out transition', async () => {
     h.me.mockResolvedValue({ isAdmin: false });
     h.clear.mockClear();
