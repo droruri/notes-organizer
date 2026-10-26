@@ -1,6 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiRequestError } from '../../lib/api';
+import { clearCache } from '../../lib/queryPersist';
 import { supabase } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
 
@@ -20,15 +22,19 @@ async function checkAccess(): Promise<{ state: AuthState; isAdmin: boolean }> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>('loading');
   const [isAdmin, setIsAdmin] = useState(false);
+  const queryClient = useQueryClient();
   const access = useRef<{ state: AuthState; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // Any way of ending up signed out wipes the cached notes (memory and disk).
+    const signedOut = () => {
+      access.current = null;
+      void clearCache(queryClient);
+      setState('signedOut');
+    };
     const apply = (event: string, session: Session | null) => {
-      if (!session) {
-        access.current = null;
-        return setState('signedOut');
-      }
+      if (!session) return signedOut();
       // Only the first check and a fresh sign-in show the loading state; a token refresh
       // re-checks quietly so the screens (and text being typed) stay mounted.
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') setState('loading');
@@ -48,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAdmin(result.isAdmin);
           setState(result.state);
         })
-        .catch(() => !cancelled && setState('signedOut'));
+        .catch(() => !cancelled && signedOut());
     };
     const { data } = supabase().auth.onAuthStateChange((event, session) => {
       // Defer: supabase-js forbids calling its own methods inside this callback.
@@ -58,10 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       data.subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     await supabase().auth.signOut();
+    await clearCache(queryClient);
   };
 
   return (

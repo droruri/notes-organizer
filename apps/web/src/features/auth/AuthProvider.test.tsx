@@ -8,6 +8,19 @@ type Listener = (event: string, session: Session | null) => void;
 const h = vi.hoisted(() => ({
   listener: null as null | ((e: string, s: Session | null) => void),
   me: vi.fn(),
+  clear: vi.fn(),
+  removeClient: vi.fn(async () => {}),
+}));
+
+vi.mock('@tanstack/react-query', async (orig) => ({
+  ...(await orig<typeof import('@tanstack/react-query')>()),
+  useQueryClient: () => ({ clear: h.clear }),
+}));
+vi.mock('../../lib/queryPersist', () => ({
+  clearCache: async (qc: { clear: () => void }) => {
+    qc.clear();
+    await h.removeClient();
+  },
 }));
 
 vi.mock('../../lib/supabase', () => ({
@@ -114,5 +127,34 @@ describe('AuthProvider', () => {
     await fire('TOKEN_REFRESHED', session);
     expect(screen.getByTestId('p')).toBeTruthy();
     expect(mounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the in-memory and persisted cache on sign-out and on any signed-out transition', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    h.clear.mockClear();
+    h.removeClient.mockClear();
+    const grabbed: { signOut: () => Promise<void> } = { signOut: async () => {} };
+    function Grab() {
+      const auth = useAuth();
+      useEffect(() => {
+        grabbed.signOut = auth.signOut;
+      });
+      return null;
+    }
+    render(
+      <AuthProvider>
+        <Grab />
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    expect(h.clear).not.toHaveBeenCalled();
+    await act(async () => {
+      await grabbed.signOut();
+    });
+    expect(h.clear).toHaveBeenCalledTimes(1);
+    expect(h.removeClient).toHaveBeenCalledTimes(1);
+    await fire('SIGNED_OUT', null);
+    expect(h.clear).toHaveBeenCalledTimes(2);
+    expect(h.removeClient).toHaveBeenCalledTimes(2);
   });
 });

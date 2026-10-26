@@ -404,6 +404,20 @@ export function NotesScreen({
           {t('notes.error')}
         </p>
       )}
+      {!online && outbox.length > 0 && (
+        <section aria-labelledby="pending-title" className="flex flex-col gap-2">
+          <h3 id="pending-title" className="text-sm font-semibold text-muted">
+            {t('offline.pending', { count: outbox.length })}
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {outbox.map((e) => (
+              <li key={e.clientId} dir="auto" className="card p-3 text-sm">
+                {e.body || t('offline.voiceNote')}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <NoteList
         notes={visible}
         filtered={notes.data.length > 0}

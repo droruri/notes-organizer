@@ -29,3 +29,39 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByText('offline e2e note').first()).toBeVisible();
 });
+
+test('saved notes show offline after a reload, with the waiting section', async ({
+  page,
+  context,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
+  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  const count = await page
+    .getByText(/^\d+ פתקים?$|פתקים/)
+    .first()
+    .textContent();
+  // Let the persister flush to IndexedDB, then go offline and cold-start.
+  await page.waitForTimeout(1500);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  expect(
+    await page
+      .getByText(/^\d+ פתקים?$|פתקים/)
+      .first()
+      .textContent(),
+  ).toBe(count);
+
+  await page.getByRole('button', { name: 'פתק חדש' }).click();
+  await page.getByRole('textbox').fill('waiting e2e note');
+  await page.getByRole('button', { name: 'הצע סיווג' }).click();
+  await expect(page.getByText('נשמר במכשיר')).toBeVisible();
+  await page.getByRole('button', { name: 'ביטול' }).click();
+  await expect(page.getByText('ממתינים לשליחה (1)')).toBeVisible();
+  await expect(page.getByText('waiting e2e note')).toBeVisible();
+
+  // Back online: the list refetches.
+  await context.setOffline(false);
+  await expect(page.getByText('ממתינים לשליחה (1)')).toBeHidden();
+});
