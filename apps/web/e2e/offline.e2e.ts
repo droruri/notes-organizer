@@ -25,5 +25,7 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByText('offline e2e note').click();
   await page.getByRole('button', { name: 'שלח' }).click();
+  // The dialog renders only while the outbox has entries, so it closing means the send worked.
+  await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByText('offline e2e note').first()).toBeVisible();
 });
