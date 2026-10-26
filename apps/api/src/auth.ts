@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
+import { addLogFields } from './requestLog';
 
 export type AuthUser = { id: string; email: string };
 /** Resolves the user a bearer token belongs to; rejects when the token is invalid. */
@@ -61,6 +62,7 @@ export function requireUser(verifyToken: VerifyToken, findAllowed: FindAllowed) 
     }
     const allowed = await findAllowed(user.email);
     if (!allowed) return reply.code(403).send({ error: 'not_allowed' });
+    addLogFields(req, { userId: user.id });
     users.set(req, { ...user, isAdmin: allowed.isAdmin });
   };
 }
