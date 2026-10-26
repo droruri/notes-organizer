@@ -102,6 +102,7 @@ lib/i18n.ts         i18next: he (default) + en; sets <html lang dir>. locales/he
 features/auth/      AuthProvider, SignIn (Google), DevSignIn (seed user, DEV only), NoAccess.
 features/notes/     NotesScreen, NoteList, NoteCard, NoteFilters, NoteEditor, TaxonomyPicker,
                     VoiceRecorder, LinkPreview, UndoToast, useNotes.
+features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore; tap a tag to filter notes).
 features/chat/      ChatPanel, ActionCard.
 features/imports/   ImportDialog.
 features/offline/   outbox.ts (localStorage + idb-keyval), useOnline, OfflineBanner, OutboxDialog.
@@ -311,7 +312,7 @@ and Re-analyze are the safety net.
 
 ## Web behaviour
 
-- **Main screen:** header (language toggle, menu: import, sign out), search box, filter sheet
+- **Main screen:** header (language toggle, menu: notes, import, categories & tags, users (admin), sign out), search box, filter sheet
   (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
   deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
   add-note button (text / record), chat button. Drafts sit at the top with a "draft" badge.

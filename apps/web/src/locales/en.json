@@ -160,6 +160,32 @@
       }
     }
   },
+  "taxonomy": {
+    "menu": "Categories & tags",
+    "title": "Categories & tags",
+    "back": "Back",
+    "loading": "Loading…",
+    "newCategory": "New category",
+    "addCategory": "Add category",
+    "addTag": "Add tag",
+    "addTagTo": "Add tag to {{name}}",
+    "newTagIn": "New tag in {{name}}",
+    "rename": "Rename",
+    "renameItem": "Rename {{name}}",
+    "renameLabel": "New name for {{name}}",
+    "delete": "Delete",
+    "deleteItem": "Delete {{name}}",
+    "restore": "Restore",
+    "restoreItem": "Restore {{name}}",
+    "deleted": "Deleted",
+    "save": "Save",
+    "cancel": "Cancel",
+    "errors": {
+      "categoryDeleted": "The category is deleted.",
+      "invalidName": "That name is not valid.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "users": {
     "menu": "Users",
     "title": "Users",

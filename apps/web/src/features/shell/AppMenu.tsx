@@ -5,13 +5,14 @@ import { Icon, type IconName } from '../../ui/Icon';
 type Props = {
   onNotes: () => void;
   onImport: () => void;
+  onTaxonomy: () => void;
   onSignOut: () => void;
   /** Set for an admin: shows the "Users" item. */
   onUsers?: () => void;
 };
 
-/** The app menu in the header: Notes, Import notes, Users (admin only), Sign out. */
-export function AppMenu({ onNotes, onImport, onUsers, onSignOut }: Props) {
+/** The app menu in the header: Notes, Import notes, Categories & tags, Users (admin only), Sign out. */
+export function AppMenu({ onNotes, onImport, onTaxonomy, onUsers, onSignOut }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -37,6 +38,7 @@ export function AppMenu({ onNotes, onImport, onUsers, onSignOut }: Props) {
   const items: { icon: IconName; label: string; onPick: () => void }[] = [
     { icon: 'note', label: t('notes.title'), onPick: onNotes },
     { icon: 'upload', label: t('import.open'), onPick: onImport },
+    { icon: 'filter', label: t('taxonomy.menu'), onPick: onTaxonomy },
     ...(onUsers ? [{ icon: 'users' as const, label: t('users.menu'), onPick: onUsers }] : []),
     { icon: 'logout', label: t('auth.signOut'), onPick: onSignOut },
   ];
@@ -57,7 +59,7 @@ export function AppMenu({ onNotes, onImport, onUsers, onSignOut }: Props) {
         <div role="menu" className="menu enter-pop">
           {items.map((item) => (
             <button
-              key={item.icon}
+              key={item.label}
               type="button"
               role="menuitem"
               onClick={() => {

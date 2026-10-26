@@ -7,7 +7,12 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-const handlers = () => ({ onNotes: vi.fn(), onImport: vi.fn(), onSignOut: vi.fn() });
+const handlers = () => ({
+  onNotes: vi.fn(),
+  onImport: vi.fn(),
+  onTaxonomy: vi.fn(),
+  onSignOut: vi.fn(),
+});
 const open = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
 
 describe('AppMenu', () => {
@@ -30,21 +35,29 @@ describe('AppMenu', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('offers Notes, Import and Sign out to everyone, and Import works', () => {
+  it('offers Notes, Import, Categories & tags and Sign out to everyone, and Import works', () => {
     const h = handlers();
     render(<AppMenu {...h} />);
     open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(3);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(4);
     expect(screen.queryByRole('menuitem', { name: 'users.menu' })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: 'import.open' }));
     expect(h.onImport).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens Categories & tags', () => {
+    const h = handlers();
+    render(<AppMenu {...h} />);
+    open();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'taxonomy.menu' }));
+    expect(h.onTaxonomy).toHaveBeenCalledTimes(1);
   });
 
   it('shows Users only to an admin', () => {
     const onUsers = vi.fn();
     render(<AppMenu {...handlers()} onUsers={onUsers} />);
     open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(4);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(5);
     fireEvent.click(screen.getByRole('menuitem', { name: 'users.menu' }));
     expect(onUsers).toHaveBeenCalledTimes(1);
   });
