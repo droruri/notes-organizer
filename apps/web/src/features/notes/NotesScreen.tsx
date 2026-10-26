@@ -58,7 +58,10 @@ const localToday = () => new Date().toLocaleDateString('en-CA');
 export function NotesScreen({
   importing,
   onImportClose,
+  initialTagId = null,
 }: {
+  /** Start with the list filtered to this tag. */
+  initialTagId?: string | null;
   importing: boolean;
   onImportClose: () => void;
 }) {
@@ -75,7 +78,9 @@ export function NotesScreen({
   const [chatOpen, setChatOpen] = useState(false);
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
+  const [filter, setFilter] = useState<NoteFilter>(
+    initialTagId === null ? EMPTY_FILTER : { ...EMPTY_FILTER, tagIds: [initialTagId] },
+  );
   const saveSort = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),

@@ -161,6 +161,33 @@
       }
     }
   },
+  "taxonomy": {
+    "menu": "קטגוריות ותגיות",
+    "title": "קטגוריות ותגיות",
+    "back": "חזרה",
+    "loading": "טוען…",
+    "newCategory": "קטגוריה חדשה",
+    "addCategory": "הוספת קטגוריה",
+    "addTag": "הוספת תגית",
+    "addTagTo": "הוספת תגית ל{{name}}",
+    "newTagIn": "תגית חדשה ב{{name}}",
+    "rename": "שינוי שם",
+    "renameItem": "שינוי שם של {{name}}",
+    "renameLabel": "שם חדש ל{{name}}",
+    "delete": "מחיקה",
+    "deleteItem": "מחיקת {{name}}",
+    "restore": "שחזור",
+    "restoreItem": "שחזור {{name}}",
+    "deleted": "נמחק",
+    "save": "שמירה",
+    "cancel": "ביטול",
+    "errors": {
+      "nameTaken": "השם כבר קיים.",
+      "categoryDeleted": "הקטגוריה נמחקה.",
+      "invalidName": "השם אינו תקין.",
+      "generic": "משהו השתבש. נסה שוב."
+    }
+  },
   "users": {
     "menu": "משתמשים",
     "title": "משתמשים",

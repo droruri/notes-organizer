@@ -2,6 +2,7 @@ import { useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
+import { TaxonomyScreen } from '../taxonomy/TaxonomyScreen';
 import { UsersScreen } from '../users/UsersScreen';
 import { AppMenu } from './AppMenu';
 import { HeaderSlot } from './headerSlot';
@@ -10,12 +11,18 @@ import { HeaderSlot } from './headerSlot';
 export function Screens() {
   const { isAdmin, signOut } = useAuth();
   const slot = useContext(HeaderSlot);
-  const [view, setView] = useState<'notes' | 'users'>('notes');
+  const [view, setView] = useState<'notes' | 'users' | 'taxonomy'>('notes');
+  // Set when a tag is tapped on the taxonomy screen; the key remounts the list with that filter.
+  const [tagId, setTagId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const menu = slot
     ? createPortal(
         <AppMenu
-          onNotes={() => setView('notes')}
+          onNotes={() => {
+            setTagId(null);
+            setView('notes');
+          }}
+          onTaxonomy={() => setView('taxonomy')}
           onImport={() => {
             setView('notes');
             setImporting(true);
@@ -31,8 +38,21 @@ export function Screens() {
       {menu}
       {view === 'users' && isAdmin ? (
         <UsersScreen onBack={() => setView('notes')} />
+      ) : view === 'taxonomy' ? (
+        <TaxonomyScreen
+          onBack={() => setView('notes')}
+          onTag={(id) => {
+            setTagId(id);
+            setView('notes');
+          }}
+        />
       ) : (
-        <NotesScreen importing={importing} onImportClose={() => setImporting(false)} />
+        <NotesScreen
+          key={tagId ?? 'all'}
+          initialTagId={tagId}
+          importing={importing}
+          onImportClose={() => setImporting(false)}
+        />
       )}
     </>
   );
