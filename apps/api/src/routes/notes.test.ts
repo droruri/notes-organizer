@@ -393,8 +393,9 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       who = mine,
       appUnderTest = app,
       clientId = crypto.randomUUID(),
+      extra: Record<string, string> = {},
     ) => {
-      const { payload, headers } = multipart(file, { clientId, today, locale: 'en' });
+      const { payload, headers } = multipart(file, { clientId, today, locale: 'en', ...extra });
       return appUnderTest.inject({
         method: 'POST',
         url: '/notes',
@@ -424,6 +425,27 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       expect(audio.statusCode).toBe(200);
       expect(audio.headers['content-type']).toContain('audio/webm');
       expect(audio.rawPayload.equals(bytes)).toBe(true);
+      await app2.close();
+    });
+
+    it('stores a typed title on a voice note, else the AI title', async () => {
+      const scripted = createFakeAi([{ value: { title: 'AI title' } }], 'call the dentist');
+      const app2 = buildServer({
+        db: pool,
+        ai: scripted,
+        verifyToken,
+        allowedEmails: new Set([ME.email, OTHER.email]),
+      });
+      const typed = await upload(
+        { data: bytes, type: 'audio/webm' },
+        mine,
+        app2,
+        crypto.randomUUID(),
+        { title: 'My voice title' },
+      );
+      expect(NoteCreated.parse(typed.json()).note.title).toBe('My voice title');
+      const untyped = await upload({ data: bytes, type: 'audio/webm' }, mine, app2);
+      expect(NoteCreated.parse(untyped.json()).note.title).toBe('AI title');
       await app2.close();
     });
 

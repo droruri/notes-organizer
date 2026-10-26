@@ -72,6 +72,11 @@ describe('filterNotes', () => {
     expect(ids(filterNotes([a, b, c], f({ text: 'שלום' }), TODAY))).toEqual([b.id]);
     expect(ids(filterNotes([a, b, c], f({ text: 'שָׁלוֹם' }), TODAY))).toEqual([b.id]);
   });
+  it('matches text in the title as well as the body', () => {
+    const a = note({ title: 'Dentist visit', body: 'x' });
+    const b = note({ body: 'other' });
+    expect(ids(filterNotes([a, b], f({ text: 'dentist' }), TODAY))).toEqual([a.id]);
+  });
   it('filters by category, tag, status, importance and urgency', () => {
     const a = note({
       categoryIds: ['c1'],

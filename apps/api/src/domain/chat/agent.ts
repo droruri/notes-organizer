@@ -92,6 +92,7 @@ export function buildTools({ db, userId, today }: { db: Db; userId: string; toda
       .slice(0, input.limit ?? MAX_FIND_LIMIT)
       .map((n) => ({
         id: n.id,
+        title: n.title,
         status: n.status,
         due: n.dueDate,
         importance: n.importance,

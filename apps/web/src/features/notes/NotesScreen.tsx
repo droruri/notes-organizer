@@ -142,10 +142,10 @@ export function NotesScreen({
       queueOnNetworkError(err, vars.body, vars.clientId, undefined, vars.title),
   });
   const createVoice = useMutation({
-    mutationFn: ({ audio, clientId }: { audio: Blob; clientId: string }) =>
-      api.createVoiceNote(audio, meta(clientId)),
+    mutationFn: ({ audio, title, clientId }: { audio: Blob; title: string; clientId: string }) =>
+      api.createVoiceNote(audio, { ...(title.trim() ? { title } : {}), ...meta(clientId) }),
     onSuccess: onDraft,
-    onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio),
+    onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio, vars.title),
   });
 
   /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
@@ -161,7 +161,10 @@ export function NotesScreen({
         setOutbox(readOutbox());
         return;
       }
-      draft = await api.createVoiceNote(audio, queued);
+      draft = await api.createVoiceNote(audio, {
+        ...(entry.title ? { title: entry.title } : {}),
+        ...queued,
+      });
     } else {
       draft = await api.createNote({
         body,
@@ -265,8 +268,8 @@ export function NotesScreen({
             <VoiceRecorder
               onSend={(audio) =>
                 online
-                  ? createVoice.mutate({ audio, clientId: crypto.randomUUID() })
-                  : void saveOffline('', audio)
+                  ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
+                  : void saveOffline('', audio, undefined, title)
               }
               pending={createVoice.isPending}
               failed={createVoice.isError}

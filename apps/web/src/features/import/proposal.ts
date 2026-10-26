@@ -45,6 +45,7 @@ export function buildConfirm(
         ? [
             {
               body: row.body,
+              title: row.suggestion.title,
               categoryIds: row.suggestion.categoryIds,
               tagIds: row.suggestion.tagIds,
               ...keep(row.suggestion),

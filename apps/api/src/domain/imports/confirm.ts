@@ -60,6 +60,7 @@ async function confirmImportUntimed(
         if (!links) throw new Invalid();
         const id = await notesRepo.insertTodo(tx, userId, {
           body: note.body,
+          title: note.title ?? null,
           dueDate: note.dueDate ?? null,
           importance: note.importance ?? null,
           urgency: note.urgency ?? null,

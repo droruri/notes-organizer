@@ -26,6 +26,18 @@ describe('outbox', () => {
     expect(readOutbox()).toEqual([]);
   });
 
+  it('still parses an entry saved without a title, and keeps a queued title', async () => {
+    const old = id();
+    localStorage.setItem(
+      'notes-outbox-v1',
+      JSON.stringify([{ clientId: old, body: 'old', createdAt: '2026-01-01', hasAudio: false }]),
+    );
+    expect(readOutbox()).toMatchObject([{ clientId: old, body: 'old' }]);
+    const titled = id();
+    await addToOutbox({ clientId: titled, body: 'new', title: 'Hi' });
+    expect(readOutbox().find((e) => e.clientId === titled)?.title).toBe('Hi');
+  });
+
   it('drops a corrupt entry with a warning and keeps the good one', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const clientId = id();
