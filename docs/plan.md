@@ -19,8 +19,7 @@ status steps · notes list with free-text search, filters and a saved sort · ch
 questions + propose-only taxonomy changes) · import of old notes · offline outbox ·
 Web Share Target · Android app via TWA · hosted deploy.
 
-**Not in v1:** email/password sign-in · reading the notes list offline after a cold start ·
-persisted chat history · sharing notes between users · notifications/reminders.
+**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders.
 
 Decisions taken with the user:
 
@@ -345,8 +344,11 @@ and Re-analyze are the safety net.
 - Back online with a non-empty outbox → `OutboxDialog` lists the items; each opens in the
   NoteEditor; Confirm → `POST /notes` with its `clientId` (idempotent, safe to retry) → the
   returned draft continues in the normal review → the item leaves the outbox.
-- The app shell is precached by `vite-plugin-pwa`; reading notes offline after a cold start is out
-  of scope.
+- The app shell is precached by `vite-plugin-pwa`. The React Query cache for notes, taxonomy and
+  settings is persisted to IndexedDB (`lib/queryPersist.ts`, 7 days), parsed against the shared
+  schemas on restore, so the last-synced notes are readable offline after a cold start. Sign-out
+  (or any transition to signed out) clears it. Offline, queued notes show in a "ממתינים לשליחה (N)"
+  section above the cached notes; editing stays disabled.
 
 ## Android
 

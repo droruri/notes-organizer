@@ -1,14 +1,25 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useState } from 'react';
 import { AuthGate } from './features/auth/AuthGate';
 import { Screens } from './features/shell/Screens';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { Shell } from './features/shell/Shell';
+import { CACHE_MAX_AGE, persister, shouldDehydrateQuery } from './lib/queryPersist';
 
 export function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { gcTime: CACHE_MAX_AGE } } }),
+  );
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: CACHE_MAX_AGE,
+        dehydrateOptions: { shouldDehydrateQuery },
+      }}
+    >
       <AuthProvider>
         <Shell>
           <AuthGate>
@@ -16,6 +27,6 @@ export function App() {
           </AuthGate>
         </Shell>
       </AuthProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

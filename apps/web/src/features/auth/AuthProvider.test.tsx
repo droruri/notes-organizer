@@ -8,7 +8,16 @@ type Listener = (event: string, session: Session | null) => void;
 const h = vi.hoisted(() => ({
   listener: null as null | ((e: string, s: Session | null) => void),
   me: vi.fn(),
+  clear: vi.fn(),
+  del: vi.fn(async () => {}),
 }));
+
+vi.mock('@tanstack/react-query', async (orig) => ({
+  ...(await orig<typeof import('@tanstack/react-query')>()),
+  useQueryClient: () => ({ clear: h.clear }),
+}));
+// Only the IndexedDB store is faked; clearCache runs for real and must delete the stored key.
+vi.mock('idb-keyval', () => ({ del: h.del, get: vi.fn(), set: vi.fn() }));
 
 vi.mock('../../lib/supabase', () => ({
   supabase: () => ({
@@ -30,7 +39,8 @@ import { AuthGate } from './AuthGate';
 import { AuthProvider } from './AuthProvider';
 import { useAuth } from './authContext';
 
-const session = { access_token: 't' } as Session;
+const session = { access_token: 't', user: { id: 'u1' } } as Session;
+const otherSession = { access_token: 't2', user: { id: 'u2' } } as Session;
 
 const mounts = vi.fn();
 function Probe() {
@@ -114,5 +124,50 @@ describe('AuthProvider', () => {
     await fire('TOKEN_REFRESHED', session);
     expect(screen.getByTestId('p')).toBeTruthy();
     expect(mounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the in-memory and persisted cache on sign-out and on any signed-out transition', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    h.clear.mockClear();
+    h.del.mockClear();
+    const grabbed: { signOut: () => Promise<void> } = { signOut: async () => {} };
+    function Grab() {
+      const auth = useAuth();
+      useEffect(() => {
+        grabbed.signOut = auth.signOut;
+      });
+      return null;
+    }
+    render(
+      <AuthProvider>
+        <Grab />
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    expect(h.clear).not.toHaveBeenCalled();
+    await act(async () => {
+      await grabbed.signOut();
+    });
+    expect(h.clear).toHaveBeenCalledTimes(1);
+    expect(h.del).toHaveBeenCalledWith('notes-query-cache-v1');
+    await fire('SIGNED_OUT', null);
+    expect(h.clear).toHaveBeenCalledTimes(2);
+    expect(h.del).toHaveBeenCalledTimes(2);
+  });
+
+  it('a different user signing in on the same device clears the previous cache', async () => {
+    h.me.mockResolvedValue({ isAdmin: false });
+    h.clear.mockClear();
+    h.del.mockClear();
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await fire('INITIAL_SESSION', session);
+    expect(h.clear).not.toHaveBeenCalled();
+    await fire('SIGNED_IN', otherSession);
+    expect(h.clear).toHaveBeenCalledTimes(1);
+    expect(h.del).toHaveBeenCalledWith('notes-query-cache-v1');
   });
 });
