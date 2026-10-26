@@ -99,6 +99,7 @@ async function createDraftUntimed(
     const noteId = await repo.insertDraft(tx, userId, {
       clientId: input.clientId,
       body: input.body,
+      title: input.title || suggestion.title,
       proposed: { newCategories: suggestion.newCategories, newTags: suggestion.newTags },
       dueDate: suggestion.dueDate,
       importance: suggestion.importance,
@@ -224,6 +225,7 @@ async function updateNoteUntimed(
     });
     await repo.updateNote(tx, id, {
       ...(edit.body !== undefined ? { body: edit.body } : {}),
+      ...(edit.title !== undefined ? { title: edit.title || null } : {}),
       ...(edit.dueDate !== undefined ? { dueDate: edit.dueDate } : {}),
       ...(edit.importance !== undefined ? { importance: edit.importance } : {}),
       ...(edit.urgency !== undefined ? { urgency: edit.urgency } : {}),

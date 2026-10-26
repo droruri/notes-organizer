@@ -29,8 +29,8 @@ describe('NotesScreen offline with no loaded data', () => {
     );
     screen.getByText(/you can still add a note/i);
     fireEvent.click(screen.getByRole('button', { name: 'New note' }));
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'buy milk' } });
-    const form = screen.getByRole('textbox').closest('form');
+    fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'buy milk' } });
+    const form = screen.getByLabelText('Text').closest('form');
     if (!form) throw new Error('compose form not found');
     fireEvent.submit(form);
     await waitFor(() => expect(readOutbox().map((e) => e.body)).toEqual(['buy milk']));
@@ -43,6 +43,7 @@ describe('NotesScreen opened from a tag', () => {
   const note = (n: number, body: string, tagIds: string[]): Note => ({
     id: `00000000-0000-4000-8000-00000000000${n}`,
     clientId: `00000000-0000-4000-8000-10000000000${n}`,
+    title: null,
     body,
     status: 'todo',
     importance: null,

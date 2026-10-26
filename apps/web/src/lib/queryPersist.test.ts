@@ -13,6 +13,7 @@ import { clearCache, persister, shouldDehydrateQuery } from './queryPersist';
 const note = {
   id: '11111111-1111-4111-8111-111111111111',
   clientId: '22222222-2222-4222-8222-222222222222',
+  title: null,
   body: 'hello',
   status: 'todo',
   importance: null,

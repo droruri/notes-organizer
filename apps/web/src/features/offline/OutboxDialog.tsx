@@ -9,6 +9,7 @@ import type { OutboxEntry } from './outbox';
 const draftOf = (e: OutboxEntry): Note => ({
   id: e.clientId,
   clientId: e.clientId,
+  title: null,
   body: e.body,
   status: 'draft',
   importance: null,

@@ -140,6 +140,53 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     await app2.close();
   });
 
+  it('stores a typed title as typed, else the AI title, else none', async () => {
+    const ai2 = createFakeAi([
+      { value: { title: 'AI title' } },
+      { value: { title: 'AI title' } },
+      { fail: 'down' },
+    ]);
+    const app2 = buildServer({
+      db: pool,
+      ai: ai2,
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const create = async (extra: object) => {
+      const res = await app2.inject({
+        method: 'POST',
+        url: '/notes',
+        headers: mine,
+        payload: { body: 'a note', clientId: crypto.randomUUID(), today, locale: 'en', ...extra },
+      });
+      return NoteCreated.parse(res.json());
+    };
+    expect((await create({ title: '  My title ' })).note.title).toBe('My title');
+    const filled = await create({});
+    expect(filled.note.title).toBe('AI title');
+    expect(filled.suggestion.title).toBe('AI title');
+    expect((await create({})).note.title).toBeNull();
+    await app2.close();
+  });
+
+  it('sets and clears the title on edit, and rejects one over 200 chars', async () => {
+    const id = await submitted('titled');
+    const set = await send(mine, 'PATCH', `/notes/${id}`, { title: 'Hello' });
+    expect(Note.parse(set.json()).title).toBe('Hello');
+    const cleared = await send(mine, 'PATCH', `/notes/${id}`, { title: '' });
+    expect(Note.parse(cleared.json()).title).toBeNull();
+    const long = await send(mine, 'PATCH', `/notes/${id}`, { title: 'x'.repeat(201) });
+    expect(long.statusCode).toBe(400);
+    const longCreate = await send(mine, 'POST', '/notes', {
+      body: 'x',
+      title: 'x'.repeat(201),
+      clientId: crypto.randomUUID(),
+      today,
+      locale: 'en',
+    });
+    expect(longCreate.statusCode).toBe(400);
+  });
+
   it('still creates a draft when the model fails', async () => {
     const { res } = await draft('buy milk');
     expect(res.statusCode).toBe(201);

@@ -10,6 +10,7 @@ const PLACEHOLDER_ID = '00000000-0000-4000-8000-000000000000';
 const asNote = (row: Row): Note => ({
   id: PLACEHOLDER_ID,
   clientId: PLACEHOLDER_ID,
+  title: row.suggestion.title,
   body: row.body,
   status: 'draft',
   importance: row.suggestion.importance,
@@ -74,6 +75,7 @@ export function ImportReview({
             dueDate: edit.dueDate ?? null,
             importance: edit.importance ?? null,
             urgency: edit.urgency ?? null,
+            title: edit.title ?? null,
             unreadLinks: edit.unreadLinks ?? [],
           };
           setRows(

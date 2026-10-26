@@ -11,7 +11,7 @@ type NoteRow = Omit<Note, 'proposed' | 'createdAt' | 'updatedAt'> & {
 };
 
 const NOTE_SELECT = `
-  select n.id, n.client_id as "clientId", n.body, n.status, n.importance, n.urgency,
+  select n.id, n.client_id as "clientId", n.title, n.body, n.status, n.importance, n.urgency,
     to_char(n.due_date, 'YYYY-MM-DD') as "dueDate", n.proposed, n.unread_links as "unreadLinks",
     n.created_at as "createdAt", n.updated_at as "updatedAt",
     coalesce((select array_agg(nc.category_id::text) from note_categories nc where nc.note_id = n.id), '{}') as "categoryIds",
@@ -74,6 +74,7 @@ export async function insertDraft(
   userId: string,
   draft: {
     clientId: string;
+    title: string | null;
     body: string;
     proposed: Proposed;
     dueDate: string | null;
@@ -83,8 +84,8 @@ export async function insertDraft(
   },
 ): Promise<string | null> {
   const { rows } = await db.query<{ id: string }>(
-    `insert into notes (user_id, client_id, body, proposed, due_date, importance, urgency, unread_links)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
+    `insert into notes (user_id, client_id, body, proposed, due_date, importance, urgency, unread_links, title)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      on conflict (user_id, client_id) do nothing returning id`,
     [
       userId,
@@ -95,6 +96,7 @@ export async function insertDraft(
       draft.importance,
       draft.urgency,
       draft.unreadLinks,
+      draft.title,
     ],
   );
   return rows[0]?.id ?? null;
@@ -102,6 +104,7 @@ export async function insertDraft(
 
 export type NoteChange = {
   body?: string;
+  title?: string | null;
   status?: NoteStatus;
   dueDate?: string | null;
   importance?: Importance | null;
@@ -113,6 +116,7 @@ export type NoteChange = {
 
 const COLUMNS = {
   body: 'body',
+  title: 'title',
   status: 'status',
   dueDate: 'due_date',
   importance: 'importance',
