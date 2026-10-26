@@ -1,5 +1,5 @@
 import { statusMoves } from '@notes/shared';
-import type { NewTag, Note, NoteStatus, Suggestion, Taxonomy } from '@notes/shared';
+import type { NewTag, NoteStatus, Taxonomy } from '@notes/shared';
 import { normalizeName } from '../taxonomy/taxonomy';
 
 // Pure note rules: status transitions, link invariants, and which new taxonomy a submit creates.
@@ -110,18 +110,4 @@ export function planNewTaxonomy(
     if (!duplicate) plan.tags.push({ category, name, existingTagId: existing?.id ?? null });
   }
   return plan;
-}
-
-/** The suggestion a draft was created with, rebuilt from the stored draft. */
-export function suggestionOf(note: Note): Suggestion {
-  return {
-    categoryIds: note.categoryIds,
-    tagIds: note.tagIds,
-    newCategories: note.proposed?.newCategories ?? [],
-    newTags: note.proposed?.newTags ?? [],
-    dueDate: note.dueDate,
-    importance: note.importance,
-    urgency: note.urgency,
-    unreadLinks: note.unreadLinks,
-  };
 }

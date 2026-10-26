@@ -1,4 +1,4 @@
-import type { Note, Taxonomy } from '@notes/shared';
+import { EMPTY_SUGGESTION, type Note, type Taxonomy } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NoteEditor } from '../notes/NoteEditor';
@@ -22,17 +22,6 @@ const draftOf = (e: OutboxEntry): Note => ({
   createdAt: e.createdAt,
   updatedAt: e.createdAt,
 });
-
-const EMPTY_SUGGESTION = {
-  categoryIds: [],
-  tagIds: [],
-  newCategories: [],
-  newTags: [],
-  dueDate: null,
-  importance: null,
-  urgency: null,
-  unreadLinks: [],
-};
 
 /** Notes captured offline: pick one, review it in the editor, confirm to send. */
 export function OutboxDialog({
