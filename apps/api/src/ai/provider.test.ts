@@ -1,6 +1,7 @@
 import { MockLanguageModelV4 } from 'ai/test';
 import { simulateReadableStream } from 'ai';
 import { describe, expect, it, vi } from 'vite-plus/test';
+import { createGroq } from '@ai-sdk/groq';
 import { z } from 'zod';
 import { createAiFromModels } from './provider';
 import { withFallback } from './provider';
@@ -40,7 +41,8 @@ function streaming(text: string | Error) {
 }
 
 const schema = z.object({ a: z.string() });
-const transcription = { transcribe: vi.fn() } as never;
+// Real model object, never called here: no network, no cast.
+const transcription = createGroq({ apiKey: 'unused' }).transcription('whisper-large-v3');
 const build = (classify: MockLanguageModelV4, chat: MockLanguageModelV4, warn = vi.fn()) =>
   createAiFromModels({
     classify: withFallback(classify, generating('{"a":"fallback"}'), warn),
