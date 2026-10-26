@@ -47,7 +47,7 @@ Decisions taken with the user:
 ```
 PWA (React 19, Tailwind 4, i18next, React Query)
   │  Supabase Auth (Google) → JWT          ┌──► Postgres (Supabase): notes, categories, tags…
-  └──► API (Fastify, one service) ─────────┼──► Claude (Anthropic) via AI SDK  [ai/provider.ts]
+  └──► API (Fastify, one service) ─────────┼──► Gemini (Groq fallback) via AI SDK [ai/provider.ts]
          routes → service → domain → repo  └──► Groq Whisper via AI SDK       [ai/provider.ts]
 ```
 
@@ -64,7 +64,7 @@ server.ts                 Wiring only: buildServer({ db, verifyToken, ai, allowe
 db.ts                     Pool + withTransaction(db, fn).
 auth.ts                   Supabase JWT via JWKS (jose) + allowlist → 401 / 403 not_allowed.
 ai/provider.ts            THE ONLY place a model is called. Ai = { extract, chat, transcribe }.
-                          Anthropic + Groq adapters; scripted fake (AI_FAKE=1, tests).
+                          Gemini + Groq fallback adapters; scripted fake (AI_FAKE=1, tests).
 routes/                   health.ts settings.ts taxonomy.ts notes.ts imports.ts links.ts chat.ts
 domain/
   taxonomy/taxonomy.ts    Name normalize + uniqueness among active, delete/restore,
@@ -247,10 +247,11 @@ Rules:
   `extract<T>({schema, system, prompt, model})` → `{ok, value} | {ok:false, error}`,
   `chat({system, messages, tools, maxSteps})` → AI SDK stream,
   `transcribe({audio, mime})` → `{text}`.
-  Adapters: `@ai-sdk/anthropic` (text), `@ai-sdk/groq` `whisper-large-v3` (speech), and a
+  Adapters: `@ai-sdk/google` Gemini (text, Groq fallback on any error via `wrapLanguageModel`), `@ai-sdk/groq` `whisper-large-v3` (speech), and a
   scripted fake (`FakeTurn`s as in the sibling repo).
-- Env (append to `.env.example`): `ANTHROPIC_API_KEY`, `GROQ_API_KEY`,
-  `LLM_CLASSIFY_MODEL=claude-haiku-5-5`, `LLM_CHAT_MODEL=claude-sonnet-5-5`, `AI_FAKE`.
+- Env (append to `.env.example`): `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`,
+  `LLM_CLASSIFY_MODEL=gemini-2.5-flash-lite`, `LLM_CHAT_MODEL=gemini-2.5-flash`,
+  `LLM_FALLBACK_MODEL` (Groq), `AI_FAKE`.
   `AI_FAKE=1` → fake for everything (tests, E2E, keyless dev). A missing key without `AI_FAKE`
   fails startup with a clear message.
 - **Classify** (`notes/classify.ts`): input = body, today, locale, the user's usable taxonomy as
@@ -358,15 +359,14 @@ and Re-analyze are the safety net.
 ## Deploy
 
 `scripts/deploy-hosted.sh`, adapted from the sibling repo: hosted Supabase migrations and the
-Google provider, Render API service (env incl. `ANTHROPIC_API_KEY`, `GROQ_API_KEY`,
+Google provider, Render API service (env incl. `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`,
 `JINA_API_KEY` when set,
 `ALLOWED_EMAILS`, `SUPABASE_URL`, `WEB_ORIGIN`), Cloudflare Pages for the web, cron-job.org
 keep-alive (`/health` every 14 min 07:00–23:00; `/health?deep=1` daily). Idempotent; each step
 skips with a warning when its key is missing.
 
 Creating accounts and keys is human-only, in a `needs-human` setup issue with exact steps
-(Supabase project, Google OAuth client, Supabase Google provider, Anthropic key with a spend
-limit, Groq key, Render + GitHub, Cloudflare Pages GitHub app + API token + account id,
+(Supabase project, Google OAuth client, Supabase Google provider, Google AI Studio key, Groq key, Render + GitHub, Cloudflare Pages GitHub app + API token + account id,
 cron-job.org key, optional Jina Reader key). `scripts/setup-hosted.sh` (built with the `wizard` skill) walks through those
 steps: for each value it shows where to find it and asks for it; it creates `.env` from
 `.env.example` when `.env` is missing and otherwise appends; it never overwrites a filled key; it

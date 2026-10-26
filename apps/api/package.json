@@ -10,7 +10,7 @@
     "test": "vp test run"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^4.0.88",
+    "@ai-sdk/google": "^4.0.105",
     "@ai-sdk/groq": "^4.0.70",
     "@fastify/cors": "^11.3.0",
     "@fastify/multipart": "^10.1.6",
