@@ -62,6 +62,22 @@ function setup(title: string | null, next: Suggestion) {
 }
 
 describe('NoteEditor title', () => {
+  it('no suggested badge when the suggested title is blank', () => {
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={{ ...EMPTY_SUGGESTION, title: '' }}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={() => undefined}
+        onCancel={() => undefined}
+        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+      />,
+    );
+    expect(screen.queryByText('Suggested by Claude')).toBeNull();
+  });
+
   it('shows the suggested badge only when the suggestion has content', () => {
     const { unmount } = render(
       <NoteEditor

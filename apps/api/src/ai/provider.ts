@@ -144,36 +144,57 @@ export function withFallback(
   warn: (message: string) => void = console.warn,
   timeoutMs: number = PRIMARY_TIMEOUT_MS,
 ): LanguageModel {
-  /** Rejects when `call` takes longer than `timeoutMs`, so a slow primary hands over to the fallback. */
-  const within = <T>(call: () => PromiseLike<T>): Promise<T> => {
+  /**
+   * Rejects when `call` takes longer than `timeoutMs`, so a slow primary hands over to the fallback. The call gets an
+   * abort signal (linked to the caller's) that fires on timeout, so a timed-out primary stops instead of running on.
+   */
+  const within = <T>(
+    call: (abortSignal: AbortSignal) => PromiseLike<T>,
+    parent: AbortSignal | undefined,
+  ): Promise<T> => {
+    const controller = new AbortController();
+    const abortSignal = parent ? AbortSignal.any([parent, controller.signal]) : controller.signal;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
+      timer = setTimeout(() => {
+        const err = new Error(`timed out after ${timeoutMs} ms`);
+        controller.abort(err);
+        reject(err);
+      }, timeoutMs);
     });
-    // `.then(call)` (not `Promise.resolve(call())`) so a synchronous throw becomes a rejection the race handles.
-    return Promise.race([Promise.resolve().then(call), timeout]).finally(() => clearTimeout(timer));
+    // `.then(...)` (not `Promise.resolve(call(...))`) so a synchronous throw becomes a rejection the race handles.
+    return Promise.race([Promise.resolve().then(() => call(abortSignal)), timeout]).finally(() =>
+      clearTimeout(timer),
+    );
   };
   const note = (err: unknown) =>
     warn(
       `ai: primary model failed, using fallback: ${err instanceof Error ? err.message : String(err)}`,
     );
   // Wrapping with no middleware upgrades a V2/V3 provider model to the V4 call shape.
+  const primaryV4 = wrapLanguageModel({ model: primary, middleware: {} });
   const fallbackV4 = wrapLanguageModel({ model: fallback, middleware: {} });
   return wrapLanguageModel({
     model: primary,
     middleware: {
       specificationVersion: 'v4',
-      wrapGenerate: async ({ doGenerate, params }) => {
+      wrapGenerate: async ({ params }) => {
         try {
-          return await within(doGenerate);
+          return await within(
+            (abortSignal) => primaryV4.doGenerate({ ...params, abortSignal }),
+            params.abortSignal,
+          );
         } catch (err) {
           note(err);
           return fallbackV4.doGenerate(params);
         }
       },
-      wrapStream: async ({ doStream, params }) => {
+      wrapStream: async ({ params }) => {
         try {
-          return await within(doStream);
+          return await within(
+            (abortSignal) => primaryV4.doStream({ ...params, abortSignal }),
+            params.abortSignal,
+          );
         } catch (err) {
           note(err);
           return fallbackV4.doStream(params);

@@ -55,7 +55,9 @@ test('saved notes show offline after a reload, with the waiting section', async 
   await expect(page.getByText('waiting e2e note')).toBeVisible();
 
   // Back online: the list refetches from the API and the waiting section goes away.
+  const refetch = page.waitForRequest(/\/notes(\?|$)/);
   await page.unrouteAll();
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await refetch;
   await expect(page.getByText('ממתינים לשליחה (1)')).toBeHidden();
 });

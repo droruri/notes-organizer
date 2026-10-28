@@ -13,7 +13,7 @@ import {
 } from '@notes/shared';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { api, ApiNetworkError } from '../../lib/api';
 import { ChatPanel } from '../chat/ChatPanel';
 import { ImportDialog, type ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
@@ -129,7 +129,7 @@ export function NotesScreen({
     audio?: Blob,
     title?: string,
   ) => {
-    if (err instanceof TypeError) {
+    if (err instanceof ApiNetworkError) {
       reportNetworkFailure();
       await saveOffline(body, audio, clientId, title);
     }

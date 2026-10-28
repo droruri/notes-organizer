@@ -40,6 +40,7 @@
     "cancel": "ביטול",
     "reanalyze": "ניתוח מחדש",
     "reanalyzing": "Claude חושב…",
+    "reanalyzingSlow": "Claude עדיין חושב, זה לוקח קצת זמן…",
     "delete": "מחיקה",
     "deleted": "ההערה נמחקה",
     "undo": "ביטול",

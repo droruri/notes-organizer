@@ -50,7 +50,7 @@ export function NoteEditor({
   const slow = useSlow(busy);
   // Any field Claude filled in counts; comparing JSON would depend on key order.
   const hasSuggestion = Object.values(suggestion).some((v) =>
-    Array.isArray(v) ? v.length > 0 : v !== null,
+    Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
   );
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
@@ -60,6 +60,7 @@ export function NoteEditor({
 
   const [status, setStatus] = useState<NoteStatus>(note.status === 'draft' ? 'todo' : note.status);
   const [analyzing, setAnalyzing] = useState(false);
+  const slowReanalyze = useSlow(analyzing);
   const [analyzeFailed, setAnalyzeFailed] = useState(false);
 
   /** Fill the fields with a fresh suggestion; nothing is saved until Submit. */
@@ -210,7 +211,9 @@ export function NoteEditor({
             ) : (
               <Icon name="spark" size={16} className="text-accent" />
             )}
-            {analyzing ? t('notes.reanalyzing') : t('notes.reanalyze')}
+            {analyzing
+              ? t(slowReanalyze ? 'notes.reanalyzingSlow' : 'notes.reanalyzing')
+              : t('notes.reanalyze')}
           </button>
         )}
         {onDelete && (
