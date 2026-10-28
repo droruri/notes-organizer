@@ -2,7 +2,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import type { Session } from '@supabase/supabase-js';
 import { useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { ApiRequestError } from '../../lib/api';
+import { ApiNetworkError, ApiRequestError } from '../../lib/api';
 
 type Listener = (event: string, session: Session | null) => void;
 const h = vi.hoisted(() => ({
@@ -65,7 +65,7 @@ afterEach(() => {
 
 describe('AuthProvider', () => {
   it('assumes allowed, not admin, when /me fails at network level with a session', async () => {
-    h.me.mockRejectedValue(new TypeError('Failed to fetch'));
+    h.me.mockRejectedValue(new ApiNetworkError('Failed to fetch'));
     render(
       <AuthProvider>
         <Probe />
@@ -103,7 +103,7 @@ describe('AuthProvider', () => {
       await new Promise((r) => setTimeout(r, 5));
     });
     expect(screen.getByTestId('p').textContent).toBe('allowed:true');
-    h.me.mockRejectedValue(new TypeError('offline'));
+    h.me.mockRejectedValue(new ApiNetworkError('offline'));
     await fire('TOKEN_REFRESHED', session);
     expect(screen.getByTestId('p').textContent).toBe('allowed:true');
   });

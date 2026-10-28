@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { api, ApiRequestError } from '../../lib/api';
+import { api, ApiNetworkError, ApiRequestError } from '../../lib/api';
 import { clearCache } from '../../lib/queryPersist';
 import { supabase } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // The API still checks every request, so this grants nothing server-side.
           // A quiet re-check never signs the user out over a transient failure (5xx, 429).
           if (quiet && access.current) return access.current;
-          if (err instanceof TypeError)
+          if (err instanceof ApiNetworkError)
             return access.current ?? { state: 'allowed' as const, isAdmin: false };
           throw err;
         })

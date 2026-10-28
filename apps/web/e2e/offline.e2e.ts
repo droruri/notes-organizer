@@ -15,7 +15,7 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
   await page.reload();
   await expect(page.getByRole('status')).toContainText('אין חיבור');
   await page.getByRole('button', { name: 'פתק חדש' }).click();
-  await page.getByRole('textbox').fill('offline e2e note');
+  await page.getByRole('textbox', { name: 'טקסט' }).fill('offline e2e note');
   await page.getByRole('button', { name: 'הצע סיווג' }).click();
   await expect(page.getByText('נשמר במכשיר')).toBeVisible();
 
@@ -23,17 +23,14 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
   await page.unroute(/\/(notes|taxonomy|settings)(\?|$)/, cut);
   await page.reload();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await page.getByText('offline e2e note').click();
-  await page.getByRole('button', { name: 'שלח' }).click();
+  await page.getByRole('dialog').getByText('offline e2e note').click();
+  await page.getByRole('button', { name: 'שמירה', exact: true }).click();
   // The dialog renders only while the outbox has entries, so it closing means the send worked.
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByText('offline e2e note').first()).toBeVisible();
 });
 
-test('saved notes show offline after a reload, with the waiting section', async ({
-  page,
-  context,
-}) => {
+test('saved notes show offline after a reload, with the waiting section', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
   await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
@@ -41,22 +38,26 @@ test('saved notes show offline after a reload, with the waiting section', async 
   const count = await countText.textContent();
   // Let the persister flush to IndexedDB, then go offline and cold-start.
   await page.waitForTimeout(1500);
-  await context.setOffline(true);
+  // The dev server has no service worker to serve the shell offline, so cut everything but it.
+  await page.route(
+    (url) => url.origin !== new URL(page.url()).origin,
+    (route) => route.abort('internetdisconnected'),
+  );
   await page.reload();
   await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
   await expect(countText).toHaveText(count ?? '');
 
   await page.getByRole('button', { name: 'פתק חדש' }).click();
-  await page.getByRole('textbox').fill('waiting e2e note');
+  await page.getByRole('textbox', { name: 'טקסט' }).fill('waiting e2e note');
   await page.getByRole('button', { name: 'הצע סיווג' }).click();
   await expect(page.getByText('נשמר במכשיר')).toBeVisible();
-  await page.getByRole('button', { name: 'ביטול' }).click();
   await expect(page.getByText('ממתינים לשליחה (1)')).toBeVisible();
   await expect(page.getByText('waiting e2e note')).toBeVisible();
 
   // Back online: the list refetches from the API and the waiting section goes away.
-  const refetch = page.waitForRequest(/\/(notes)(\?|$)/);
-  await context.setOffline(false);
+  const refetch = page.waitForRequest(/\/notes(\?|$)/);
+  await page.unrouteAll();
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await refetch;
   await expect(page.getByText('ממתינים לשליחה (1)')).toBeHidden();
 });

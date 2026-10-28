@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { useSlow } from '../../ui/useSlow';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -46,6 +47,11 @@ export function NoteEditor({
   const { t } = useTranslation();
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
+  const slow = useSlow(busy);
+  // Any field Claude filled in counts; comparing JSON would depend on key order.
+  const hasSuggestion = Object.values(suggestion).some((v) =>
+    Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
+  );
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
@@ -54,6 +60,7 @@ export function NoteEditor({
 
   const [status, setStatus] = useState<NoteStatus>(note.status === 'draft' ? 'todo' : note.status);
   const [analyzing, setAnalyzing] = useState(false);
+  const slowReanalyze = useSlow(analyzing);
   const [analyzeFailed, setAnalyzeFailed] = useState(false);
 
   /** Fill the fields with a fresh suggestion; nothing is saved until Submit. */
@@ -101,7 +108,7 @@ export function NoteEditor({
         <h2 className="text-2xl font-bold tracking-tight">
           {note.status === 'draft' ? t('notes.reviewTitle') : t('notes.editTitle')}
         </h2>
-        {note.status === 'draft' && (
+        {note.status === 'draft' && hasSuggestion && (
           <span className="marker inline-flex items-center gap-1">
             <Icon name="spark" size={13} />
             {t('notes.suggested')}
@@ -192,7 +199,7 @@ export function NoteEditor({
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-line bg-bg/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <button type="submit" disabled={busy || body.trim() === ''} className="btn btn-primary">
           {busy && <span aria-hidden="true" className="spinner" />}
-          {busy ? t('notes.submitting') : t('notes.submit')}
+          {busy ? (slow ? t('notes.submittingSlow') : t('notes.submitting')) : t('notes.submit')}
         </button>
         <button type="button" onClick={onCancel} className="btn btn-ghost">
           {t('notes.cancel')}
@@ -204,7 +211,9 @@ export function NoteEditor({
             ) : (
               <Icon name="spark" size={16} className="text-accent" />
             )}
-            {analyzing ? t('notes.reanalyzing') : t('notes.reanalyze')}
+            {analyzing
+              ? t(slowReanalyze ? 'notes.reanalyzingSlow' : 'notes.reanalyzing')
+              : t('notes.reanalyze')}
           </button>
         )}
         {onDelete && (

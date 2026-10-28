@@ -13,7 +13,7 @@ import {
 } from '@notes/shared';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { api, ApiNetworkError } from '../../lib/api';
 import type { ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
 import {
@@ -136,7 +136,7 @@ export function NotesScreen({
     audio?: Blob,
     title?: string,
   ) => {
-    if (err instanceof TypeError) {
+    if (err instanceof ApiNetworkError) {
       reportNetworkFailure();
       await saveOffline(body, audio, clientId, title);
     }
@@ -222,17 +222,21 @@ export function NotesScreen({
   const reanalyze = (id: string) =>
     api.analyzeNote(id, { today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' });
 
-  const offlineToast = offlineNotice !== null && (
-    <Toast
-      actions={
-        <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
-          {t('offline.dismiss')}
-        </button>
-      }
-    >
-      {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
-    </Toast>
-  );
+  // The "saved on this device" toast has done its job once the queue has been sent.
+  const offlineToast = offlineNotice !== null &&
+    !(offlineNotice === 'saved' && outbox.length === 0) && (
+      <Toast
+        // Only the "saved" notice closes by itself; a failure stays until the user dismisses it.
+        onClose={offlineNotice === 'saved' ? () => setOfflineNotice(null) : undefined}
+        actions={
+          <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
+            {t('offline.dismiss')}
+          </button>
+        }
+      >
+        {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
+      </Toast>
+    );
 
   if (mode.kind === 'compose') {
     return (
@@ -484,6 +488,7 @@ export function NotesScreen({
       <div className="toast-stack">
         {imported && (
           <Toast
+            onClose={() => setImported(null)}
             actions={
               <>
                 {imported.unreadNotes > 0 && (
