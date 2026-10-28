@@ -24,7 +24,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter @notes/api dev',
       url: `${apiUrl}/health`,
-      env: { PORT: apiPort, WEB_ORIGIN: webUrl },
+      env: { PORT: apiPort, WEB_ORIGIN: webUrl, AI_FAKE: '1' },
       // API logs in the test output, so a failed request shows why.
       stdout: 'pipe',
       reuseExistingServer: false,

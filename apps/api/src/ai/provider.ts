@@ -117,7 +117,7 @@ function isFakeEnabled(value: string | undefined): boolean {
 
 /** The fake for `AI_FAKE=1`, otherwise Gemini with a Groq fallback. */
 export function createAi(env: AiEnv): Ai {
-  if (isFakeEnabled(env.AI_FAKE)) return createFakeAi();
+  if (isFakeEnabled(env.AI_FAKE)) return createFakeAi([], 'fake transcript', scriptedChatReply);
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) {
     throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is required unless AI_FAKE=1');
   }
@@ -271,6 +271,12 @@ export function createAiFromModels({
   };
 }
 
+/** The `AI_FAKE=1` chat script: a question about categories gets a fixed answer, anything else a default. */
+export function scriptedChatReply(question: string): string {
+  return /קטגוריות/.test(question) ? FAKE_CATEGORIES_ANSWER : 'fake answer';
+}
+export const FAKE_CATEGORIES_ANSWER = 'fake categories: עבודה, בית, אישי';
+
 /** One scripted answer for `extract`: a value the schema then parses, or a failure. */
 export type FakeTurn = { value: unknown } | { fail: string };
 export type ExtractCall = { system: string; prompt: string };
@@ -279,7 +285,7 @@ export type ExtractCall = { system: string; prompt: string };
 export function createFakeAi(
   turns: FakeTurn[] = [],
   transcript = 'fake transcript',
-  chatReply = 'fake answer',
+  chatReply: string | ((question: string) => string) = 'fake answer',
 ): Ai & { calls: ExtractCall[] } {
   const queue = [...turns];
   const calls: ExtractCall[] = [];
@@ -295,15 +301,21 @@ export function createFakeAi(
         ? { ok: true, value: parsed.data }
         : { ok: false, error: z.prettifyError(parsed.error) };
     },
-    chat: ({ system, messages }) =>
-      streamText({
+    chat: ({ system, messages }) => {
+      const last = messages.findLast((m) => m.role === 'user');
+      const question =
+        typeof last?.content === 'string'
+          ? last.content
+          : (last?.content ?? []).map((part) => (part.type === 'text' ? part.text : '')).join(' ');
+      const reply = typeof chatReply === 'function' ? chatReply(question) : chatReply;
+      return streamText({
         model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: simulateReadableStream({
               chunks: [
                 { type: 'stream-start', warnings: [] },
                 { type: 'text-start', id: 't' },
-                { type: 'text-delta', id: 't', delta: chatReply },
+                { type: 'text-delta', id: 't', delta: reply },
                 { type: 'text-end', id: 't' },
                 {
                   type: 'finish',
@@ -319,7 +331,8 @@ export function createFakeAi(
         }),
         system,
         messages,
-      }),
+      });
+    },
     transcribe: async () => ({ text: transcript }),
   };
 }

@@ -53,6 +53,8 @@ jobs:
       - run: pnpm --filter @notes/web e2e
         env:
           CI: true
+          # Scripted fake instead of Claude/Groq; the seeded user is created by `db:start`.
+          AI_FAKE: '1'
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

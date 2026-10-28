@@ -3,7 +3,7 @@ import { simulateReadableStream } from 'ai';
 import { describe, expect, it, vi } from 'vite-plus/test';
 import { createGroq } from '@ai-sdk/groq';
 import { z } from 'zod';
-import { createAiFromModels } from './provider';
+import { createAi, createAiFromModels, FAKE_CATEGORIES_ANSWER, type AiEnv } from './provider';
 import { withFallback } from './provider';
 
 const usage = {
@@ -123,5 +123,25 @@ describe('slow primary', () => {
       value: { a: 'fallback' },
     });
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('timed out'));
+  });
+});
+
+describe('AI_FAKE chat script', () => {
+  const ask = async (question: string) => {
+    const ai = createAi({ AI_FAKE: '1' } as AiEnv);
+    return ai.chat({
+      system: '',
+      messages: [{ role: 'user', content: question }],
+      tools: {},
+      maxSteps: 1,
+    }).text;
+  };
+
+  it('answers a question about categories from the script', async () => {
+    expect(await ask('אילו קטגוריות יש לי?')).toBe(FAKE_CATEGORIES_ANSWER);
+  });
+
+  it('gives the default answer to anything else', async () => {
+    expect(await ask('מה שלומך?')).toBe('fake answer');
   });
 });

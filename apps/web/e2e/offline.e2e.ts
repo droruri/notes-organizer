@@ -57,7 +57,12 @@ test('saved notes show offline after a reload, with the waiting section', async 
   // Back online: the list refetches from the API and the waiting section goes away.
   const refetch = page.waitForRequest(/\/notes(\?|$)/);
   await page.unrouteAll();
-  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  // The browser never went offline (only requests were cut), so react-query needs the full
+  // offline -> online transition to refetch.
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('offline'));
+    window.dispatchEvent(new Event('online'));
+  });
   await refetch;
   await expect(page.getByText('ממתינים לשליחה (1)')).toBeHidden();
 });
