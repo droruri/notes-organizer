@@ -21,7 +21,8 @@ describe('OutboxDialog', () => {
       <OutboxDialog entries={[entry]} taxonomy={taxonomy} onSend={onSend} onClose={vi.fn()} />,
     );
     fireEvent.click(screen.getByText('call the plumber'));
-    const body = screen.getAllByRole('textbox')[0];
+    expect(screen.queryByText('הצעה של Claude')).toBeNull();
+    const body = screen.getAllByRole('textbox')[1];
     if (!body) throw new Error('no body field');
     fireEvent.change(body, { target: { value: 'call the plumber at 5' } });
     const form = body.closest('form');

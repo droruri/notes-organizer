@@ -49,3 +49,25 @@ export * from './notes';
 export * from './noteQuery';
 export * from './links';
 export * from './imports';
+
+/** `GET /me`: who the caller is, so the web knows whether to show the admin screen. */
+export const Me = z.object({ email: z.string(), isAdmin: z.boolean() });
+export type Me = z.infer<typeof Me>;
+
+/** A row of the allow list; `/users` returns emails and roles only, never note content. */
+export const AllowedUser = z.object({
+  email: z.string(),
+  isAdmin: z.boolean(),
+  createdAt: z.string(),
+});
+export type AllowedUser = z.infer<typeof AllowedUser>;
+
+export const AllowedUserList = z.array(AllowedUser);
+
+/** Body of `POST /users`. */
+export const AddUserBody = z.object({ email: z.string(), isAdmin: z.boolean().optional() });
+export type AddUserBody = z.infer<typeof AddUserBody>;
+
+/** Body of `PATCH /users/:email`. */
+export const UserRoleBody = z.object({ isAdmin: z.boolean() });
+export type UserRoleBody = z.infer<typeof UserRoleBody>;

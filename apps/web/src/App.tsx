@@ -1,21 +1,48 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useState } from 'react';
 import { AuthGate } from './features/auth/AuthGate';
+import { Screens } from './features/shell/Screens';
 import { AuthProvider } from './features/auth/AuthProvider';
-import { NotesScreen } from './features/notes/NotesScreen';
 import { Shell } from './features/shell/Shell';
+import { reportNetworkFailure } from './features/offline/useOnline';
+import { ApiNetworkError } from './lib/api';
+import { CACHE_MAX_AGE, persister, shouldDehydrateQuery } from './lib/queryPersist';
 
 export function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        // A fetch that gets no HTTP answer means the API is unreachable: go offline now, not after retries.
+        queryCache: new QueryCache({
+          onError: (err) => {
+            if (err instanceof ApiNetworkError) reportNetworkFailure();
+          },
+        }),
+        defaultOptions: {
+          queries: {
+            gcTime: CACHE_MAX_AGE,
+            retry: (count, err) => !(err instanceof ApiNetworkError) && count < 3,
+          },
+        },
+      }),
+  );
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: CACHE_MAX_AGE,
+        dehydrateOptions: { shouldDehydrateQuery },
+      }}
+    >
       <AuthProvider>
         <Shell>
           <AuthGate>
-            <NotesScreen />
+            <Screens />
           </AuthGate>
         </Shell>
       </AuthProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

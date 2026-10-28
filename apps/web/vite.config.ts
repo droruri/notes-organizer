@@ -9,6 +9,26 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Keep the Google Font (IBM Plex Sans Hebrew) available offline. The lazy screen chunks
+      // are precached by the default globPatterns.
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'google-fonts-stylesheets' },
+          },
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.gstatic.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'הפתקים שלי',
         short_name: 'הפתקים שלי',
@@ -16,7 +36,7 @@ export default defineConfig({
         dir: 'rtl',
         start_url: '/',
         display: 'standalone',
-        background_color: '#ffffff',
+        background_color: '#f3f5f2',
         theme_color: '#0b5c78',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },

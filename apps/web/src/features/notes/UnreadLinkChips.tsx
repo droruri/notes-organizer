@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
 
 /** One "link not read" chip per link Claude could not read. */
 export function UnreadLinkChips({ links }: { links: string[] }) {
@@ -10,8 +11,9 @@ export function UnreadLinkChips({ links }: { links: string[] }) {
       target="_blank"
       rel="noreferrer noopener"
       title={url}
-      className="rounded-full border border-danger px-2 text-sm text-danger"
+      className="pill bg-danger-soft text-danger underline-offset-2 hover:underline"
     >
+      <Icon name="link" size={13} />
       {t('links.unread')}
     </a>
   ));

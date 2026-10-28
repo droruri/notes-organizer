@@ -1,7 +1,7 @@
 import { statusMoves, type NoteStatus } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 
-const step = 'rounded-md border border-line px-3 py-1 hover:bg-surface-hover';
+const step = 'btn btn-sm';
 
 /** The current status with buttons for the legal one-step moves only. */
 export function StatusStepper({
@@ -15,7 +15,7 @@ export function StatusStepper({
   const { back, forward } = statusMoves(status);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="rounded bg-surface-hover px-2">{t(`notes.status.${status}`)}</span>
+      <span className={`pill pill-dot status-${status}`}>{t(`notes.status.${status}`)}</span>
       {[back, forward].map(
         (to) =>
           to && (

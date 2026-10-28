@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { cardTexts, composeNote, signIn, unique } from './helpers';
 
+// Scripted in the API's fake AI (apps/api/src/ai/provider.ts, AI_FAKE=1).
+const CATEGORIES_ANSWER = 'fake categories: עבודה, בית, אישי';
+
+const card = (page: import('@playwright/test').Page, text: string) =>
+  page.locator('ul.gap-3 > li', { hasText: text });
+
 const save = (page: import('@playwright/test').Page) =>
   page.getByRole('button', { name: 'שמירה', exact: true }).click();
 
@@ -14,12 +20,12 @@ test('sign in → add a text note → review the draft → submit → appears in
   await composeNote(page, calm);
   await page.getByLabel('דחיפות').selectOption({ label: 'לא קריטי' });
   await save(page);
-  await expect(page.getByText(calm)).toBeVisible();
+  await expect(card(page, calm)).toBeVisible();
 
   await composeNote(page, hot);
   await page.getByLabel('דחיפות').selectOption({ label: 'דחוף' });
   await save(page);
-  await expect(page.getByText(hot)).toBeVisible();
+  await expect(card(page, hot)).toBeVisible();
 
   const texts = await cardTexts(page);
   const at = (needle: string) => texts.findIndex((t) => t.includes(needle));
@@ -41,16 +47,16 @@ test('filtering by a tag narrows the list', async ({ page }) => {
   await page.getByLabel('הוסף אל').selectOption(category);
   await page.getByRole('button', { name: 'הוספה', exact: true }).click();
   await save(page);
-  await expect(page.getByText(tagged)).toBeVisible();
+  await expect(card(page, tagged)).toBeVisible();
 
   await composeNote(page, other);
   await save(page);
-  await expect(page.getByText(other)).toBeVisible();
+  await expect(card(page, other)).toBeVisible();
 
   await page.getByRole('button', { name: 'סינון' }).click();
   await page.getByRole('button', { name: tag, exact: true }).click();
-  await expect(page.getByText(tagged)).toBeVisible();
-  await expect(page.getByText(other)).toHaveCount(0);
+  await expect(card(page, tagged)).toBeVisible();
+  await expect(card(page, other)).toHaveCount(0);
 });
 
 test('a note written offline is sent from the dialog once back online', async ({
@@ -72,9 +78,10 @@ test('a note written offline is sent from the dialog once back online', async ({
   await dialog.getByRole('button', { name: body }).click();
   await dialog.getByRole('button', { name: 'שמירה', exact: true }).click();
 
-  // The queued note reaches the API and opens as a draft to review.
+  // The queued note reaches the API and opens as a draft to review; the composer holds it.
   await expect(dialog).toBeHidden();
   await expect(page.getByRole('textbox', { name: 'טקסט' })).toHaveValue(body);
+  await expect(page.getByRole('button', { name: 'שמירה', exact: true })).toBeVisible();
 });
 
 test('the chat answers "what categories do I have" from the fake script', async ({ page }) => {
@@ -83,5 +90,6 @@ test('the chat answers "what categories do I have" from the fake script', async 
   const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
   await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('אילו קטגוריות יש לי?');
   await chat.getByRole('button', { name: 'שליחה' }).click();
-  await expect(chat.getByText('fake answer')).toBeVisible();
+  await expect(chat.getByText(CATEGORIES_ANSWER)).toBeVisible();
+  await expect(chat.getByText('fake answer')).toHaveCount(0);
 });

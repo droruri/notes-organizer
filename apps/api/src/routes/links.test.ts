@@ -1,10 +1,9 @@
 import { LinkPreview } from '@notes/shared';
 import { afterAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
-import { createPool } from '../db';
 import { createLinkReader } from '../domain/links/preview';
 import { buildServer } from '../server';
-import { allowedEmails, fakeVerifyToken } from '../test-auth';
+import { allowListDb, allowedEmails, fakeVerifyToken } from '../test-auth';
 
 describe('GET /links/preview', () => {
   const links = createLinkReader({
@@ -15,7 +14,7 @@ describe('GET /links/preview', () => {
       }),
   });
   const app = buildServer({
-    db: createPool('postgresql://unused@127.0.0.1:1/none'),
+    db: allowListDb,
     ai: createFakeAi(),
     links,
     verifyToken: fakeVerifyToken,

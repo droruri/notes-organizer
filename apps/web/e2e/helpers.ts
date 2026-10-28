@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test';
 export async function signIn(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
 }
 
 /** A body that is unique per run, so specs can share the dev user's database. */
@@ -19,5 +19,5 @@ export async function composeNote(page: Page, body: string) {
   await expect(page.getByRole('textbox', { name: 'טקסט' })).toHaveValue(body);
 }
 
-/** Texts of the note cards, in the order shown. */
-export const cardTexts = (page: Page) => page.getByRole('listitem').allInnerTexts();
+/** Texts of the note cards, in the order shown (NoteList's `ul.gap-3`, not the outbox's). */
+export const cardTexts = (page: Page) => page.locator('ul.gap-3 > li').allInnerTexts();

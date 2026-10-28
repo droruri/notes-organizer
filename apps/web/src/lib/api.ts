@@ -1,4 +1,7 @@
 import {
+  AddUserBody,
+  AllowedUser,
+  AllowedUserList,
   ApiError,
   ChatPart,
   type ChatRequest,
@@ -10,6 +13,7 @@ import {
   ImportCreated,
   ImportProposal,
   LinkPreview,
+  Me,
   Note,
   NoteAnalyze,
   NoteCreate,
@@ -43,6 +47,19 @@ export class ApiRequestError extends Error {
   }
 }
 
+/** The request got no HTTP answer (offline, DNS, CORS): the API is unreachable. */
+export class ApiNetworkError extends Error {}
+
+/** `fetch`, with the `TypeError` it rejects with on a network failure typed as `ApiNetworkError`. */
+async function send(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err) {
+    if (err instanceof TypeError) throw new ApiNetworkError(err.message);
+    throw err;
+  }
+}
+
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 async function request<T>(
@@ -57,7 +74,7 @@ async function request<T>(
   // FormData sets its own multipart content-type (with the boundary).
   const isForm = body instanceof FormData;
   if (body !== undefined && !isForm) headers['content-type'] = 'application/json';
-  const res = await fetch(`${baseUrl}${path}`, {
+  const res = await send(`${baseUrl}${path}`, {
     method,
     headers,
     ...(body !== undefined ? { body: isForm ? body : JSON.stringify(body) } : {}),
@@ -84,6 +101,7 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
   form.set('clientId', meta.clientId);
   form.set('today', meta.today);
   form.set('locale', meta.locale);
+  if (meta.title) form.set('title', meta.title);
   form.set('audio', audio, 'voice');
   return request('POST', '/notes', NoteCreated, form);
 }
@@ -91,7 +109,7 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
 /** The recording bytes of a note (an `<audio>` tag cannot send the bearer token). */
 async function noteAudio(id: string): Promise<Blob> {
   const token = await accessToken();
-  const res = await fetch(`${baseUrl}/notes/${id}/audio`, {
+  const res = await send(`${baseUrl}/notes/${id}/audio`, {
     headers: token ? { authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new ApiRequestError(res.status, undefined, `GET audio failed: ${res.status}`);
@@ -113,7 +131,7 @@ async function chat(
   signal?: AbortSignal,
 ): Promise<void> {
   const token = await accessToken();
-  const res = await fetch(`${baseUrl}/chat`, {
+  const res = await send(`${baseUrl}/chat`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -150,6 +168,13 @@ async function chat(
 
 export const api = {
   chat,
+  me: () => request('GET', '/me', Me),
+  users: () => request('GET', '/users', AllowedUserList),
+  addUser: (input: AddUserBody) => request('POST', '/users', AllowedUser, input),
+  setUserAdmin: (email: string, isAdmin: boolean) =>
+    request('PATCH', `/users/${encodeURIComponent(email)}`, AllowedUser, { isAdmin }),
+  removeUser: (email: string) =>
+    request('DELETE', `/users/${encodeURIComponent(email)}`, NoContent),
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),

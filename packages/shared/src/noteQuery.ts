@@ -62,7 +62,9 @@ export function filterNotes(notes: Note[], filter: NoteFilter, _today: string): 
   const text = normalizeText(filter.text.trim());
   return notes.filter(
     (n) =>
-      (text === '' || normalizeText(n.body).includes(text)) &&
+      (text === '' ||
+        normalizeText(n.body).includes(text) ||
+        normalizeText(n.title ?? '').includes(text)) &&
       anyOf(filter.categoryIds, (id) => n.categoryIds.includes(id)) &&
       anyOf(filter.tagIds, (id) => n.tagIds.includes(id)) &&
       anyOf(filter.statuses, (s) => n.status === s) &&

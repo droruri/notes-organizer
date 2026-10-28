@@ -6,24 +6,34 @@ import {
   type NoteFilter,
   type Taxonomy,
 } from '@notes/shared';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
 import { Chip } from './Chip';
 
 const toggle = <T,>(list: T[], x: T): T[] =>
   list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
 
-const field = 'rounded-md border border-line bg-bg px-2 py-1';
+const field = 'field min-h-9 w-auto py-1 text-sm';
+
+/** How many filter fields (besides the search text) are set. */
+const activeCount = (filter: NoteFilter) =>
+  Object.entries(filter).filter(
+    ([key, value]) => key !== 'text' && (Array.isArray(value) ? value.length > 0 : Boolean(value)),
+  ).length;
 
 /** Search box plus a collapsible filter sheet. Deleted taxonomy is greyed but still filters. */
 export function NoteFilters({
   filter,
   onChange,
   taxonomy,
+  sort,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
   taxonomy: Taxonomy;
+  /** The sort control, shown on the toolbar row. */
+  sort?: ReactNode;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -31,7 +41,7 @@ export function NoteFilters({
   const tags = taxonomy.categories.flatMap((c) => c.tags);
   const date = (label: string, from: 'createdFrom' | 'dueFrom', to: 'createdTo' | 'dueTo') => (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-medium">{label}</span>
+      <span className="w-full text-sm font-medium text-muted sm:w-24">{label}</span>
       <input
         type="date"
         aria-label={`${label} — ${t('filters.from')}`}
@@ -48,35 +58,50 @@ export function NoteFilters({
       />
     </div>
   );
-  const group = (label: string, chips: React.ReactNode) => (
+  const group = (label: string, chips: ReactNode) => (
     <fieldset className="flex flex-wrap items-center gap-2">
-      <legend className="mb-1 text-sm font-medium">{label}</legend>
+      <legend className="mb-2 text-sm font-medium text-muted">{label}</legend>
       {chips}
     </fieldset>
   );
+  const active = activeCount(filter);
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-2">
-        <input
-          type="search"
-          value={filter.text}
-          onChange={(e) => set({ text: e.target.value })}
-          aria-label={t('filters.search')}
-          placeholder={t('filters.search')}
-          className={`${field} min-w-0 flex-1`}
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-48 flex-1">
+          <Icon
+            name="search"
+            size={18}
+            className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted"
+          />
+          <input
+            type="search"
+            value={filter.text}
+            onChange={(e) => set({ text: e.target.value })}
+            aria-label={t('filters.search')}
+            placeholder={t('filters.search')}
+            className="field ps-10"
+          />
+        </div>
         <button
           type="button"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
-          className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+          className={`btn ${open || active > 0 ? 'text-accent' : ''}`}
         >
+          <Icon name="filter" size={16} />
           {t('filters.title')}
+          {active > 0 && (
+            <span className="grid min-w-5 place-items-center rounded-full bg-accent px-1 text-xs leading-5 text-[var(--accent-fg)] tabular-nums">
+              {active}
+            </span>
+          )}
         </button>
+        {sort}
       </div>
       {open && (
-        <div className="flex flex-col gap-3 rounded-lg border border-line p-3">
+        <div className="card enter-fade flex flex-col gap-4 p-4">
           {group(
             t('notes.picker.categories'),
             taxonomy.categories.map((c) => (
@@ -147,7 +172,8 @@ export function NoteFilters({
           <button
             type="button"
             onClick={() => onChange(EMPTY_FILTER)}
-            className="self-start rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+            disabled={active === 0 && filter.text === ''}
+            className="btn btn-ghost btn-sm self-start text-muted"
           >
             {t('filters.clear')}
           </button>

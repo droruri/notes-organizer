@@ -10,6 +10,7 @@ const T1 = 'a1111111-1111-4111-8111-111111111111';
 const note = (id: string, o: Record<string, unknown>) => ({
   id,
   clientId: id,
+  title: null,
   body: `body ${id}`,
   status: 'todo',
   importance: null,
@@ -80,6 +81,12 @@ describe('chat agent tools', () => {
     const [row, ...rest] = await t.findNotes({ categoryIds: [C1], tagIds: [T1] });
     expect(rest).toEqual([]);
     expect(row).toMatchObject({ id: N1, categories: ['Work'], tags: ['urgent-ish'] });
+  });
+
+  it('find_notes rows include the title', async () => {
+    const db2 = fakeDb({ [ME]: { cats: [], tags: [], notes: [note(N1, { title: 'Dentist' })] } });
+    const [row] = await buildTools({ db: db2, userId: ME, today }).findNotes({});
+    expect(row).toMatchObject({ id: N1, title: 'Dentist' });
   });
 
   it('list_taxonomy returns usable categories with tags', async () => {

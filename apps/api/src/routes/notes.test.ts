@@ -5,6 +5,7 @@ import type { VerifyToken } from '../auth';
 import { createPool } from '../db';
 import { createLinkReader } from '../domain/links/preview';
 import { buildServer } from '../server';
+import { captureLogs } from '../test-logs';
 
 const ME = { id: '66666666-6666-4666-8666-666666666666', email: 'notes-me@example.com' };
 const OTHER = { id: '77777777-7777-4777-8777-777777777777', email: 'notes-other@example.com' };
@@ -137,6 +138,53 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     });
     expect(Note.parse(saved.json()).unreadLinks).toEqual([]);
     await app2.close();
+  });
+
+  it('stores a typed title as typed, else the AI title, else none', async () => {
+    const ai2 = createFakeAi([
+      { value: { title: 'AI title' } },
+      { value: { title: 'AI title' } },
+      { fail: 'down' },
+    ]);
+    const app2 = buildServer({
+      db: pool,
+      ai: ai2,
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const create = async (extra: object) => {
+      const res = await app2.inject({
+        method: 'POST',
+        url: '/notes',
+        headers: mine,
+        payload: { body: 'a note', clientId: crypto.randomUUID(), today, locale: 'en', ...extra },
+      });
+      return NoteCreated.parse(res.json());
+    };
+    expect((await create({ title: '  My title ' })).note.title).toBe('My title');
+    const filled = await create({});
+    expect(filled.note.title).toBe('AI title');
+    expect(filled.suggestion.title).toBe('AI title');
+    expect((await create({})).note.title).toBeNull();
+    await app2.close();
+  });
+
+  it('sets and clears the title on edit, and rejects one over 200 chars', async () => {
+    const id = await submitted('titled');
+    const set = await send(mine, 'PATCH', `/notes/${id}`, { title: 'Hello' });
+    expect(Note.parse(set.json()).title).toBe('Hello');
+    const cleared = await send(mine, 'PATCH', `/notes/${id}`, { title: '' });
+    expect(Note.parse(cleared.json()).title).toBeNull();
+    const long = await send(mine, 'PATCH', `/notes/${id}`, { title: 'x'.repeat(201) });
+    expect(long.statusCode).toBe(400);
+    const longCreate = await send(mine, 'POST', '/notes', {
+      body: 'x',
+      title: 'x'.repeat(201),
+      clientId: crypto.randomUUID(),
+      today,
+      locale: 'en',
+    });
+    expect(longCreate.statusCode).toBe(400);
   });
 
   it('still creates a draft when the model fails', async () => {
@@ -345,8 +393,9 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       who = mine,
       appUnderTest = app,
       clientId = crypto.randomUUID(),
+      extra: Record<string, string> = {},
     ) => {
-      const { payload, headers } = multipart(file, { clientId, today, locale: 'en' });
+      const { payload, headers } = multipart(file, { clientId, today, locale: 'en', ...extra });
       return appUnderTest.inject({
         method: 'POST',
         url: '/notes',
@@ -376,6 +425,30 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       expect(audio.statusCode).toBe(200);
       expect(audio.headers['content-type']).toContain('audio/webm');
       expect(audio.rawPayload.equals(bytes)).toBe(true);
+      await app2.close();
+    });
+
+    it('stores a typed title on a voice note, else the AI title', async () => {
+      const scripted = createFakeAi(
+        [{ value: { title: 'AI title' } }, { value: { title: 'AI title' } }],
+        'call the dentist',
+      );
+      const app2 = buildServer({
+        db: pool,
+        ai: scripted,
+        verifyToken,
+        allowedEmails: new Set([ME.email, OTHER.email]),
+      });
+      const typed = await upload(
+        { data: bytes, type: 'audio/webm' },
+        mine,
+        app2,
+        crypto.randomUUID(),
+        { title: 'My voice title' },
+      );
+      expect(NoteCreated.parse(typed.json()).note.title).toBe('My voice title');
+      const untyped = await upload({ data: bytes, type: 'audio/webm' }, mine, app2);
+      expect(NoteCreated.parse(untyped.json()).note.title).toBe('AI title');
       await app2.close();
     });
 
@@ -450,5 +523,70 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       );
       await silent.close();
     });
+  });
+});
+
+describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () => {
+  const pool = createPool(databaseUrl ?? '');
+  const headers = { authorization: 'Bearer allowed' };
+  const clean = async () => {
+    await pool.query('delete from notes where user_id = $1', [ME.id]);
+    await pool.query('delete from categories where user_id = $1', [ME.id]);
+  };
+  beforeAll(async () => {
+    await pool.query(
+      `insert into auth.users (id, email, aud, role) values ($1, $2, 'authenticated', 'authenticated')
+       on conflict do nothing`,
+      [ME.id, ME.email],
+    );
+    await clean();
+  });
+  afterAll(async () => {
+    await clean();
+    await pool.end();
+  });
+
+  it('logs draft saved, draft duplicate, note updated, deleted and restored', async () => {
+    const { app, lines } = captureLogs({
+      db: pool,
+      turns: [{ value: { body: 'x' } }, { value: { body: 'x' } }],
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const payload = {
+      body: 'secret note text',
+      clientId: crypto.randomUUID(),
+      today,
+      locale: 'en',
+    };
+    const first = await app.inject({ method: 'POST', url: '/notes', headers, payload });
+    const noteId = first.json().note.id;
+    await app.inject({ method: 'POST', url: '/notes', headers, payload });
+    await app.inject({
+      method: 'PATCH',
+      url: `/notes/${noteId}`,
+      headers,
+      payload: { status: 'todo' },
+    });
+    await app.inject({ method: 'DELETE', url: `/notes/${noteId}`, headers });
+    await app.inject({ method: 'POST', url: `/notes/${noteId}/restore`, headers });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'draft saved')).toMatchObject({
+      noteId,
+      links: 0,
+      categories: 0,
+      tags: 0,
+      newCategories: 0,
+      newTags: 0,
+    });
+    expect(lines.find((l) => l.msg === 'draft duplicate')).toMatchObject({ noteId });
+    expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({
+      noteId,
+      from: 'draft',
+      to: 'todo',
+    });
+    expect(lines.find((l) => l.msg === 'note deleted')).toMatchObject({ noteId });
+    expect(lines.find((l) => l.msg === 'note restored')).toMatchObject({ noteId });
+    expect(JSON.stringify(lines)).not.toContain('secret note text');
   });
 });

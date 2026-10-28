@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "הפתקים שלי"
+    "name": "הפתקים שלי",
+    "menu": "תפריט"
   },
   "language": {
     "switchTo": "English"
@@ -18,6 +19,10 @@
     "noAccess": {
       "title": "אין לך גישה",
       "body": "לחשבון הזה אין הרשאה להשתמש באפליקציה."
+    },
+    "welcome": {
+      "title": "כל הפתקים, במקום אחד",
+      "body": "כותבים או מקליטים, ו-Claude מציע קטגוריה, תגיות ותאריך יעד."
     }
   },
   "notes": {
@@ -27,17 +32,21 @@
     "suggest": "הצע סיווג",
     "suggesting": "Claude חושב…",
     "empty": "אין פתקים עדיין",
+    "noMatches": "אין פתקים שמתאימים לסינון",
     "draft": "טיוטה",
     "submit": "שמירה",
     "submitting": "שומר…",
+    "submittingSlow": "עדיין עובד, זה לוקח קצת זמן…",
     "cancel": "ביטול",
     "reanalyze": "ניתוח מחדש",
     "reanalyzing": "Claude חושב…",
+    "reanalyzingSlow": "Claude עדיין חושב, זה לוקח קצת זמן…",
     "delete": "מחיקה",
     "deleted": "ההערה נמחקה",
     "undo": "ביטול",
     "moveTo": "העברה אל: {{status}}",
     "error": "משהו השתבש. נסה שוב.",
+    "noteTitle": "כותרת (לא חובה)",
     "body": "טקסט",
     "dueDate": "תאריך יעד",
     "importance": "חשיבות",
@@ -67,6 +76,8 @@
       "newCategory": "קטגוריה חדשה",
       "add": "הוספה"
     },
+    "expand": "הרחבה",
+    "collapse": "כיווץ",
     "created": "נוצר",
     "overdue": "באיחור",
     "sort": {
@@ -75,7 +86,15 @@
       "due_date": "תאריך יעד",
       "newest": "החדש ביותר",
       "oldest": "הישן ביותר"
-    }
+    },
+    "count_one": "פתק אחד",
+    "count_two": "{{count}} פתקים",
+    "count_other": "{{count}} פתקים",
+    "emptyHint": "כתבו משהו או הקליטו הודעה קולית. Claude יציע איך לסדר את זה.",
+    "suggestHint": "Claude יציע קטגוריה, תגיות ותאריך יעד. אפשר לשנות הכל לפני השמירה.",
+    "reviewTitle": "בדיקת הפתק",
+    "editTitle": "עריכת פתק",
+    "suggested": "הצעה של Claude"
   },
   "filters": {
     "title": "סינון",
@@ -113,12 +132,14 @@
     "original": "פתיחת המקור"
   },
   "chat": {
+    "loading": "טוען…",
     "title": "שאלות על הפתקים",
     "open": "שאלה",
     "close": "סגירה",
     "placeholder": "שאלו על הפתקים…",
     "send": "שליחה",
     "searching": "מחפש בפתקים…",
+    "searchingSlow": "עדיין עובד, זה לוקח קצת זמן…",
     "error": "העוזר אינו זמין. נסו שוב.",
     "empty": "אפשר לשאול אילו קטגוריות יש, מה באיחור, או מה בתהליך.",
     "action": {
@@ -147,8 +168,57 @@
       }
     }
   },
+  "taxonomy": {
+    "menu": "קטגוריות ותגיות",
+    "title": "קטגוריות ותגיות",
+    "back": "חזרה",
+    "loading": "טוען…",
+    "newCategory": "קטגוריה חדשה",
+    "addCategory": "הוספת קטגוריה",
+    "addTag": "הוספת תגית",
+    "addTagTo": "הוספת תגית ל{{name}}",
+    "newTagIn": "תגית חדשה ב{{name}}",
+    "rename": "שינוי שם",
+    "renameItem": "שינוי שם של {{name}}",
+    "renameLabel": "שם חדש ל{{name}}",
+    "delete": "מחיקה",
+    "deleteItem": "מחיקת {{name}}",
+    "restore": "שחזור",
+    "restoreItem": "שחזור {{name}}",
+    "deleted": "נמחק",
+    "save": "שמירה",
+    "cancel": "ביטול",
+    "errors": {
+      "categoryDeleted": "הקטגוריה נמחקה.",
+      "invalidName": "השם אינו תקין.",
+      "generic": "משהו השתבש. נסה שוב."
+    }
+  },
+  "users": {
+    "menu": "משתמשים",
+    "title": "משתמשים",
+    "back": "חזרה",
+    "admin": "מנהל",
+    "emailLabel": "כתובת אימייל של Google",
+    "adminCheckbox": "מנהל",
+    "add": "הוספה",
+    "makeAdmin": "הפיכה למנהל",
+    "removeAdmin": "הסרת הרשאת ניהול",
+    "remove": "הסרה",
+    "confirmRemove": "להסיר את {{email}}? הפתקים שלו נשמרים.",
+    "confirmYes": "כן, להסיר",
+    "cancel": "ביטול",
+    "loading": "טוען…",
+    "errors": {
+      "exists": "האימייל הזה כבר ברשימה.",
+      "invalid_email": "כתובת האימייל לא תקינה.",
+      "last_admin": "אי אפשר להסיר או להוריד את המנהל האחרון.",
+      "cannot_change_self": "אי אפשר להסיר או להוריד את עצמך.",
+      "generic": "משהו השתבש. נסו שוב."
+    }
+  },
   "import": {
-    "menu": "תפריט",
+    "loading": "טוען…",
     "open": "ייבוא פתקים",
     "title": "ייבוא פתקים",
     "textLabel": "טקסט לייבוא",
@@ -180,6 +250,8 @@
     "dismiss": "סגירה"
   },
   "offline": {
+    "pending": "ממתינים לשליחה ({{count}})",
+    "noData": "אין חיבור — אפשר להוסיף פתק והוא יישלח כשהחיבור יחזור",
     "banner": "אין חיבור. פתקים חדשים נשמרים במכשיר.",
     "saved": "נשמר במכשיר. יישלח כשהחיבור יחזור.",
     "saveFailed": "לא הצלחנו לשמור במכשיר.",

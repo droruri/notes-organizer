@@ -10,6 +10,7 @@ const PLACEHOLDER_ID = '00000000-0000-4000-8000-000000000000';
 const asNote = (row: Row): Note => ({
   id: PLACEHOLDER_ID,
   clientId: PLACEHOLDER_ID,
+  title: row.suggestion.title,
   body: row.body,
   status: 'draft',
   importance: row.suggestion.importance,
@@ -74,6 +75,7 @@ export function ImportReview({
             dueDate: edit.dueDate ?? null,
             importance: edit.importance ?? null,
             urgency: edit.urgency ?? null,
+            title: edit.title ?? null,
             unreadLinks: edit.unreadLinks ?? [],
           };
           setRows(
@@ -96,7 +98,7 @@ export function ImportReview({
   return (
     <section className="flex flex-col gap-4">
       {unreadNotes.length > 0 && (
-        <p role="status" className="rounded-md border border-danger p-3 text-danger">
+        <p role="status" className="notice notice-danger">
           {t('import.banner', {
             count: unreadNotes.length,
             read: proposal.links.read,
@@ -105,12 +107,15 @@ export function ImportReview({
         </p>
       )}
       {names.categories.length > 0 && (
-        <fieldset className="flex flex-col gap-1">
-          <legend className="mb-1 text-sm text-muted">{t('import.newCategories')}</legend>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-2 text-sm font-medium text-muted">
+            {t('import.newCategories')}
+          </legend>
           {names.categories.map((name) => (
-            <label key={categoryKey(name)} className="flex items-center gap-2">
+            <label key={categoryKey(name)} className="flex min-h-9 items-center gap-2.5">
               <input
                 type="checkbox"
+                className="check"
                 checked={!excludedCategories.has(categoryKey(name))}
                 onChange={() =>
                   setExcludedCategories(toggled(excludedCategories, categoryKey(name)))
@@ -122,12 +127,13 @@ export function ImportReview({
         </fieldset>
       )}
       {names.tags.length > 0 && (
-        <fieldset className="flex flex-col gap-1">
-          <legend className="mb-1 text-sm text-muted">{t('import.newTags')}</legend>
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-2 text-sm font-medium text-muted">{t('import.newTags')}</legend>
           {names.tags.map((tag) => (
-            <label key={tagKey(tag)} className="flex items-center gap-2">
+            <label key={tagKey(tag)} className="flex min-h-9 items-center gap-2.5">
               <input
                 type="checkbox"
+                className="check"
                 checked={!excludedTags.has(tagKey(tag))}
                 onChange={() => setExcludedTags(toggled(excludedTags, tagKey(tag)))}
               />
@@ -136,20 +142,27 @@ export function ImportReview({
           ))}
         </fieldset>
       )}
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm text-muted">{t('import.notes')}</legend>
+      <fieldset className="flex flex-col gap-2.5">
+        <legend className="mb-2 text-sm font-medium text-muted">{t('import.notes')}</legend>
         {rows.length === 0 && <p className="text-muted">{t('import.none')}</p>}
         {rows.map((row, i) => (
-          <div key={i} className="flex items-start gap-2 rounded-lg border border-line p-3">
+          <div
+            key={i}
+            className={`card flex items-start gap-3 p-3.5 transition-opacity duration-150 ${
+              selected.has(i) ? '' : 'opacity-55'
+            }`}
+          >
             <input
               type="checkbox"
               checked={selected.has(i)}
               onChange={() => setSelected(toggled(selected, i))}
               aria-label={row.body.slice(0, 60)}
-              className="mt-1"
+              className="check mt-1 shrink-0"
             />
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="whitespace-pre-wrap break-words">{row.body}</span>
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <span dir="auto" className="break-words whitespace-pre-wrap">
+                {row.body}
+              </span>
               {row.suggestion.unreadLinks.length > 0 && (
                 <div className="flex flex-wrap gap-2 text-sm">
                   <UnreadLinkChips links={row.suggestion.unreadLinks} />
@@ -159,7 +172,7 @@ export function ImportReview({
             <button
               type="button"
               onClick={() => setEditing(i)}
-              className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+              className="btn btn-ghost btn-sm shrink-0"
             >
               {t('import.edit')}
             </button>
@@ -167,11 +180,11 @@ export function ImportReview({
         ))}
       </fieldset>
       {failed && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {t('import.confirmError')}
         </p>
       )}
-      <div className="flex gap-2">
+      <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-line bg-bg/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
         <button
           type="button"
           disabled={busy || selected.size === 0}
@@ -180,15 +193,12 @@ export function ImportReview({
               buildConfirm(rows, selected, { categories: excludedCategories, tags: excludedTags }),
             )
           }
-          className="rounded-md bg-fg px-4 py-2 text-bg disabled:opacity-50"
+          className="btn btn-primary"
         >
+          {busy && <span aria-hidden="true" className="spinner" />}
           {busy ? t('import.confirming') : t('import.confirm', { count: selected.size })}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
-        >
+        <button type="button" onClick={onCancel} className="btn btn-ghost">
           {t('import.cancel')}
         </button>
       </div>

@@ -1,5 +1,5 @@
 import type { ChatPart, Note } from '@notes/shared';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { ChatPanel } from './ChatPanel';
@@ -10,6 +10,7 @@ const NOTE_ID = 'b1111111-1111-4111-8111-111111111111';
 const GHOST_ID = 'b9999999-9999-4999-8999-999999999999';
 const note: Note = {
   id: NOTE_ID,
+  title: null,
   clientId: NOTE_ID,
   body: 'Pay the electricity bill',
   status: 'todo',
@@ -41,6 +42,33 @@ function ask(stream: NonNullable<Parameters<typeof ChatPanel>[0]['stream']>, onO
 }
 
 describe('ChatPanel', () => {
+  it('plays the exit transition before calling onClose', () => {
+    const onClose = vi.fn();
+    render(<ChatPanel notes={[]} onOpenNote={vi.fn()} onClose={onClose} />);
+    const drawer = screen.getByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'סגירה' }));
+    expect(drawer.classList).toContain('closing');
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.transitionEnd(drawer);
+    fireEvent.transitionEnd(drawer);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('still closes when transitionend never fires', () => {
+    vi.useFakeTimers();
+    try {
+      const onClose = vi.fn();
+      render(<ChatPanel notes={[]} onOpenNote={vi.fn()} onClose={onClose} />);
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(onClose).not.toHaveBeenCalled();
+      act(() => vi.advanceTimersByTime(300));
+      expect(onClose).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('streams the answer and renders only citations of existing notes', async () => {
     const onOpen = ask(
       scripted([
@@ -54,6 +82,9 @@ describe('ChatPanel', () => {
     expect(screen.queryByText(new RegExp(GHOST_ID))).toBeNull();
     expect(screen.getAllByRole('button', { name: /Pay the/ })).toHaveLength(1);
     fireEvent.click(cite);
+    // The drawer plays its exit first; the note opens once the transition ends.
+    expect(onOpen).not.toHaveBeenCalled();
+    fireEvent.transitionEnd(screen.getByRole('dialog'));
     expect(onOpen).toHaveBeenCalledWith(note);
     expect(screen.queryByRole('status')).toBeNull();
   });

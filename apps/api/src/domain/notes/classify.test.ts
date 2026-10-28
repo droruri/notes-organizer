@@ -1,7 +1,7 @@
-import type { Taxonomy } from '@notes/shared';
+import { EMPTY_SUGGESTION, type Taxonomy } from '@notes/shared';
 import { describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../../ai/provider';
-import { buildPrompt, classify, EMPTY_SUGGESTION, mapSuggestion, RawSuggestion } from './classify';
+import { SYSTEM, buildPrompt, classify, mapSuggestion, RawSuggestion } from './classify';
 
 const C1 = '11111111-1111-4111-8111-111111111111';
 const C2 = '22222222-2222-4222-8222-222222222222';
@@ -25,6 +25,18 @@ const taxonomy: Taxonomy = {
 };
 const raw = (r: object) => RawSuggestion.parse(r);
 
+describe('mapSuggestion title', () => {
+  it('trims and caps the title, and maps empty or missing to null', () => {
+    const title = (t: string | null | undefined) =>
+      mapSuggestion(raw(t === undefined ? {} : { title: t }), taxonomy).title;
+    expect(title('  Pay rent  ')).toBe('Pay rent');
+    expect(title('x'.repeat(300))).toBe('x'.repeat(200));
+    expect(title('   ')).toBeNull();
+    expect(title(null)).toBeNull();
+    expect(title(undefined)).toBeNull();
+  });
+});
+
 describe('mapSuggestion', () => {
   it('drops unknown ids and dedupes known ones', () => {
     const s = mapSuggestion(raw({ categoryIds: [C1, C1, 'nope'], tagIds: [T1, 'nope'] }), {
@@ -32,6 +44,22 @@ describe('mapSuggestion', () => {
     });
     expect(s.categoryIds).toEqual([C1]);
     expect(s.tagIds).toEqual([T1]);
+  });
+
+  it('moves a name among the category ids to new categories; drops an unknown UUID', () => {
+    const s = mapSuggestion(
+      raw({
+        categoryIds: [C1, 'Concerts', 'concerts', 'Work', '55555555-5555-4555-8555-555555555555'],
+      }),
+      taxonomy,
+    );
+    expect(s.categoryIds).toEqual([C1]);
+    expect(s.newCategories).toEqual(['Concerts']);
+  });
+
+  it('asks for a better new name next to the existing match', () => {
+    expect(SYSTEM).not.toContain('only when nothing existing fits');
+    expect(SYSTEM).toContain('even if an existing one fits loosely');
   });
 
   it('links the category of every kept tag', () => {

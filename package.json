@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "supabase start && pnpm -r --parallel --filter './apps/*' dev",
+    "dev:hosted": "pnpm -r --parallel --filter './apps/*' dev:hosted",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
@@ -16,7 +17,10 @@
     "format": "vp fmt",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm typecheck && pnpm -r build",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "deploy:hosted": "scripts/deploy-hosted.sh",
+    "build:android": "scripts/build-android.sh",
+    "setup:hosted": "scripts/setup-hosted.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

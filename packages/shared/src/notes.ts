@@ -20,6 +20,9 @@ export const AUDIO_MIMES = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg'
 export const MAX_AUDIO_BYTES = 5 * 1024 * 1024;
 
 export const MAX_BODY_LENGTH = 10_000;
+export const MAX_TITLE_LENGTH = 200;
+export const NoteTitle = z.string().trim().max(MAX_TITLE_LENGTH);
+
 export const NoteBody = z.string().trim().min(1).max(MAX_BODY_LENGTH);
 
 /** A tag to create under an existing category (`categoryId`) or a new one (`categoryName`). */
@@ -43,6 +46,8 @@ export const Suggestion = Proposed.extend({
   dueDate: DateString.nullable(),
   importance: Importance.nullable(),
   urgency: Urgency.nullable(),
+  /** A short title Claude proposes; null when it gave none. */
+  title: z.string().nullable(),
   /** Links in the body that Claude could not read (set by the service, not by Claude). */
   unreadLinks: z.array(z.string()),
 });
@@ -51,6 +56,7 @@ export type Suggestion = z.infer<typeof Suggestion>;
 export const Note = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
+  title: z.string().nullable(),
   body: z.string(),
   status: NoteStatus,
   importance: Importance.nullable(),
@@ -66,9 +72,38 @@ export const Note = z.object({
 });
 export type Note = z.infer<typeof Note>;
 
+/** A suggestion with nothing proposed. */
+export const EMPTY_SUGGESTION: Suggestion = {
+  categoryIds: [],
+  tagIds: [],
+  newCategories: [],
+  newTags: [],
+  dueDate: null,
+  importance: null,
+  urgency: null,
+  title: null,
+  unreadLinks: [],
+};
+
+/** The suggestion a draft was created with, rebuilt from the stored draft. */
+export function suggestionOf(note: Note): Suggestion {
+  return {
+    categoryIds: note.categoryIds,
+    tagIds: note.tagIds,
+    newCategories: note.proposed?.newCategories ?? [],
+    newTags: note.proposed?.newTags ?? [],
+    dueDate: note.dueDate,
+    importance: note.importance,
+    urgency: note.urgency,
+    title: note.title,
+    unreadLinks: note.unreadLinks,
+  };
+}
+
 /** Body of `POST /notes` (JSON). `id`, `status` and the owner are decided by the server. */
 export const NoteCreate = z.object({
   body: NoteBody,
+  title: NoteTitle.optional(),
   clientId: z.uuid(),
   today: DateString,
   locale: Locale,
@@ -81,6 +116,7 @@ export type NoteCreated = z.infer<typeof NoteCreated>;
 /** Body of `PATCH /notes/:id`. `status: 'todo'` on a draft submits it. */
 export const NoteEdit = z.object({
   body: NoteBody.optional(),
+  title: NoteTitle.nullable().optional(),
   categoryIds: z.array(z.uuid()).optional(),
   tagIds: z.array(z.uuid()).optional(),
   newCategories: z.array(z.string()).optional(),
@@ -93,6 +129,17 @@ export const NoteEdit = z.object({
   unreadLinks: z.array(z.string().max(2000)).max(100).optional(),
 });
 export type NoteEdit = z.infer<typeof NoteEdit>;
+
+/** The heading a card shows: the title, else the first non-empty body line (`fallback`). */
+export function noteHeading(note: Pick<Note, 'title' | 'body'>): {
+  text: string;
+  fallback: boolean;
+} {
+  const title = note.title?.trim();
+  if (title) return { text: title, fallback: false };
+  const line = note.body.split('\n').find((l) => l.trim() !== '');
+  return { text: line?.trim() ?? '', fallback: true };
+}
 
 export const NoteList = z.array(Note);
 

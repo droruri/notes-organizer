@@ -1,12 +1,14 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
+import { addLogFields } from './requestLog';
 
 export type AuthUser = { id: string; email: string };
 /** Resolves the user a bearer token belongs to; rejects when the token is invalid. */
 export type VerifyToken = (token: string) => Promise<AuthUser>;
 
-const Claims = z.object({ sub: z.uuid(), email: z.string().min(1) });
+// `guid`, not `uuid`: any id Postgres' uuid type stores, like the seed user's 1111…-1111.
+const Claims = z.object({ sub: z.guid(), email: z.string().min(1) });
 
 /** Verifies Supabase access tokens against the project's JWKS. */
 export function createTokenVerifier(supabaseUrl: string): VerifyToken {
@@ -29,17 +31,23 @@ export function parseAllowedEmails(list: string): Set<string> {
   );
 }
 
-const users = new WeakMap<FastifyRequest, AuthUser>();
+/** The caller, plus the role the allow list gives them. */
+export type SignedInUser = AuthUser & { isAdmin: boolean };
+
+/** The allow-list row for an email, or `null` when the email may not sign in. */
+export type FindAllowed = (email: string) => Promise<{ isAdmin: boolean } | null>;
+
+const users = new WeakMap<FastifyRequest, SignedInUser>();
 
 /** The caller of an authenticated request; only valid behind `requireUser`. */
-export function currentUser(req: FastifyRequest): AuthUser {
+export function currentUser(req: FastifyRequest): SignedInUser {
   const user = users.get(req);
   if (!user) throw new Error('currentUser called on a route without requireUser');
   return user;
 }
 
 /** An `onRequest` hook: 401 without a valid token, 403 when the email is not allowed. */
-export function requireUser(verifyToken: VerifyToken, allowedEmails: ReadonlySet<string>) {
+export function requireUser(verifyToken: VerifyToken, findAllowed: FindAllowed) {
   return async (req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply | undefined> => {
     const match = /^Bearer (.+)$/.exec(req.headers.authorization ?? '');
     const token = match?.[1];
@@ -48,12 +56,13 @@ export function requireUser(verifyToken: VerifyToken, allowedEmails: ReadonlySet
     let user: AuthUser;
     try {
       user = await verifyToken(token);
-    } catch {
+    } catch (err) {
+      req.log.warn({ err }, 'access token rejected');
       return reply.code(401).send({ error: 'unauthorized' });
     }
-    if (!allowedEmails.has(user.email.toLowerCase())) {
-      return reply.code(403).send({ error: 'not_allowed' });
-    }
-    users.set(req, user);
+    const allowed = await findAllowed(user.email);
+    if (!allowed) return reply.code(403).send({ error: 'not_allowed' });
+    addLogFields(req, { userId: user.id });
+    users.set(req, { ...user, isAdmin: allowed.isAdmin });
   };
 }

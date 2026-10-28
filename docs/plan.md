@@ -19,14 +19,13 @@ status steps · notes list with free-text search, filters and a saved sort · ch
 questions + propose-only taxonomy changes) · import of old notes · offline outbox ·
 Web Share Target · Android app via TWA · hosted deploy.
 
-**Not in v1:** email/password sign-in · reading the notes list offline after a cold start ·
-persisted chat history · sharing notes between users · notifications/reminders.
+**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders.
 
 Decisions taken with the user:
 
 | Topic | Decision |
 |---|---|
-| Auth | Google only. API allowlist `ALLOWED_EMAILS`; others get `403`. Local dev/E2E: one seeded password user (Google stays off locally). |
+| Auth | Google only. Allow list in the `allowed_users` table, managed by admins in the app; `ALLOWED_EMAILS` only seeds the first admins. Others get `403`. Local dev/E2E: one seeded password user (Google stays off locally). |
 | Voice | Browser records → API transcribes with Groq Whisper (via the AI port) → text goes to Claude. Audio kept for replay. |
 | Models | Classification and import: `claude-haiku-5-5`. Chat: `claude-sonnet-5-5`. Both set by env. |
 | New taxonomy from Claude | Allowed, shown with a "new" badge, created only when the note is submitted. |
@@ -47,7 +46,7 @@ Decisions taken with the user:
 ```
 PWA (React 19, Tailwind 4, i18next, React Query)
   │  Supabase Auth (Google) → JWT          ┌──► Postgres (Supabase): notes, categories, tags…
-  └──► API (Fastify, one service) ─────────┼──► Claude (Anthropic) via AI SDK  [ai/provider.ts]
+  └──► API (Fastify, one service) ─────────┼──► Gemini (Groq fallback) via AI SDK [ai/provider.ts]
          routes → service → domain → repo  └──► Groq Whisper via AI SDK       [ai/provider.ts]
 ```
 
@@ -64,7 +63,7 @@ server.ts                 Wiring only: buildServer({ db, verifyToken, ai, allowe
 db.ts                     Pool + withTransaction(db, fn).
 auth.ts                   Supabase JWT via JWKS (jose) + allowlist → 401 / 403 not_allowed.
 ai/provider.ts            THE ONLY place a model is called. Ai = { extract, chat, transcribe }.
-                          Anthropic + Groq adapters; scripted fake (AI_FAKE=1, tests).
+                          Gemini + Groq fallback adapters; scripted fake (AI_FAKE=1, tests).
 routes/                   health.ts settings.ts taxonomy.ts notes.ts imports.ts links.ts chat.ts
 domain/
   taxonomy/taxonomy.ts    Name normalize + uniqueness among active, delete/restore,
@@ -103,6 +102,7 @@ lib/i18n.ts         i18next: he (default) + en; sets <html lang dir>. locales/he
 features/auth/      AuthProvider, SignIn (Google), DevSignIn (seed user, DEV only), NoAccess.
 features/notes/     NotesScreen, NoteList, NoteCard, NoteFilters, NoteEditor, TaxonomyPicker,
                     VoiceRecorder, LinkPreview, UndoToast, useNotes.
+features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore; tap a tag to filter notes).
 features/chat/      ChatPanel, ActionCard.
 features/imports/   ImportDialog.
 features/offline/   outbox.ts (localStorage + idb-keyval), useOnline, OfflineBanner, OutboxDialog.
@@ -137,6 +137,7 @@ erDiagram
   notes ||--o{ note_tags : ""
   tags ||--o{ note_tags : ""
   notes ||--o| note_audio : ""
+  auth_users ||--o{ allowed_users : "added_by"
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
   categories { uuid id PK uuid user_id FK text name timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
@@ -144,6 +145,7 @@ erDiagram
   note_categories { uuid note_id PK uuid category_id PK }
   note_tags { uuid note_id PK uuid tag_id PK }
   note_audio { uuid note_id PK text mime bytea data }
+  allowed_users { text email PK "lowercase" boolean is_admin uuid added_by FK "auth.users, nullable" timestamptz created_at }
 ```
 
 - Enums: `note_status (draft, todo, in_progress, done)`, `importance (important, not_important)`,
@@ -157,9 +159,11 @@ erDiagram
 - `notes.unread_links text[] not null default '{}'`: links in the body that Claude could not read.
   Set on submit and import confirm. A Re-analyze that reads every link clears it when the note is
   saved. Added by the link-previews ticket.
+- `allowed_users`: who may sign in, keyed by lowercased email (not by user id, so a removed user who
+  is re-added gets their notes back). Seeded from `ALLOWED_EMAILS`; RLS on, no policies.
 - `note_audio.data`: at most 5 MB (enforced in the API). See ADR 0003.
 - Migrations (one per ticket, via `pnpm db:new`): settings (sign-in ticket), taxonomy, notes
-  (+ link tables), audio, `unread_links` (link previews).
+  (+ link tables), audio, `unread_links` (link previews), `allowed_users`.
 
 ## Row Level Security
 
@@ -171,25 +175,36 @@ only through the API.
 Supabase Auth, **Google only** in the hosted project. The web uses `supabase-js` for auth only and
 sends `Authorization: Bearer <access token>`. The API verifies the token against the project's
 JWKS (`jose`, issuer `${SUPABASE_URL}/auth/v1`, audience `authenticated`), then requires the
-token's email to be in `ALLOWED_EMAILS` (comma list, case-insensitive): otherwise
+token's email to be in the `allowed_users` table: otherwise
 `403 {error:'not_allowed'}`, which the web shows as a "no access" screen with sign out.
+`ALLOWED_EMAILS` (comma list, case-insensitive) is the **bootstrap admin list**: on startup each
+listed email is inserted with `is_admin = true` if missing; nothing is ever deleted or demoted.
+An admin manages the list from the Users screen (`/users` routes) with no redeploy. Admin adds only
+those routes: notes, taxonomy and settings stay filtered by the caller's own `user_id`. The Google
+consent screen must be published ("In production") so any Google account can reach the sign-in;
+see `docs/adding-users.md`.
 `requireUser` registers on every route except `/health`; `currentUser(req)` reads the caller.
 
 Locally Google stays off (`supabase/config.toml`); `supabase/seed.sql` seeds one confirmed
 password user. `DevSignIn` (rendered only when `import.meta.env.DEV`) signs in as that user; E2E
-uses the same user. The seed email is in the local `ALLOWED_EMAILS` default.
+uses the same user. The seed email is in the local `ALLOWED_EMAILS` default, so it is a bootstrap admin.
 
 Env (append to `.env.example`): `SUPABASE_URL`, `ALLOWED_EMAILS`, `VITE_SUPABASE_URL`,
 `VITE_SUPABASE_ANON_KEY` (local-stack defaults).
 
 ## API contract
 
-All routes except `/health` require a valid JWT and the allowlist. Every query filters by the
+All routes except `/health` require a valid JWT and an `allowed_users` row. Every query filters by the
 caller's `user_id`; another user's id behaves as not found.
 
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
 | GET | `/health` | `?deep=1` | existing |
+| GET | `/me` | — | `{email, isAdmin}` |
+| GET | `/users` | — | admin only (`403 not_admin`): `[{email, isAdmin, createdAt}]` |
+| POST | `/users` | `{email, isAdmin?}` | `201 {email, isAdmin, createdAt}` · `422 invalid_email` · `409 exists` |
+| PATCH | `/users/:email` | `{isAdmin}` | updated user · `404` · `422 invalid_body` · `422 last_admin` / `cannot_change_self` on demote |
+| DELETE | `/users/:email` | — | `204` · `404` · `422 last_admin` / `cannot_change_self` |
 | GET / PUT | `/settings` | `{noteSort}` | `Settings` (defaults when no row) |
 | GET | `/taxonomy` | — | categories with their tags, deleted ones included and flagged |
 | POST | `/categories` | `{name}` | `201 Category` · `409 name_taken` |
@@ -232,10 +247,11 @@ Rules:
   `extract<T>({schema, system, prompt, model})` → `{ok, value} | {ok:false, error}`,
   `chat({system, messages, tools, maxSteps})` → AI SDK stream,
   `transcribe({audio, mime})` → `{text}`.
-  Adapters: `@ai-sdk/anthropic` (text), `@ai-sdk/groq` `whisper-large-v3` (speech), and a
+  Adapters: `@ai-sdk/google` Gemini (text, Groq fallback on any error via `wrapLanguageModel`), `@ai-sdk/groq` `whisper-large-v3` (speech), and a
   scripted fake (`FakeTurn`s as in the sibling repo).
-- Env (append to `.env.example`): `ANTHROPIC_API_KEY`, `GROQ_API_KEY`,
-  `LLM_CLASSIFY_MODEL=claude-haiku-5-5`, `LLM_CHAT_MODEL=claude-sonnet-5-5`, `AI_FAKE`.
+- Env (append to `.env.example`): `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`,
+  `LLM_CLASSIFY_MODEL=gemini-2.5-flash-lite`, `LLM_CHAT_MODEL=gemini-2.5-flash`,
+  `LLM_FALLBACK_MODEL` (Groq), `AI_FAKE`.
   `AI_FAKE=1` → fake for everything (tests, E2E, keyless dev). A missing key without `AI_FAKE`
   fails startup with a clear message.
 - **Classify** (`notes/classify.ts`): input = body, today, locale, the user's usable taxonomy as
@@ -296,7 +312,7 @@ and Re-analyze are the safety net.
 
 ## Web behaviour
 
-- **Main screen:** header (language toggle, menu: import, sign out), search box, filter sheet
+- **Main screen:** header (language toggle, menu: notes, import, categories & tags, users (admin), sign out), search box, filter sheet
   (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
   deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
   add-note button (text / record), chat button. Drafts sit at the top with a "draft" badge.
@@ -329,8 +345,11 @@ and Re-analyze are the safety net.
 - Back online with a non-empty outbox → `OutboxDialog` lists the items; each opens in the
   NoteEditor; Confirm → `POST /notes` with its `clientId` (idempotent, safe to retry) → the
   returned draft continues in the normal review → the item leaves the outbox.
-- The app shell is precached by `vite-plugin-pwa`; reading notes offline after a cold start is out
-  of scope.
+- The app shell is precached by `vite-plugin-pwa`. The React Query cache for notes, taxonomy and
+  settings is persisted to IndexedDB (`lib/queryPersist.ts`, 7 days), parsed against the shared
+  schemas on restore, so the last-synced notes are readable offline after a cold start. Sign-out
+  (or any transition to signed out) clears it. Offline, queued notes show in a "ממתינים לשליחה (N)"
+  section above the cached notes; editing stays disabled.
 
 ## Android
 
@@ -343,15 +362,14 @@ and Re-analyze are the safety net.
 ## Deploy
 
 `scripts/deploy-hosted.sh`, adapted from the sibling repo: hosted Supabase migrations and the
-Google provider, Render API service (env incl. `ANTHROPIC_API_KEY`, `GROQ_API_KEY`,
+Google provider, Render API service (env incl. `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`,
 `JINA_API_KEY` when set,
 `ALLOWED_EMAILS`, `SUPABASE_URL`, `WEB_ORIGIN`), Cloudflare Pages for the web, cron-job.org
 keep-alive (`/health` every 14 min 07:00–23:00; `/health?deep=1` daily). Idempotent; each step
 skips with a warning when its key is missing.
 
 Creating accounts and keys is human-only, in a `needs-human` setup issue with exact steps
-(Supabase project, Google OAuth client, Supabase Google provider, Anthropic key with a spend
-limit, Groq key, Render + GitHub, Cloudflare Pages GitHub app + API token + account id,
+(Supabase project, Google OAuth client, Supabase Google provider, Google AI Studio key, Groq key, Render + GitHub, Cloudflare Pages GitHub app + API token + account id,
 cron-job.org key, optional Jina Reader key). `scripts/setup-hosted.sh` (built with the `wizard` skill) walks through those
 steps: for each value it shows where to find it and asks for it; it creates `.env` from
 `.env.example` when `.env` is missing and otherwise appends; it never overwrites a filled key; it

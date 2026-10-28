@@ -8,15 +8,13 @@ import {
   type NoteCreated,
   type Note,
   type NoteFilter,
-  type Suggestion,
+  MAX_TITLE_LENGTH,
+  suggestionOf,
 } from '@notes/shared';
-import { useContext, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
-import { ChatPanel } from '../chat/ChatPanel';
-import { ImportDialog, type ImportResult } from '../import/ImportDialog';
-import { ImportMenu } from '../import/ImportMenu';
+import { api, ApiNetworkError } from '../../lib/api';
+import type { ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
 import {
   addToOutbox,
@@ -27,11 +25,21 @@ import {
 } from '../offline/outbox';
 import { reportNetworkFailure, useOnline } from '../offline/useOnline';
 import { clearSharedNote, peekSharedNote } from '../share/shareTarget';
-import { HeaderSlot } from '../shell/headerSlot';
+import { Loading } from '../../ui/Loading';
+import { Icon } from '../../ui/Icon';
+import { Toast } from '../../ui/Toast';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
 import { VoiceRecorder } from './VoiceRecorder';
+
+// Chat and import open only on request, so they load in their own chunks. Hovering or focusing
+// the chat button starts the chat download early.
+const loadChat = () => import('../chat/ChatPanel');
+const ChatPanel = lazy(() => loadChat().then((m) => ({ default: m.ChatPanel })));
+const ImportDialog = lazy(() =>
+  import('../import/ImportDialog').then((m) => ({ default: m.ImportDialog })),
+);
 
 type Mode =
   | { kind: 'list' }
@@ -41,21 +49,19 @@ type Mode =
 
 const UNDO_MS = 5000;
 
-const suggestionOf = (note: Note): Suggestion => ({
-  categoryIds: note.categoryIds,
-  tagIds: note.tagIds,
-  newCategories: note.proposed?.newCategories ?? [],
-  newTags: note.proposed?.newTags ?? [],
-  dueDate: note.dueDate,
-  importance: note.importance,
-  urgency: note.urgency,
-  unreadLinks: note.unreadLinks,
-});
-
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
 
-export function NotesScreen() {
+export function NotesScreen({
+  importing,
+  onImportClose,
+  initialTagId = null,
+}: {
+  /** Start with the list filtered to this tag. */
+  initialTagId?: string | null;
+  importing: boolean;
+  onImportClose: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   // A share from another app opens the add-note editor with the shared text.
@@ -63,15 +69,16 @@ export function NotesScreen() {
   useEffect(clearSharedNote, []);
   const [mode, setMode] = useState<Mode>({ kind: shared === undefined ? 'list' : 'compose' });
   const [text, setText] = useState(shared ?? '');
+  const [title, setTitle] = useState('');
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const [chatOpen, setChatOpen] = useState(false);
-  const slot = useContext(HeaderSlot);
-  const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<NoteFilter>(EMPTY_FILTER);
+  const [filter, setFilter] = useState<NoteFilter>(
+    initialTagId === null ? EMPTY_FILTER : { ...EMPTY_FILTER, tagIds: [initialTagId] },
+  );
   const saveSort = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
@@ -89,6 +96,20 @@ export function NotesScreen() {
   const online = useOnline();
   const [outbox, setOutbox] = useState(readOutbox);
   const [outboxDismissed, setOutboxDismissed] = useState(false);
+  const waiting = !online && outbox.length > 0 && (
+    <section aria-labelledby="pending-title" className="flex flex-col gap-2">
+      <h3 id="pending-title" className="text-sm font-semibold text-muted">
+        {t('offline.pending', { count: outbox.length })}
+      </h3>
+      <ul className="flex flex-col gap-2">
+        {outbox.map((e) => (
+          <li key={e.clientId} dir="auto" className="card p-3 text-sm">
+            {e.body || t('offline.voiceNote')}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
   const [offlineNotice, setOfflineNotice] = useState<'saved' | 'failed' | null>(null);
 
   /** Queue a note on the device instead of sending it. */
@@ -96,12 +117,14 @@ export function NotesScreen() {
     body: string,
     audio?: Blob,
     clientId: string = crypto.randomUUID(),
+    title: string = '',
   ) => {
-    const ok = await addToOutbox({ clientId, body }, audio);
+    const ok = await addToOutbox({ clientId, body, ...(title.trim() ? { title } : {}) }, audio);
     setOutbox(readOutbox());
     setOfflineNotice(ok ? 'saved' : 'failed');
     if (ok) {
       setText('');
+      setTitle('');
       setMode({ kind: 'list' });
     }
   };
@@ -111,23 +134,25 @@ export function NotesScreen() {
     body: string,
     clientId: string,
     audio?: Blob,
+    title?: string,
   ) => {
-    if (err instanceof TypeError) {
+    if (err instanceof ApiNetworkError) {
       reportNetworkFailure();
-      await saveOffline(body, audio, clientId);
+      await saveOffline(body, audio, clientId, title);
     }
   };
   const create = useMutation({
-    mutationFn: ({ body, clientId }: { body: string; clientId: string }) =>
-      api.createNote({ body, ...meta(clientId) }),
+    mutationFn: ({ body, title, clientId }: { body: string; title: string; clientId: string }) =>
+      api.createNote({ body, ...(title.trim() ? { title } : {}), ...meta(clientId) }),
     onSuccess: onDraft,
-    onError: (err, vars) => queueOnNetworkError(err, vars.body, vars.clientId),
+    onError: (err, vars) =>
+      queueOnNetworkError(err, vars.body, vars.clientId, undefined, vars.title),
   });
   const createVoice = useMutation({
-    mutationFn: ({ audio, clientId }: { audio: Blob; clientId: string }) =>
-      api.createVoiceNote(audio, meta(clientId)),
+    mutationFn: ({ audio, title, clientId }: { audio: Blob; title: string; clientId: string }) =>
+      api.createVoiceNote(audio, { ...(title.trim() ? { title } : {}), ...meta(clientId) }),
     onSuccess: onDraft,
-    onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio),
+    onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio, vars.title),
   });
 
   /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
@@ -143,9 +168,16 @@ export function NotesScreen() {
         setOutbox(readOutbox());
         return;
       }
-      draft = await api.createVoiceNote(audio, queued);
+      draft = await api.createVoiceNote(audio, {
+        ...(entry.title ? { title: entry.title } : {}),
+        ...queued,
+      });
     } else {
-      draft = await api.createNote({ body, ...queued });
+      draft = await api.createNote({
+        body,
+        ...(entry.title ? { title: entry.title } : {}),
+        ...queued,
+      });
     }
     await removeFromOutbox(entry.clientId);
     setOutbox(readOutbox());
@@ -160,6 +192,7 @@ export function NotesScreen() {
         queryClient.invalidateQueries({ queryKey: ['taxonomy'] }),
       ]);
       setText('');
+      setTitle('');
       setMode({ kind: 'list' });
     },
   });
@@ -189,14 +222,130 @@ export function NotesScreen() {
   const reanalyze = (id: string) =>
     api.analyzeNote(id, { today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' });
 
-  if (!notes.data || !taxonomy.data) {
-    return notes.isError || taxonomy.isError ? (
-      <p role="alert" className="text-danger">
-        {t('notes.error')}
-      </p>
-    ) : (
-      <p className="text-muted">{t('status.checking')}</p>
+  // The "saved on this device" toast has done its job once the queue has been sent.
+  const offlineToast = offlineNotice !== null &&
+    !(offlineNotice === 'saved' && outbox.length === 0) && (
+      <Toast
+        // Only the "saved" notice closes by itself; a failure stays until the user dismisses it.
+        onClose={offlineNotice === 'saved' ? () => setOfflineNotice(null) : undefined}
+        actions={
+          <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
+            {t('offline.dismiss')}
+          </button>
+        }
+      >
+        {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
+      </Toast>
     );
+
+  if (mode.kind === 'compose') {
+    return (
+      <form
+        className="enter-rise flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!text.trim()) return;
+          if (online) create.mutate({ body: text, title, clientId: crypto.randomUUID() });
+          else void saveOffline(text, undefined, undefined, title);
+        }}
+      >
+        <h2 className="text-2xl font-bold tracking-tight">{t('notes.add')}</h2>
+        {!online && (
+          <p role="status" className="notice notice-info">
+            {t('offline.banner')}
+          </p>
+        )}
+        <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={MAX_TITLE_LENGTH}
+            dir="auto"
+            aria-label={t('notes.noteTitle')}
+            placeholder={t('notes.noteTitle')}
+            className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
+          />
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            dir="auto"
+            aria-label={t('notes.body')}
+            placeholder={t('notes.placeholder')}
+            className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
+          />
+          <div className="border-t border-line pt-3">
+            <VoiceRecorder
+              onSend={(audio) =>
+                online
+                  ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
+                  : void saveOffline('', audio, undefined, title)
+              }
+              pending={createVoice.isPending}
+              failed={createVoice.isError}
+            />
+          </div>
+        </div>
+        {offlineNotice === 'failed' && (
+          <p role="alert" className="notice notice-danger">
+            {t('offline.saveFailed')}
+          </p>
+        )}
+        {create.isError && (
+          <p role="alert" className="notice notice-danger">
+            {t('notes.error')}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={create.isPending || text.trim() === ''}
+            className="btn btn-primary"
+          >
+            {create.isPending ? (
+              <span aria-hidden="true" className="spinner" />
+            ) : (
+              <Icon name="spark" size={16} />
+            )}
+            {create.isPending ? t('notes.suggesting') : t('notes.suggest')}
+          </button>
+          <button type="button" onClick={() => setMode({ kind: 'list' })} className="btn btn-ghost">
+            {t('notes.cancel')}
+          </button>
+        </div>
+        <p className="text-sm text-muted">{t('notes.suggestHint')}</p>
+      </form>
+    );
+  }
+
+  if (!notes.data || !taxonomy.data) {
+    if (notes.isError || taxonomy.isError || !online) {
+      return (
+        <section className="flex flex-col items-start gap-4">
+          {online ? (
+            <p role="alert" className="notice notice-danger">
+              {t('notes.error')}
+            </p>
+          ) : (
+            <p role="status" className="notice notice-info">
+              {t('offline.noData')}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setMode({ kind: 'compose' })}
+            className="btn btn-primary"
+          >
+            <Icon name="plus" size={18} />
+            {t('notes.add')}
+          </button>
+          {waiting}
+          <div className="toast-stack">{offlineToast}</div>
+        </section>
+      );
+    }
+    return <Loading label={t('status.checking')} />;
   }
 
   if (mode.kind === 'review' || mode.kind === 'edit') {
@@ -217,72 +366,12 @@ export function NotesScreen() {
     );
   }
 
-  if (mode.kind === 'compose') {
-    return (
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!text.trim()) return;
-          if (online) create.mutate({ body: text, clientId: crypto.randomUUID() });
-          else void saveOffline(text);
-        }}
-      >
-        {!online && <p role="status">{t('offline.banner')}</p>}
-        <textarea
-          autoFocus
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={5}
-          aria-label={t('notes.body')}
-          placeholder={t('notes.placeholder')}
-          className="rounded-md border border-line bg-bg px-2 py-1"
-        />
-        {offlineNotice === 'failed' && (
-          <p role="alert" className="text-danger">
-            {t('offline.saveFailed')}
-          </p>
-        )}
-        {create.isError && (
-          <p role="alert" className="text-danger">
-            {t('notes.error')}
-          </p>
-        )}
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={create.isPending || text.trim() === ''}
-            className="rounded-md bg-fg px-4 py-2 text-bg disabled:opacity-50"
-          >
-            {create.isPending ? t('notes.suggesting') : t('notes.suggest')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode({ kind: 'list' })}
-            className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
-          >
-            {t('notes.cancel')}
-          </button>
-        </div>
-        <VoiceRecorder
-          onSend={(audio) =>
-            online
-              ? createVoice.mutate({ audio, clientId: crypto.randomUUID() })
-              : void saveOffline('', audio)
-          }
-          pending={createVoice.isPending}
-          failed={createVoice.isError}
-        />
-      </form>
-    );
-  }
-
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
   const visible = sortNotes(filterNotes(notes.data, filter, today), sort, today);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
       {online && !outboxDismissed && outbox.length > 0 && (
         <OutboxDialog
           entries={outbox}
@@ -291,154 +380,156 @@ export function NotesScreen() {
           onClose={() => setOutboxDismissed(true)}
         />
       )}
-      {slot && createPortal(<ImportMenu onImport={() => setImporting(true)} />, slot)}
       {importing && (
-        <ImportDialog
-          taxonomy={taxonomy.data}
-          today={today}
-          locale={locale}
-          onClose={() => setImporting(false)}
-          onImported={(result) => {
-            setImporting(false);
-            setImported(result);
-            void queryClient.invalidateQueries({ queryKey: ['notes'] });
-            void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-          }}
-        />
+        <Suspense fallback={<Loading label={t('import.loading')} />}>
+          <ImportDialog
+            taxonomy={taxonomy.data}
+            today={today}
+            locale={locale}
+            onClose={onImportClose}
+            onImported={(result) => {
+              onImportClose();
+              setImported(result);
+              void queryClient.invalidateQueries({ queryKey: ['notes'] });
+              void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+            }}
+          />
+        </Suspense>
       )}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t('notes.title')}</h2>
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col">
+          <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
+            {t('notes.title')}
+          </h2>
+          <p className="text-sm text-muted tabular-nums">
+            {t('notes.count', { count: visible.length })}
+          </p>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="rounded-md border border-line px-4 py-2 hover:bg-surface-hover"
+            onPointerEnter={() => void loadChat()}
+            onFocus={() => void loadChat()}
+            className="btn"
           >
+            <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
           </button>
           <button
             type="button"
             onClick={() => setMode({ kind: 'compose' })}
-            className="rounded-md bg-fg px-4 py-2 text-bg"
+            className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
           >
+            <Icon name="plus" size={18} />
             {t('notes.add')}
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-3">
-        <NoteFilters filter={filter} onChange={setFilter} taxonomy={taxonomy.data} />
-        <label className="flex items-center gap-2 text-sm">
-          {t('notes.sort.label')}
-          <select
-            value={sort}
-            onChange={(e) => {
-              const next = NoteSort.safeParse(e.target.value);
-              if (next.success) saveSort.mutate({ noteSort: next.data });
-            }}
-            className="rounded-md border border-line bg-bg px-2 py-1"
-          >
-            {NoteSort.options.map((o) => (
-              <option key={o} value={o}>
-                {t(`notes.sort.${o}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <NoteFilters
+        filter={filter}
+        onChange={setFilter}
+        taxonomy={taxonomy.data}
+        sort={
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <span className="shrink-0">{t('notes.sort.label')}</span>
+            <select
+              value={sort}
+              onChange={(e) => {
+                const next = NoteSort.safeParse(e.target.value);
+                if (next.success) saveSort.mutate({ noteSort: next.data });
+              }}
+              className="field min-h-9 w-auto py-1 text-sm text-fg"
+            >
+              {NoteSort.options.map((o) => (
+                <option key={o} value={o}>
+                  {t(`notes.sort.${o}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        }
+      />
       {saveSort.isError && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>
       )}
+      {waiting}
       <NoteList
         notes={visible}
+        filtered={notes.data.length > 0}
         taxonomy={taxonomy.data}
         today={today}
         onOpen={(note) => setMode({ kind: 'edit', note })}
+        onAdd={() => setMode({ kind: 'compose' })}
       />
       {undo.isError && (
-        <p role="alert" className="text-danger">
+        <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>
       )}
       {chatOpen && (
-        <ChatPanel
-          notes={notes.data}
-          onOpenNote={(note) => {
-            setChatOpen(false);
-            setMode({ kind: 'edit', note });
-          }}
-          onClose={() => setChatOpen(false)}
-          onTaxonomyChanged={() => {
-            void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-            void queryClient.invalidateQueries({ queryKey: ['notes'] });
-          }}
-        />
+        <Suspense fallback={<Loading label={t('chat.loading')} />}>
+          <ChatPanel
+            notes={notes.data}
+            onOpenNote={(note) => {
+              setChatOpen(false);
+              setMode({ kind: 'edit', note });
+            }}
+            onClose={() => setChatOpen(false)}
+            onTaxonomyChanged={() => {
+              void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+              void queryClient.invalidateQueries({ queryKey: ['notes'] });
+            }}
+          />
+        </Suspense>
       )}
-      {imported && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
-        >
-          {imported.unreadNotes > 0
-            ? t('import.toastUnread', {
-                notes: imported.created.notes,
-                count: imported.unreadNotes,
-              })
-            : t('import.done', { count: imported.created.notes })}
-          <span className="flex gap-2">
-            {imported.unreadNotes > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
-                  setImported(null);
-                }}
-                className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-              >
-                {t('import.show')}
+      <div className="toast-stack">
+        {imported && (
+          <Toast
+            onClose={() => setImported(null)}
+            actions={
+              <>
+                {imported.unreadNotes > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
+                      setImported(null);
+                    }}
+                    className="btn btn-sm"
+                  >
+                    {t('import.show')}
+                  </button>
+                )}
+                <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
+                  {t('import.dismiss')}
+                </button>
+              </>
+            }
+          >
+            {imported.unreadNotes > 0
+              ? t('import.toastUnread', {
+                  notes: imported.created.notes,
+                  count: imported.unreadNotes,
+                })
+              : t('import.done', { count: imported.created.notes })}
+          </Toast>
+        )}
+        {offlineToast}
+        {undoId !== null && (
+          <Toast
+            actions={
+              <button type="button" onClick={() => undo.mutate(undoId)} className="btn btn-sm">
+                {t('notes.undo')}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setImported(null)}
-              className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-            >
-              {t('import.dismiss')}
-            </button>
-          </span>
-        </div>
-      )}
-      {offlineNotice !== null && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
-        >
-          {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
-          <button
-            type="button"
-            onClick={() => setOfflineNotice(null)}
-            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
+            }
           >
-            {t('offline.dismiss')}
-          </button>
-        </div>
-      )}
-      {undoId !== null && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-bg p-3 shadow-lg"
-        >
-          {t('notes.deleted')}
-          <button
-            type="button"
-            onClick={() => undo.mutate(undoId)}
-            className="rounded-md border border-line px-3 py-1 hover:bg-surface-hover"
-          >
-            {t('notes.undo')}
-          </button>
-        </div>
-      )}
+            {t('notes.deleted')}
+          </Toast>
+        )}
+      </div>
     </section>
   );
 }

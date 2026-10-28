@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "My Notes"
+    "name": "My Notes",
+    "menu": "Menu"
   },
   "language": {
     "switchTo": "עברית"
@@ -18,6 +19,10 @@
     "noAccess": {
       "title": "No access",
       "body": "This account is not allowed to use the app."
+    },
+    "welcome": {
+      "title": "All your notes, in one place",
+      "body": "Write or record a note, and Claude suggests a category, tags and a due date."
     }
   },
   "notes": {
@@ -27,17 +32,21 @@
     "suggest": "Suggest",
     "suggesting": "Claude is thinking…",
     "empty": "No notes yet",
+    "noMatches": "No notes match the filter",
     "draft": "Draft",
     "submit": "Save",
     "submitting": "Saving…",
+    "submittingSlow": "Still working, this is taking a while…",
     "cancel": "Cancel",
     "reanalyze": "Re-analyze",
     "reanalyzing": "Claude is thinking…",
+    "reanalyzingSlow": "Claude is still thinking, this is taking a while…",
     "delete": "Delete",
     "deleted": "Note deleted",
     "undo": "Undo",
     "moveTo": "Move to {{status}}",
     "error": "Something went wrong. Try again.",
+    "noteTitle": "Title (optional)",
     "body": "Text",
     "dueDate": "Due date",
     "importance": "Importance",
@@ -67,6 +76,8 @@
       "newCategory": "New category",
       "add": "Add"
     },
+    "expand": "Expand",
+    "collapse": "Collapse",
     "created": "Created",
     "overdue": "Overdue",
     "sort": {
@@ -75,7 +86,14 @@
       "due_date": "Due date",
       "newest": "Newest",
       "oldest": "Oldest"
-    }
+    },
+    "count_one": "{{count}} note",
+    "count_other": "{{count}} notes",
+    "emptyHint": "Write something or record a voice note. Claude will suggest how to file it.",
+    "suggestHint": "Claude suggests a category, tags and a due date. You can change anything before saving.",
+    "reviewTitle": "Review note",
+    "editTitle": "Edit note",
+    "suggested": "Suggested by Claude"
   },
   "filters": {
     "title": "Filter",
@@ -113,12 +131,14 @@
     "original": "Open original"
   },
   "chat": {
+    "loading": "Loading…",
     "title": "Ask about your notes",
     "open": "Ask",
     "close": "Close",
     "placeholder": "Ask about your notes…",
     "send": "Send",
     "searching": "Searching your notes…",
+    "searchingSlow": "Still working, this is taking a while…",
     "error": "The assistant is unavailable. Try again.",
     "empty": "Ask what categories you have, what is overdue, or what is in progress.",
     "action": {
@@ -147,8 +167,57 @@
       }
     }
   },
+  "taxonomy": {
+    "menu": "Categories & tags",
+    "title": "Categories & tags",
+    "back": "Back",
+    "loading": "Loading…",
+    "newCategory": "New category",
+    "addCategory": "Add category",
+    "addTag": "Add tag",
+    "addTagTo": "Add tag to {{name}}",
+    "newTagIn": "New tag in {{name}}",
+    "rename": "Rename",
+    "renameItem": "Rename {{name}}",
+    "renameLabel": "New name for {{name}}",
+    "delete": "Delete",
+    "deleteItem": "Delete {{name}}",
+    "restore": "Restore",
+    "restoreItem": "Restore {{name}}",
+    "deleted": "Deleted",
+    "save": "Save",
+    "cancel": "Cancel",
+    "errors": {
+      "categoryDeleted": "The category is deleted.",
+      "invalidName": "That name is not valid.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
+  "users": {
+    "menu": "Users",
+    "title": "Users",
+    "back": "Back",
+    "admin": "Admin",
+    "emailLabel": "Google email",
+    "adminCheckbox": "Admin",
+    "add": "Add",
+    "makeAdmin": "Make admin",
+    "removeAdmin": "Remove admin",
+    "remove": "Remove",
+    "confirmRemove": "Remove {{email}}? Their notes are kept.",
+    "confirmYes": "Yes, remove",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "errors": {
+      "exists": "That email is already on the list.",
+      "invalid_email": "That is not a valid email.",
+      "last_admin": "The last admin cannot be removed or demoted.",
+      "cannot_change_self": "You cannot remove or demote yourself.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "import": {
-    "menu": "Menu",
+    "loading": "Loading…",
     "open": "Import notes",
     "title": "Import notes",
     "textLabel": "Text to import",
@@ -177,6 +246,8 @@
     "dismiss": "Dismiss"
   },
   "offline": {
+    "pending": "Waiting to be sent ({{count}})",
+    "noData": "You're offline — you can still add a note and it will be sent when you're back online.",
     "banner": "You're offline. New notes are saved on this device.",
     "saved": "Saved on this device. It will be sent when you're back online.",
     "saveFailed": "Could not save on this device.",

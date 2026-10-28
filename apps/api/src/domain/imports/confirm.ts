@@ -1,5 +1,6 @@
 import type { ImportConfirm, ImportCreated } from '@notes/shared';
 import type { Db } from '../../db';
+import { log, timed } from '../../requestLog';
 import { withTransaction } from '../../tx';
 import { planLinks, planNewTaxonomy } from '../notes/note';
 import * as notesRepo from '../notes/repository';
@@ -13,7 +14,20 @@ export type ConfirmResult =
 
 class Invalid extends Error {}
 
-export async function confirmImport(
+export function confirmImport(
+  db: Db,
+  userId: string,
+  input: ImportConfirm,
+): Promise<ConfirmResult> {
+  return timed('confirmImport', {}, async () => {
+    const result = await confirmImportUntimed(db, userId, input);
+    if (result.ok) log().info(result.value.created, 'import confirmed');
+    else log().warn({ error: result.error }, 'import rejected');
+    return result;
+  });
+}
+
+async function confirmImportUntimed(
   db: Db,
   userId: string,
   input: ImportConfirm,
@@ -46,6 +60,7 @@ export async function confirmImport(
         if (!links) throw new Invalid();
         const id = await notesRepo.insertTodo(tx, userId, {
           body: note.body,
+          title: note.title ?? null,
           dueDate: note.dueDate ?? null,
           importance: note.importance ?? null,
           urgency: note.urgency ?? null,
