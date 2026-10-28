@@ -1,14 +1,23 @@
-import { useContext, useState } from 'react';
+import { lazy, Suspense, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
-import { TaxonomyScreen } from '../taxonomy/TaxonomyScreen';
-import { UsersScreen } from '../users/UsersScreen';
+import { Loading } from '../../ui/Loading';
 import { AppMenu } from './AppMenu';
 import { HeaderSlot } from './headerSlot';
 
+// Taxonomy and the admin-only Users screen are rarely opened, so they load in their own chunks.
+const TaxonomyScreen = lazy(() =>
+  import('../taxonomy/TaxonomyScreen').then((m) => ({ default: m.TaxonomyScreen })),
+);
+const UsersScreen = lazy(() =>
+  import('../users/UsersScreen').then((m) => ({ default: m.UsersScreen })),
+);
+
 /** The signed-in app: notes, the admin-only Users screen, and the app menu on every screen. */
 export function Screens() {
+  const { t } = useTranslation();
   const { isAdmin, signOut } = useAuth();
   const slot = useContext(HeaderSlot);
   const [view, setView] = useState<'notes' | 'users' | 'taxonomy'>('notes');
@@ -48,15 +57,19 @@ export function Screens() {
     <>
       {menu}
       {view === 'users' && isAdmin ? (
-        <UsersScreen onBack={() => setView('notes')} />
+        <Suspense fallback={<Loading label={t('users.loading')} />}>
+          <UsersScreen onBack={() => setView('notes')} />
+        </Suspense>
       ) : view === 'taxonomy' ? (
-        <TaxonomyScreen
-          onBack={() => setView('notes')}
-          onTag={(id) => {
-            setTagId(id);
-            setView('notes');
-          }}
-        />
+        <Suspense fallback={<Loading label={t('taxonomy.loading')} />}>
+          <TaxonomyScreen
+            onBack={() => setView('notes')}
+            onTag={(id) => {
+              setTagId(id);
+              setView('notes');
+            }}
+          />
+        </Suspense>
       ) : (
         <NotesScreen
           key={tagId ?? 'all'}

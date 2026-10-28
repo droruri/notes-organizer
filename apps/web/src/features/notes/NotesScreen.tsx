@@ -11,11 +11,10 @@ import {
   MAX_TITLE_LENGTH,
   suggestionOf,
 } from '@notes/shared';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiNetworkError } from '../../lib/api';
-import { ChatPanel } from '../chat/ChatPanel';
-import { ImportDialog, type ImportResult } from '../import/ImportDialog';
+import type { ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
 import {
   addToOutbox,
@@ -33,6 +32,14 @@ import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
 import { VoiceRecorder } from './VoiceRecorder';
+
+// Chat and import open only on request, so they load in their own chunks. Hovering or focusing
+// the chat button starts the chat download early.
+const loadChat = () => import('../chat/ChatPanel');
+const ChatPanel = lazy(() => loadChat().then((m) => ({ default: m.ChatPanel })));
+const ImportDialog = lazy(() =>
+  import('../import/ImportDialog').then((m) => ({ default: m.ImportDialog })),
+);
 
 type Mode =
   | { kind: 'list' }
@@ -374,18 +381,20 @@ export function NotesScreen({
         />
       )}
       {importing && (
-        <ImportDialog
-          taxonomy={taxonomy.data}
-          today={today}
-          locale={locale}
-          onClose={onImportClose}
-          onImported={(result) => {
-            onImportClose();
-            setImported(result);
-            void queryClient.invalidateQueries({ queryKey: ['notes'] });
-            void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-          }}
-        />
+        <Suspense fallback={<Loading label={t('import.loading')} />}>
+          <ImportDialog
+            taxonomy={taxonomy.data}
+            today={today}
+            locale={locale}
+            onClose={onImportClose}
+            onImported={(result) => {
+              onImportClose();
+              setImported(result);
+              void queryClient.invalidateQueries({ queryKey: ['notes'] });
+              void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+            }}
+          />
+        </Suspense>
       )}
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col">
@@ -397,7 +406,13 @@ export function NotesScreen({
           </p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setChatOpen(true)} className="btn">
+          <button
+            type="button"
+            onClick={() => setChatOpen(true)}
+            onPointerEnter={() => void loadChat()}
+            onFocus={() => void loadChat()}
+            className="btn"
+          >
             <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
           </button>
@@ -455,18 +470,20 @@ export function NotesScreen({
         </p>
       )}
       {chatOpen && (
-        <ChatPanel
-          notes={notes.data}
-          onOpenNote={(note) => {
-            setChatOpen(false);
-            setMode({ kind: 'edit', note });
-          }}
-          onClose={() => setChatOpen(false)}
-          onTaxonomyChanged={() => {
-            void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-            void queryClient.invalidateQueries({ queryKey: ['notes'] });
-          }}
-        />
+        <Suspense fallback={<Loading label={t('chat.loading')} />}>
+          <ChatPanel
+            notes={notes.data}
+            onOpenNote={(note) => {
+              setChatOpen(false);
+              setMode({ kind: 'edit', note });
+            }}
+            onClose={() => setChatOpen(false)}
+            onTaxonomyChanged={() => {
+              void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+              void queryClient.invalidateQueries({ queryKey: ['notes'] });
+            }}
+          />
+        </Suspense>
       )}
       <div className="toast-stack">
         {imported && (
