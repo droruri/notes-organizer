@@ -224,7 +224,7 @@ export function TaxonomyScreen({
                         ) : (
                           <button
                             type="button"
-                            className="chip me-auto"
+                            className="chip chip-tag me-auto"
                             onClick={() => onTag(tag.id)}
                           >
                             {tag.name}

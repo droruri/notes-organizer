@@ -54,11 +54,11 @@ export function NoteCardDetails({
         {chips.map((c) => (
           <span
             key={c.id}
-            className={`tag ${c.category ? 'font-medium text-fg' : ''} ${
+            className={`${c.category ? 'cat-pill' : 'tag-box'} ${
               c.deleted ? 'line-through opacity-60' : ''
             }`}
           >
-            {c.category ? c.name : `#${c.name}`}
+            {c.name}
           </span>
         ))}
         <span className="ms-auto text-xs text-muted tabular-nums">

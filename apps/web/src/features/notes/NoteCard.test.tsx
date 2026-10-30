@@ -85,3 +85,36 @@ describe('NoteCard collapse', () => {
     expect(api.linkPreview).toHaveBeenCalledWith('https://example.com/a');
   });
 });
+
+describe('NoteCard chips', () => {
+  it('renders categories and tags with no literal # in the tag text', () => {
+    const TAG = '44444444-4444-4444-8444-444444444444';
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <NoteCard
+            note={{ ...note, tagIds: [TAG] }}
+            taxonomy={{
+              categories: [
+                {
+                  id: CAT,
+                  name: 'Home',
+                  deleted: false,
+                  tags: [{ id: TAG, categoryId: CAT, name: 'urgent-fix', deleted: false }],
+                },
+              ],
+            }}
+            today="2026-10-25"
+            onOpen={vi.fn()}
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    expect(screen.getByText('Home').className).toContain('cat-pill');
+    const tag = screen.getByText('urgent-fix');
+    expect(tag.className).toContain('tag-box');
+    expect(tag.textContent).not.toContain('#');
+  });
+});
