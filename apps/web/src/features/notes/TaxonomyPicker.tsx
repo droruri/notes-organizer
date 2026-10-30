@@ -1,6 +1,8 @@
 import type { NewTag, Taxonomy } from '@notes/shared';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
+import { CategoryDialog } from './CategoryDialog';
 import { Chip } from './Chip';
 
 export type Picked = {
@@ -10,6 +12,8 @@ export type Picked = {
   newTags: NewTag[];
   /** Names Claude offered as new categories; chips stay toggleable even when not selected. */
   offeredCategories?: string[];
+  /** Existing category ids Claude suggested (or the note's own on edit); UI-only like `offeredCategories`. */
+  suggestedCategoryIds?: string[];
 };
 
 const toggle = (list: string[], id: string) =>
@@ -31,19 +35,36 @@ export function TaxonomyPicker({
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [target, setTarget] = useState(NEW_CATEGORY);
+  const [pinned, setPinned] = useState<string[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const moreRef = useRef<HTMLButtonElement>(null);
   const usable = taxonomy.categories
     .filter((c) => !c.deleted)
     .map((c) => ({ ...c, tags: [...c.tags].sort((a, b) => byName(a.name, b.name)) }))
     .sort((a, b) => byName(a.name, b.name));
 
-  const toggleCategory = (id: string) => {
-    const removing = value.categoryIds.includes(id);
-    const tagsOfCategory = usable.find((c) => c.id === id)?.tags.map((tag) => tag.id) ?? [];
+  // Dropping a category drops its tags too.
+  const setCategories = (categoryIds: string[]) => {
+    const dropped = usable
+      .filter((c) => value.categoryIds.includes(c.id) && !categoryIds.includes(c.id))
+      .flatMap((c) => c.tags.map((tag) => tag.id));
     onChange({
       ...value,
-      categoryIds: toggle(value.categoryIds, id),
-      tagIds: removing ? value.tagIds.filter((x) => !tagsOfCategory.includes(x)) : value.tagIds,
+      categoryIds,
+      tagIds: value.tagIds.filter((x) => !dropped.includes(x)),
     });
+  };
+  const toggleCategory = (id: string) => setCategories(toggle(value.categoryIds, id));
+  const isInline = (id: string) =>
+    (value.suggestedCategoryIds ?? []).includes(id) ||
+    value.categoryIds.includes(id) ||
+    pinned.includes(id);
+  const hiddenOnPhone = (id: string) => (isInline(id) ? '' : 'max-sm:hidden');
+  const confirmDialog = (ids: string[]) => {
+    setPinned([...pinned, ...ids.filter((id) => !value.categoryIds.includes(id))]);
+    setCategories(ids);
+    setDialogOpen(false);
+    moreRef.current?.focus();
   };
   // Picking a tag links its category too.
   const toggleTag = (categoryId: string, id: string) => {
@@ -108,10 +129,11 @@ export function TaxonomyPicker({
     'categoryId' in tag
       ? usable.some((c) => c.id === tag.categoryId)
       : offered.includes(tag.categoryName);
-  const tagRows: { key: string; label: string; chips: ReactNode[] }[] = [
+  const tagRows: { key: string; label: string; chips: ReactNode[]; hidden?: string }[] = [
     ...usable.map((c) => ({
       key: c.id,
       label: c.name,
+      hidden: hiddenOnPhone(c.id),
       chips: [
         ...c.tags
           .filter((tag) => !tag.deleted)
@@ -147,6 +169,7 @@ export function TaxonomyPicker({
             key={c.id}
             label={c.name}
             selected={value.categoryIds.includes(c.id)}
+            className={hiddenOnPhone(c.id)}
             onClick={() => toggleCategory(c.id)}
           />
         ))}
@@ -159,7 +182,28 @@ export function TaxonomyPicker({
             onClick={() => toggleNewCategory(n)}
           />
         ))}
+        <button
+          ref={moreRef}
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="chip border-dashed border-line-strong sm:hidden"
+        >
+          <Icon name="plus" size={14} />
+          {t('notes.picker.more')}
+        </button>
       </div>
+      {dialogOpen && (
+        <CategoryDialog
+          categories={usable}
+          selected={value.categoryIds}
+          suggested={value.suggestedCategoryIds ?? []}
+          onConfirm={confirmDialog}
+          onClose={() => {
+            setDialogOpen(false);
+            moreRef.current?.focus();
+          }}
+        />
+      )}
       {tagRows.length > 0 && (
         <>
           <fieldset className="flex flex-col gap-3">
@@ -168,7 +212,10 @@ export function TaxonomyPicker({
               {t('notes.picker.tags')}
             </p>
             {tagRows.map((row) => (
-              <fieldset key={row.key} className="flex flex-wrap items-center gap-2">
+              <fieldset
+                key={row.key}
+                className={`flex flex-wrap items-center gap-2 ${row.hidden ?? ''}`}
+              >
                 {row.label !== '' && (
                   <legend className="mb-1 text-xs text-muted">{row.label}</legend>
                 )}

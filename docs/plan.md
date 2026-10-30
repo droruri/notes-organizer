@@ -334,7 +334,7 @@ and Re-analyze are the safety net.
   "link not read" chip per entry in `unreadLinks`.
 - **NoteEditor** — one component with four callers: new draft review, edit, outbox item, import
   row. Body, `TaxonomyPicker` (existing chips, alphabetical (Hebrew-aware), Claude's new names with a "new" badge, inline
-  create), due date, importance, urgency, status stepper (one step forward/back), link previews,
+  create; below `sm` only suggested + selected categories show inline, the rest via a "more categories" bottom-sheet dialog), due date, importance, urgency, status stepper (one step forward/back), link previews,
   audio player, Re-analyze, Submit/Save.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.
 - **Chat:** side panel on desktop, full-screen sheet on phone; streaming answers; action cards with

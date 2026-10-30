@@ -7,6 +7,7 @@ export function Chip({
   isNew = false,
   deleted = false,
   tag = false,
+  className = '',
   onClick,
 }: {
   label: string;
@@ -16,6 +17,7 @@ export function Chip({
   deleted?: boolean;
   /** Tag look: square corners and a CSS-drawn `#`; categories stay round pills. */
   tag?: boolean;
+  className?: string;
   onClick: () => void;
 }) {
   const { t } = useTranslation();
@@ -24,7 +26,7 @@ export function Chip({
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`chip ${tag ? 'chip-tag ' : ''}${deleted ? 'text-muted line-through opacity-60' : ''}`}
+      className={`chip ${tag ? 'chip-tag ' : ''}${deleted ? 'text-muted line-through opacity-60 ' : ''}${className}`}
     >
       {label}
       {isNew && (
