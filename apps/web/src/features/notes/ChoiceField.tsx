@@ -1,5 +1,5 @@
 import type { ChoiceDisplay } from '@notes/shared';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Segmented } from '../../ui/Segmented';
 
 /** A nullable enum field, shown as a dropdown or a row of buttons; "none" is always offered. */
@@ -24,8 +24,9 @@ export function ChoiceField<T extends string>({
   onChange: (next: T | null) => void;
   children?: ReactNode;
 }) {
-  // The note's current value stays offered even when hidden.
-  const offered = options.filter((o) => !hiddenValues.includes(o) || o === value);
+  // The value the note opened with, and the current pick, stay offered even when hidden.
+  const [opened] = useState(value);
+  const offered = options.filter((o) => !hiddenValues.includes(o) || o === value || o === opened);
   if (display === 'buttons') {
     return (
       <div className="label col-span-full">

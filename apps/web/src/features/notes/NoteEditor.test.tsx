@@ -393,7 +393,7 @@ describe('NoteEditor choice display', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ urgency: 'medium' });
     fireEvent.change(select, { target: { value: 'urgent' } });
-    expect(within(select).queryByText('Medium')).toBeNull();
+    expect(within(select).queryByText('Medium')).not.toBeNull();
   });
 
   it('disables the last offered value chip in the sheet', async () => {
