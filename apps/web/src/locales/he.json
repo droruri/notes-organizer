@@ -125,7 +125,10 @@
   "attachments": {
     "add": "הוספת קובץ",
     "uploading": "מעלה…",
+    "loading": "טוען…",
     "open": "הורדת {{name}}",
+    "takePhoto": "צילום תמונה",
+    "view": "פתיחת {{name}}",
     "list": "קבצים מצורפים",
     "downloadFailed": "הורדת הקובץ נכשלה.",
     "errors": {
