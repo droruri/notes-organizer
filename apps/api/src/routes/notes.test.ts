@@ -32,7 +32,7 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
 
   const send = (
     headers: typeof mine,
-    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     url: string,
     p?: object,
   ) => app.inject({ method, url, headers, ...(p ? { payload: p } : {}) });
@@ -96,6 +96,27 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     expect(again.statusCode).toBe(200);
     expect(NoteCreated.parse(again.json()).note.id).toBe(created.note.id);
     expect(fresh.calls).toHaveLength(1);
+    await app2.close();
+  });
+
+  it('a new draft inherits the importance of its category', async () => {
+    const work = await category(mine, 'Inherit');
+    await send(mine, 'PUT', `/categories/${work}/importance`, { importance: 'important' });
+    const app2 = buildServer({
+      db: pool,
+      ai: createFakeAi([{ value: { categoryIds: [work], importance: 'not_important' } }]),
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const res = await app2.inject({
+      method: 'POST',
+      url: '/notes',
+      headers: mine,
+      payload: { body: 'x', clientId: crypto.randomUUID(), today, locale: 'en' },
+    });
+    const created = NoteCreated.parse(res.json());
+    expect(created.suggestion.importance).toBe('important');
+    expect(created.note.importance).toBe('important');
     await app2.close();
   });
 
