@@ -47,6 +47,7 @@ export function VoiceRecorder({
   useEffect(
     () => () => {
       const r = recorder.current;
+      if (r) r.onstop = null;
       if (r && r.state !== 'inactive') r.stop();
       r?.stream.getTracks().forEach((track) => track.stop());
     },
@@ -92,9 +93,9 @@ export function VoiceRecorder({
 
   const discard = () => {
     const r = recorder.current;
-    if (r && r.state !== 'inactive') {
+    if (r) {
       r.onstop = null;
-      r.stop();
+      if (r.state !== 'inactive') r.stop();
       r.stream.getTracks().forEach((track) => track.stop());
     }
     recorder.current = null;
