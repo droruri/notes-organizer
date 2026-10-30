@@ -99,6 +99,7 @@ describe('chat agent tools', () => {
   it('list_taxonomy returns usable categories with tags', async () => {
     const list = await buildTools({ db, userId: ME, today }).listTaxonomy();
     expect(list.map((c) => c.name).sort()).toEqual(['Home', 'Work']);
+    expect(list.find((c) => c.id === C1)?.color).toBe('slate');
     expect(list.find((c) => c.id === C1)?.tags).toEqual([{ id: T1, name: 'urgent-ish' }]);
   });
 
@@ -204,6 +205,32 @@ describe('propose_change', () => {
     });
     expect(await err({ action: 'delete', kind: 'tag', id: 'nope' })).toEqual({
       error: 'not_found',
+    });
+  });
+
+  it('recolor: every outcome', async () => {
+    expect(await propose({ action: 'recolor', kind: 'category', id: C1, color: 'blue' })).toEqual({
+      action: 'recolor',
+      kind: 'category',
+      id: C1,
+      name: 'Work',
+      color: 'blue',
+    });
+    const err = (i: Parameters<typeof propose>[0]) => propose(i);
+    expect(await err({ action: 'recolor', kind: 'tag', id: T1, color: 'blue' })).toEqual({
+      error: 'invalid_kind',
+    });
+    expect(await err({ action: 'recolor', kind: 'category', id: OTHER, color: 'blue' })).toEqual({
+      error: 'not_found',
+    });
+    expect(await err({ action: 'recolor', kind: 'category', id: D1, color: 'blue' })).toEqual({
+      error: 'category_deleted',
+    });
+    expect(await err({ action: 'recolor', kind: 'category', id: C1 })).toEqual({
+      error: 'invalid_color',
+    });
+    expect(await err({ action: 'recolor', kind: 'category', id: C1, color: 'slate' })).toEqual({
+      error: 'unchanged',
     });
   });
 

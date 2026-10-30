@@ -196,6 +196,9 @@
         "category": "Delete category \"{{name}}\"",
         "tag": "Delete tag \"{{name}}\""
       },
+      "recolor": {
+        "category": "Color category \"{{name}}\" {{color}}"
+      },
       "restore": {
         "category": "Restore category \"{{name}}\"",
         "tag": "Restore tag \"{{name}}\""

@@ -215,6 +215,13 @@ export const AgentAction = z.union([
     id: z.uuid(),
     name: z.string(),
   }),
+  z.object({
+    action: z.literal('recolor'),
+    kind: z.literal('category'),
+    id: z.uuid(),
+    name: z.string(),
+    color: CategoryColor,
+  }),
 ]);
 export type AgentAction = z.infer<typeof AgentAction>;
 
