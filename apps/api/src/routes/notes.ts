@@ -1,4 +1,4 @@
-import { AUDIO_MIMES, NoteAnalyze, NoteCreate, NoteEdit } from '@notes/shared';
+import { AUDIO_MIMES, MAX_AUDIO_BYTES, NoteAnalyze, NoteCreate, NoteEdit } from '@notes/shared';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Ai } from '../ai/provider';
@@ -7,6 +7,7 @@ import type { Db } from '../db';
 import type { LinkReader } from '../domain/links/preview';
 import { isTodayPlausible } from '../domain/notes/note';
 import { llmRateLimit } from './rateLimit';
+import { readUpload } from './upload';
 import * as service from '../domain/notes/service';
 
 const STATUS: Record<service.Failure, number> = {
@@ -19,45 +20,21 @@ const STATUS: Record<service.Failure, number> = {
 
 const VoiceCreate = NoteCreate.omit({ body: true });
 
-type Upload = { fields: Record<string, string>; audio: { mime: string; data: Buffer } | null };
-
-/** Reads the `audio` file and the text fields; `too_large` over the size cap, `too_many` for a second file. */
-async function readUpload(req: FastifyRequest): Promise<Upload | 'too_large' | 'too_many'> {
-  const fields: Record<string, string> = {};
-  let audio: Upload['audio'] = null;
-  try {
-    for await (const part of req.parts()) {
-      if (part.type === 'field') {
-        if (typeof part.value === 'string') fields[part.fieldname] = part.value;
-      } else if (part.fieldname === 'audio') {
-        const mime = (part.mimetype.split(';')[0] ?? '').trim().toLowerCase();
-        audio = { mime, data: await part.toBuffer() };
-      } else {
-        part.file.resume();
-      }
-    }
-  } catch (err) {
-    if (err instanceof Error && 'code' in err && err.code === 'FST_REQ_FILE_TOO_LARGE') {
-      return 'too_large';
-    }
-    if (err instanceof Error && 'code' in err && err.code === 'FST_FILES_LIMIT') return 'too_many';
-    throw err;
-  }
-  return { fields, audio };
-}
-
 const Params = z.object({ id: z.uuid() });
 
 export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkReader): void {
   async function voiceNote(req: FastifyRequest, reply: FastifyReply) {
-    const upload = await readUpload(req);
+    const upload = await readUpload(req, {
+      field: 'audio',
+      limits: { fileSize: MAX_AUDIO_BYTES, files: 1 },
+    });
     if (upload === 'too_large') return reply.code(413).send({ error: 'audio_too_large' });
     if (upload === 'too_many') return reply.code(400).send({ error: 'invalid_body' });
     const input = VoiceCreate.safeParse(upload.fields);
-    if (!input.success || !upload.audio || upload.audio.data.length === 0) {
+    if (!input.success || !upload.file || upload.file.data.length === 0) {
       return reply.code(400).send({ error: 'invalid_body' });
     }
-    if (!(AUDIO_MIMES as readonly string[]).includes(upload.audio.mime)) {
+    if (!(AUDIO_MIMES as readonly string[]).includes(upload.file.mime)) {
       return reply.code(415).send({ error: 'unsupported_audio' });
     }
     if (!isTodayPlausible(input.data.today))
@@ -68,7 +45,7 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkRea
       links,
       currentUser(req).id,
       input.data,
-      upload.audio,
+      upload.file,
     );
     if (!result.ok) return reply.code(STATUS[result.error]).send({ error: result.error });
     const { created, note, suggestion } = result.value;
