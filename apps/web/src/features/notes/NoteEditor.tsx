@@ -2,6 +2,7 @@ import {
   Importance,
   MAX_TITLE_LENGTH,
   Urgency,
+  raiseImportance,
   type Note,
   type NoteEdit,
   type NoteStatus,
@@ -60,12 +61,35 @@ export function NoteEditor({
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
+  // Name of the category that raised importance; cleared when the field is changed by hand.
+  const [importanceHint, setImportanceHint] = useState<string | null>(null);
   const [urgency, setUrgency] = useState<Urgency | null>(suggestion.urgency);
 
   const [status, setStatus] = useState<NoteStatus>(note.status === 'draft' ? 'todo' : note.status);
   const [analyzing, setAnalyzing] = useState(false);
   const slowReanalyze = useSlow(analyzing);
   const [analyzeFailed, setAnalyzeFailed] = useState(false);
+
+  /** Only categories added by this change (directly or via a tag) can raise importance. */
+  const changePicked = (next: Picked) => {
+    const tagCategory = (id: string) =>
+      taxonomy.categories.find((c) => c.tags.some((tg) => tg.id === id))?.id;
+    const added = [
+      ...next.categoryIds.filter((id) => !picked.categoryIds.includes(id)),
+      ...next.tagIds
+        .filter((id) => !picked.tagIds.includes(id))
+        .map(tagCategory)
+        .filter((id): id is string => id !== undefined),
+    ];
+    setPicked(next);
+    const raised = raiseImportance(importance, added, taxonomy);
+    if (raised === importance) return;
+    setImportance(raised);
+    setImportanceHint(
+      taxonomy.categories.find((c) => added.includes(c.id) && c.importance === raised)?.name ??
+        null,
+    );
+  };
 
   /** Fill the fields with a fresh suggestion; nothing is saved until Submit. */
   const reanalyze = async () => {
@@ -80,6 +104,7 @@ export function NoteEditor({
       setUnreadLinks(next.unreadLinks);
       setDueDate(next.dueDate ?? '');
       setImportance(next.importance);
+      setImportanceHint(null);
       setUrgency(next.urgency);
     } catch {
       setAnalyzeFailed(true);
@@ -147,7 +172,7 @@ export function NoteEditor({
       <LinkPreviews body={body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
       {attachable && <Attachments noteId={note.id} attachments={note.attachments} editable />}
-      <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={setPicked} />
+      <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={changePicked} />
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="label">
           {t('notes.dueDate')}
@@ -165,6 +190,7 @@ export function NoteEditor({
             onChange={(e) => {
               const v = Importance.safeParse(e.target.value);
               setImportance(v.success ? v.data : null);
+              setImportanceHint(null);
             }}
             className={`${field} text-fg`}
           >
@@ -175,6 +201,11 @@ export function NoteEditor({
               </option>
             ))}
           </select>
+          {importanceHint && (
+            <span className="text-sm font-normal text-muted">
+              {t('notes.importanceFromCategory', { name: importanceHint })}
+            </span>
+          )}
         </label>
         <label className="label">
           {t('notes.urgency')}

@@ -107,6 +107,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
   });
 
   it('confirm creates taxonomy and todo notes with unread links', async () => {
+    await clean();
     const app = serverWith([]);
     const res = await app.inject({
       method: 'POST',

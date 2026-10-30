@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { EMPTY_SUGGESTION, type Note, type Suggestion } from '@notes/shared';
+import { EMPTY_SUGGESTION, type Note, type Suggestion, type Taxonomy } from '@notes/shared';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { i18n } from '../../lib/i18n';
@@ -149,5 +149,80 @@ describe('attachments gate', () => {
   it('hides Add file for import rows and outbox items', () => {
     renderEditor(false);
     expect(screen.queryByText('Add file')).toBeNull();
+  });
+});
+
+describe('NoteEditor category importance', () => {
+  const HI = '11111111-1111-4111-8111-111111111111';
+  const LO = '33333333-3333-4333-8333-333333333333';
+  const TAG = '22222222-2222-4222-8222-222222222222';
+  const taxonomy: Taxonomy = {
+    categories: [
+      {
+        id: HI,
+        name: 'Work',
+        deleted: false,
+        importance: 'important',
+        tags: [{ id: TAG, categoryId: HI, name: 'Urgent', deleted: false }],
+      },
+      { id: LO, name: 'Home', deleted: false, importance: 'not_important', tags: [] },
+    ],
+  };
+  const open = (suggestion: Suggestion = EMPTY_SUGGESTION) => {
+    const onSubmit = vi.fn();
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={suggestion}
+        taxonomy={taxonomy}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+      />,
+    );
+    const select = () => screen.getByLabelText<HTMLSelectElement>(/^Importance/);
+    const submit = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    return { onSubmit, select, submit };
+  };
+
+  it('raises when an important category is added and shows the hint', () => {
+    const { select } = open();
+    fireEvent.click(screen.getByRole('button', { name: 'Work' }));
+    expect(select().value).toBe('important');
+    expect(screen.getByText('Set by category Work')).toBeTruthy();
+  });
+
+  it('raises when added through a tag', () => {
+    const { select } = open();
+    fireEvent.click(screen.getByRole('button', { name: 'Urgent' }));
+    expect(select().value).toBe('important');
+  });
+
+  it('never lowers when a category is removed or a lower one is added', () => {
+    const { select } = open({ ...EMPTY_SUGGESTION, categoryIds: [HI], importance: 'important' });
+    fireEvent.click(screen.getByRole('button', { name: 'Work' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    expect(select().value).toBe('important');
+  });
+
+  it('submits a manual change made after a raise', () => {
+    const { select, onSubmit, submit } = open();
+    fireEvent.click(screen.getByRole('button', { name: 'Work' }));
+    fireEvent.change(select(), { target: { value: 'not_important' } });
+    expect(screen.queryByText('Set by category Work')).toBeNull();
+    submit();
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ importance: 'not_important' });
+  });
+
+  it('leaves stored importance alone when no category is added', () => {
+    const { select, onSubmit, submit } = open({
+      ...EMPTY_SUGGESTION,
+      categoryIds: [HI],
+      importance: 'not_important',
+    });
+    expect(select().value).toBe('not_important');
+    submit();
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ importance: 'not_important' });
   });
 });
