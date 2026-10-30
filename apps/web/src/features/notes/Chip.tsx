@@ -27,7 +27,11 @@ export function Chip({
       className={`chip ${tag ? 'chip-tag ' : ''}${deleted ? 'text-muted line-through opacity-60' : ''}`}
     >
       {label}
-      {isNew && <span className="marker">{t('notes.picker.new')}</span>}
+      {isNew && (
+        <span className="marker" aria-hidden={tag || undefined}>
+          {t('notes.picker.new')}
+        </span>
+      )}
     </button>
   );
 }

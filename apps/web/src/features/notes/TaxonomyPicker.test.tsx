@@ -106,6 +106,35 @@ describe('TaxonomyPicker', () => {
     const work = screen.getByRole('group', { name: 'עבודה' });
     expect(within(work).getByRole('button', { name: 'דחוף' })).toBeTruthy();
     const home = screen.getByRole('group', { name: 'בית' });
-    expect(within(home).getByRole('button', { name: /כביסה/ })).toBeTruthy();
+    expect(within(home).getByRole('button', { name: 'כביסה' })).toBeTruthy();
+  });
+
+  it('puts a new tag whose category was removed in an unlabeled final row', () => {
+    const tax: Taxonomy = { categories: [] };
+    render(
+      <TaxonomyPicker
+        taxonomy={tax}
+        value={{
+          categoryIds: [],
+          tagIds: [],
+          newCategories: [],
+          newTags: [{ categoryName: 'נמחקה', name: 'יתום' }],
+        }}
+        onChange={() => undefined}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'יתום' })).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'נמחקה' })).toBeNull();
+  });
+
+  it('hides the tags section when there are no tag rows', () => {
+    render(
+      <TaxonomyPicker
+        taxonomy={{ categories: [] }}
+        value={{ categoryIds: [], tagIds: [], newCategories: [], newTags: [] }}
+        onChange={() => undefined}
+      />,
+    );
+    expect(screen.queryByRole('group', { name: 'תגיות' })).toBeNull();
   });
 });

@@ -157,15 +157,20 @@ export function TaxonomyPicker({
       </div>
       {tagRows.length > 0 && (
         <>
-          <p aria-hidden="true" className="text-sm font-medium text-muted">
-            {t('notes.picker.tags')}
-          </p>
-          {tagRows.map((row) => (
-            <fieldset key={row.key} className="flex flex-wrap items-center gap-2">
-              {row.label !== '' && <legend className="mb-1 text-xs text-muted">{row.label}</legend>}
-              {row.chips}
-            </fieldset>
-          ))}
+          <fieldset className="flex flex-col gap-3">
+            <legend className="sr-only">{t('notes.picker.tags')}</legend>
+            <p aria-hidden="true" className="text-sm font-medium text-muted">
+              {t('notes.picker.tags')}
+            </p>
+            {tagRows.map((row) => (
+              <fieldset key={row.key} className="flex flex-wrap items-center gap-2">
+                {row.label !== '' && (
+                  <legend className="mb-1 text-xs text-muted">{row.label}</legend>
+                )}
+                {row.chips}
+              </fieldset>
+            ))}
+          </fieldset>
         </>
       )}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
