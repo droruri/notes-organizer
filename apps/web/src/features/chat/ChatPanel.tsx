@@ -7,7 +7,7 @@ import {
 } from '@notes/shared';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionCard } from './ActionCard';
+import { ActionGroup } from './ActionGroup';
 import { ChatAnswer } from './ChatAnswer';
 import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
@@ -131,9 +131,7 @@ export function ChatPanel({
             ) : (
               <>
                 <ChatAnswer text={m.content} notes={notes} onOpenNote={openNote} />
-                {(actions[i] ?? []).map((a, j) => (
-                  <ActionCard key={j} action={a} onApplied={() => onTaxonomyChanged?.()} />
-                ))}
+                <ActionGroup actions={actions[i] ?? []} onApplied={() => onTaxonomyChanged?.()} />
               </>
             )}
           </div>

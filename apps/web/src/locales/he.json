@@ -169,6 +169,7 @@
     "action": {
       "approve": "אישור",
       "dismiss": "דחייה",
+      "approveAll": "לאשר הכול ({{count}})",
       "done": "בוצע",
       "dismissed": "נדחה",
       "nameTaken": "השם כבר קיים.",

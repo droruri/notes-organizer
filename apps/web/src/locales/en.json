@@ -168,6 +168,7 @@
     "action": {
       "approve": "Approve",
       "dismiss": "Dismiss",
+      "approveAll": "Approve all ({{count}})",
       "done": "Done",
       "dismissed": "Dismissed",
       "nameTaken": "That name already exists.",

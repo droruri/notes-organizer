@@ -33,7 +33,7 @@ Decisions taken with the user:
 | Deleting a category/tag | Soft delete: not offered for new choices, shown disabled on notes that have it, restorable. A deleted category makes its tags unavailable too. |
 | Notes | Every field editable after submit; soft delete with an Undo toast; "Re-analyze" re-runs Claude and fills the editor without writing. |
 | Link preview | YouTube/Vimeo play in an iframe; articles show an OG card; tap opens a server-extracted reader view. |
-| Chat writes | Propose-only: the agent returns an action card; the user approves; the web calls the normal REST route. |
+| Chat writes | Propose-only: the agent returns action cards; the user approves one or all; the web sends one `POST /taxonomy/actions`. |
 | Chat history | Session only (browser memory). No chat tables. |
 | Import | One review screen: proposed new categories/tags and split notes, all with checkboxes, notes editable. Confirm writes everything in one transaction as submitted notes (`todo`). |
 | Offline | Text in `localStorage`, audio in IndexedDB. On reconnect a dialog lists queued notes; each opens in the add-note editor; confirm sends it; normal draft review follows. |
@@ -231,6 +231,7 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/imports/analyze` | `{text (≤ 50 000 chars), today, locale}` | `ImportProposal {newCategories, newTags, notes:[{body, suggestion}], links:{total, read}}` (≤ 200 notes) — writes nothing |
 | POST | `/imports/confirm` | `ImportConfirm {categories, tags, notes}` | `201 {created}` — one transaction, all or nothing |
 | GET | `/links/preview` | `?url=` (`&reader=1`) | `LinkPreview`: `{kind:'video', embedUrl}` · `{kind:'article', title, description, image, siteName}` · with `reader=1` also `paragraphs: string[]` · `422 unreachable` |
+| POST | `/taxonomy/actions` | `ActionsBody {actions}` (1–20) | `200 {results}` — one `{ok:true}` or `{ok:false, error}` per action, in order; each applies on its own |
 | POST | `/chat` | `{messages, today, locale}` | SSE stream (AI SDK parts + a `data-actions` part) |
 
 Rules:
@@ -332,7 +333,8 @@ and Re-analyze are the safety net.
   audio player, Re-analyze, Submit/Save.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.
 - **Chat:** side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
-  Approve / Dismiss.
+  Approve / Dismiss; the cards of one answer form an action group, with "Approve all (N)" sending
+  one `POST /taxonomy/actions`.
 - **Import:** paste into a textarea or pick a `.txt` file → analyze → review (new categories, new
   tags, notes — checkboxes; each note row opens the NoteEditor) → confirm. When some links were
   not read, a banner on the review screen says so ("Claude read 30 of 47 links. 17 notes have
