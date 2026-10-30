@@ -156,7 +156,13 @@ describe('classify', () => {
 describe('classify importance inheritance', () => {
   const important: Taxonomy = {
     categories: [
-      { ...taxonomy.categories[0], importance: 'important' } as Taxonomy['categories'][number],
+      {
+        id: C1,
+        name: 'Work',
+        deleted: false,
+        importance: 'important',
+        tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
+      },
     ],
   };
   const input = {
