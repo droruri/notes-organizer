@@ -212,6 +212,19 @@
     "deleteItem": "מחיקת {{name}}",
     "restore": "שחזור",
     "restoreItem": "שחזור {{name}}",
+    "color": {
+      "labelFor": "צבע של {{name}}",
+      "names": {
+        "blue": "כחול",
+        "green": "ירוק",
+        "purple": "סגול",
+        "amber": "כתום",
+        "teal": "טורקיז",
+        "pink": "ורוד",
+        "red": "אדום",
+        "slate": "אפור"
+      }
+    },
     "importance": {
       "labelFor": "חשיבות ברירת מחדל ל{{name}}",
       "label": "חשיבות ברירת מחדל",

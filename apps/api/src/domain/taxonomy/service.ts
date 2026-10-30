@@ -1,4 +1,11 @@
-import type { Category, Importance, Tag, Taxonomy, TaxonomyFailure } from '@notes/shared';
+import type {
+  Category,
+  CategoryColor,
+  Importance,
+  Tag,
+  Taxonomy,
+  TaxonomyFailure,
+} from '@notes/shared';
 import type { Db } from '../../db';
 import { log, timed } from '../../requestLog';
 import { withTransaction, type Queryable } from '../../tx';
@@ -82,6 +89,24 @@ export function setCategoryImportance(
     }
     const category = await repo.updateCategoryImportance(db, id, importance);
     log().info({ categoryId: id, importance }, 'category importance set');
+    return ok(category);
+  });
+}
+
+/** Set a category's color. Allowed on deleted categories too. */
+export function setCategoryColor(
+  db: Db,
+  userId: string,
+  id: string,
+  color: CategoryColor,
+): Promise<Result<Category>> {
+  return timed('setCategoryColor', { categoryId: id }, async () => {
+    if (!(await repo.findCategory(db, userId, id))) {
+      log().warn({ categoryId: id, error: 'not_found' }, 'category color failed');
+      return fail('not_found');
+    }
+    const category = await repo.updateCategoryColor(db, id, color);
+    log().info({ categoryId: id, color }, 'category color set');
     return ok(category);
   });
 }

@@ -53,6 +53,10 @@ export type NameBody = z.infer<typeof NameBody>;
 export const ImportanceBody = z.object({ importance: Importance.nullable() });
 export type ImportanceBody = z.infer<typeof ImportanceBody>;
 
+/** Body of `PUT /categories/:id/color`. */
+export const ColorBody = z.object({ color: CategoryColor });
+export type ColorBody = z.infer<typeof ColorBody>;
+
 export * from './attachments';
 export * from './notes';
 export * from './noteQuery';

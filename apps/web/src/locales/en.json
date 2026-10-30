@@ -211,6 +211,19 @@
     "deleteItem": "Delete {{name}}",
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
+    "color": {
+      "labelFor": "Color of {{name}}",
+      "names": {
+        "blue": "Blue",
+        "green": "Green",
+        "purple": "Purple",
+        "amber": "Amber",
+        "teal": "Teal",
+        "pink": "Pink",
+        "red": "Red",
+        "slate": "Slate"
+      }
+    },
     "importance": {
       "labelFor": "Default importance for {{name}}",
       "label": "Default importance",
