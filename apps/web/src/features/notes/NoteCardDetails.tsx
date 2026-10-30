@@ -1,5 +1,6 @@
 import type { Note, Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
+import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -41,6 +42,9 @@ export function NoteCardDetails({
       )}
       <LinkPreviews body={note.body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
+      {note.attachments.length > 0 && (
+        <Attachments noteId={note.id} attachments={note.attachments} editable={false} />
+      )}
       <div className="flex flex-wrap items-center gap-1.5 text-sm">
         {note.urgency && (
           <span className={`pill ${urgent ? 'bg-marker text-marker-fg' : ''}`}>

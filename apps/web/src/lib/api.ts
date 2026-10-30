@@ -3,6 +3,8 @@ import {
   AllowedUser,
   AllowedUserList,
   ApiError,
+  ATTACHMENT_MIMES,
+  Attachment,
   ChatPart,
   type ChatRequest,
   AUDIO_MIMES,
@@ -127,6 +129,21 @@ function noteAudio(id: string): Promise<Blob> {
   return fetchBlob(`/notes/${encodeURIComponent(id)}/audio`, AUDIO_MIMES);
 }
 
+/** `POST /notes/:id/attachments`: one file per request. */
+function uploadAttachment(noteId: string, file: File): Promise<Attachment> {
+  const form = new FormData();
+  form.set('file', file, file.name);
+  return request('POST', `/notes/${encodeURIComponent(noteId)}/attachments`, Attachment, form);
+}
+
+/** The bytes of one attachment. */
+function attachmentFile(noteId: string, id: string): Promise<Blob> {
+  return fetchBlob(
+    `/notes/${encodeURIComponent(noteId)}/attachments/${encodeURIComponent(id)}`,
+    ATTACHMENT_MIMES,
+  );
+}
+
 /**
  * `POST /chat`: reads the SSE stream and hands each recognised part to `onPart`.
  * Parts the panel does not use are skipped.
@@ -199,6 +216,8 @@ export const api = {
   createNote: (input: NoteCreate) => request('POST', '/notes', NoteCreated, input),
   createVoiceNote,
   noteAudio,
+  uploadAttachment,
+  attachmentFile,
   updateNote: (id: string, edit: NoteEdit) => request('PATCH', `/notes/${id}`, Note, edit),
   deleteNote: (id: string) => request('DELETE', `/notes/${id}`, NoContent),
   restoreNote: (id: string) => request('POST', `/notes/${id}/restore`, Note),

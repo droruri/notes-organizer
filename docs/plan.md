@@ -137,6 +137,7 @@ erDiagram
   notes ||--o{ note_tags : ""
   tags ||--o{ note_tags : ""
   notes ||--o| note_audio : ""
+  notes ||--o{ note_attachments : ""
   auth_users ||--o{ allowed_users : "added_by"
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
   categories { uuid id PK uuid user_id FK text name timestamptz deleted_at timestamptz created_at }
@@ -145,6 +146,7 @@ erDiagram
   note_categories { uuid note_id PK uuid category_id PK }
   note_tags { uuid note_id PK uuid tag_id PK }
   note_audio { uuid note_id PK text mime bytea data }
+  note_attachments { uuid id PK uuid note_id FK text name text mime int size bytea data timestamptz created_at }
   allowed_users { text email PK "lowercase" boolean is_admin uuid added_by FK "auth.users, nullable" timestamptz created_at }
 ```
 
@@ -162,6 +164,9 @@ erDiagram
 - `allowed_users`: who may sign in, keyed by lowercased email (not by user id, so a removed user who
   is re-added gets their notes back). Seeded from `ALLOWED_EMAILS`; RLS on, no policies.
 - `note_audio.data`: at most 5 MB (enforced in the API). See ADR 0003.
+- `note_attachments`: files on a note; no `user_id` (the owner is the note's owner), kept when the note
+  is soft-deleted, cascade on hard delete. 10 MB per file, 20 per note, 30 MB per user (enforced in
+  the API). See ADR 0004.
 - Migrations (one per ticket, via `pnpm db:new`): settings (sign-in ticket), taxonomy, notes
   (+ link tables), audio, `unread_links` (link previews), `allowed_users`.
 
@@ -214,13 +219,15 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/categories/:id/tags` | `{name}` | `201 Tag` · `409 name_taken` · `422 category_deleted` |
 | PATCH / DELETE | `/tags/:id` | `{name}` / — | `Tag` / `204` |
 | POST | `/tags/:id/restore` | — | `Tag` · `409` · `422 category_deleted` |
-| GET | `/notes` | — | all non-deleted notes (drafts included) with `categoryIds`, `tagIds`, `hasAudio`, `proposed`, `unreadLinks` |
+| GET | `/notes` | — | all non-deleted notes (drafts included) with `categoryIds`, `tagIds`, `hasAudio`, `attachments` (metadata only), `proposed`, `unreadLinks` |
 | POST | `/notes` | JSON `{body, clientId, today, locale}` or multipart (`audio` file + same fields) | `201 {note, suggestion}` (note is a `draft`); a repeated `clientId` → `200` with the existing note |
 | PATCH | `/notes/:id` | `NoteEdit {body?, categoryIds?, tagIds?, newCategories?, newTags?, dueDate?, importance?, urgency?, status?}` | `Note` · `422 invalid_transition` · `422 unknown_taxonomy` |
 | DELETE | `/notes/:id` | — | `204` (soft) |
 | POST | `/notes/:id/restore` | — | `Note` |
 | POST | `/notes/:id/analyze` | `{today, locale}` | `Suggestion` — writes nothing |
 | GET | `/notes/:id/audio` | — | audio bytes, stored mime |
+| POST | `/notes/:id/attachments` | multipart, exactly one `file` part | `201 Attachment {id, name, mime, size, createdAt}` · `404` · `400 invalid_body` · `413 attachment_too_large` · `415 unsupported_type` · `422 too_many_attachments` · `422 quota_exceeded` |
+| GET | `/notes/:id/attachments/:attachmentId` | — | the bytes, stored mime, `X-Content-Type-Options: nosniff` · `404` |
 | POST | `/imports/analyze` | `{text (≤ 50 000 chars), today, locale}` | `ImportProposal {newCategories, newTags, notes:[{body, suggestion}], links:{total, read}}` (≤ 200 notes) — writes nothing |
 | POST | `/imports/confirm` | `ImportConfirm {categories, tags, notes}` | `201 {created}` — one transaction, all or nothing |
 | GET | `/links/preview` | `?url=` (`&reader=1`) | `LinkPreview`: `{kind:'video', embedUrl}` · `{kind:'article', title, description, image, siteName}` · with `reader=1` also `paragraphs: string[]` · `422 unreachable` |

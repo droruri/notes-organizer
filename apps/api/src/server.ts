@@ -16,6 +16,7 @@ import {
   type LinkReader,
 } from './domain/links/preview';
 import { LogEnv, registerRequestLogging, withoutQueryInRequestLog } from './requestLog';
+import { attachmentsRoutes } from './routes/attachments';
 import { chatRoutes } from './routes/chat';
 import { healthRoutes } from './routes/health';
 import { importsRoutes } from './routes/imports';
@@ -86,6 +87,7 @@ export function buildServer({
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
+    attachmentsRoutes(authed, db);
     importsRoutes(authed, db, ai, links);
     linksRoutes(authed, links);
     chatRoutes(authed, db, ai, webOrigin);

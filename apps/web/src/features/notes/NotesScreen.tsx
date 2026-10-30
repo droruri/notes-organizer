@@ -362,6 +362,7 @@ export function NotesScreen({
         onCancel={() => setMode({ kind: 'list' })}
         onReanalyze={() => reanalyze(note.id)}
         onDelete={() => remove.mutate(note.id)}
+        attachable
       />
     );
   }

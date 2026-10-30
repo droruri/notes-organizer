@@ -13,7 +13,7 @@ export const unique = (label: string) =>
 
 /** Writes a text note and asks for a suggestion; leaves the page on the draft review. */
 export async function composeNote(page: Page, body: string) {
-  await page.getByRole('button', { name: 'פתק חדש' }).click();
+  await page.getByRole('button', { name: 'פתק חדש' }).first().click();
   await page.getByRole('textbox', { name: 'טקסט' }).fill(body);
   await page.getByRole('button', { name: 'הצע סיווג' }).click();
   await expect(page.getByRole('textbox', { name: 'טקסט' })).toHaveValue(body);

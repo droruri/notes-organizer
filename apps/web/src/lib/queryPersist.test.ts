@@ -24,6 +24,7 @@ const note = {
   categoryIds: [],
   tagIds: [],
   hasAudio: false,
+  attachments: [],
   createdAt: '2026-10-25T10:00:00.000Z',
   updatedAt: '2026-10-25T10:00:00.000Z',
 };

@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
+import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -32,6 +33,7 @@ export function NoteEditor({
   onCancel,
   onReanalyze,
   onDelete,
+  attachable,
 }: {
   note: Note;
   suggestion: Suggestion;
@@ -43,6 +45,8 @@ export function NoteEditor({
   /** Omit to hide the button (import rows are not stored yet). */
   onReanalyze?: (() => Promise<Suggestion>) | undefined;
   onDelete?: (() => void) | undefined;
+  /** Show the attachments with an "Add file" button; omit for notes that are not stored yet. */
+  attachable?: boolean | undefined;
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(note.title ?? '');
@@ -142,6 +146,7 @@ export function NoteEditor({
       )}
       <LinkPreviews body={body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
+      {attachable && <Attachments noteId={note.id} attachments={note.attachments} editable />}
       <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={setPicked} />
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="label">
