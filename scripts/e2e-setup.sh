@@ -92,10 +92,10 @@ web_port=$(free_port)
 missing=$(cd apps/web && pnpm exec node -e "
 const fs=require('fs');
 const p=require('@playwright/test').chromium.executablePath();
-process.stdout.write(fs.existsSync(p)?'':'missing');" 2>/dev/null)
-if [ "$missing" = missing ]; then
+process.stdout.write(fs.existsSync(p)?'ok':'missing');" 2>/dev/null)
+if [ "$missing" != ok ]; then
   say "installing the Playwright chromium browser"
-  (cd apps/web && pnpm exec playwright install chromium) >&2 || say "WARNING: playwright install failed"
+  (cd apps/web && pnpm exec playwright install chromium) >&2 || die "playwright chromium install failed."
 else
   say "Playwright chromium already installed"
 fi

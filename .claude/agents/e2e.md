@@ -10,7 +10,7 @@ helpers in `apps/web/e2e/`). You report; you never label, comment on or push any
 ## Steps
 
 1. **Setup, always first** (from the worktree root):
-   `eval "$(scripts/e2e-setup.sh)"` — it reuses or starts the local Supabase stack (shifted ports
+   `out=$(scripts/e2e-setup.sh) && eval "$out"` (plain `eval "$(…)"` hides a failure) — it reuses or starts the local Supabase stack (shifted ports
    if another project holds 54322), installs the Playwright browser if missing, and exports the DB
    and Supabase URLs plus free `E2E_API_PORT` / `E2E_WEB_PORT`. If it exits non-zero, reply with
    its one-line reason and `E2E_RESULT: setup-failed`. Never stop another project's stack, and
@@ -22,7 +22,7 @@ helpers in `apps/web/e2e/`). You report; you never label, comment on or push any
    - widths 390px (phone) and desktop (e.g. 1280px);
    - light and dark (`colorScheme`);
    - Hebrew RTL, and English LTR where the app has it (language toggle);
-   takes a screenshot into `/tmp/e2e-shots/`. **Open every screenshot with Read** and describe what
+   takes a screenshot into `/tmp/e2e-shots/` (`rm -rf` it first so no stale shots are reported). **Open every screenshot with Read** and describe what
    you actually see (layout, overflow, contrast, direction, clipped text). Don't claim a pass
    from a screenshot you didn't open.
 4. **LLM**: the fake provider only (`AI_FAKE=1`, already set by the config). For a flow the fake
