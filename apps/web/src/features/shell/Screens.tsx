@@ -1,11 +1,13 @@
 import { lazy, Suspense, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
 import { Loading } from '../../ui/Loading';
 import { AppMenu } from './AppMenu';
 import { HeaderSlot } from './headerSlot';
+import { ROUTES, tagPath, useGoBack } from './routes';
 
 // Taxonomy and the admin-only Users screen are rarely opened, so they load in their own chunks.
 const TaxonomyScreen = lazy(() =>
@@ -15,40 +17,29 @@ const UsersScreen = lazy(() =>
   import('../users/UsersScreen').then((m) => ({ default: m.UsersScreen })),
 );
 
-/** The signed-in app: notes, the admin-only Users screen, and the app menu on every screen. */
+/** The signed-in app: one route per screen, and the app menu on every screen. */
 export function Screens() {
   const { t } = useTranslation();
   const { isAdmin, signOut } = useAuth();
   const slot = useContext(HeaderSlot);
-  const [view, setView] = useState<'notes' | 'users' | 'taxonomy'>('notes');
-  // Set when a tag is tapped on the taxonomy screen; the key remounts the list with that filter.
-  const [tagId, setTagId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const goBack = useGoBack();
+  const [params] = useSearchParams();
+  // The key remounts the list with the tag filter from `?tag=`.
+  const tagId = params.get('tag');
   const [importing, setImporting] = useState(false);
   const menu = slot
     ? createPortal(
         <AppMenu
-          onNotes={() => {
-            setTagId(null);
-            setView('notes');
-          }}
-          onTaxonomy={() => {
-            setTagId(null);
-            setView('taxonomy');
-          }}
+          onNotes={() => void navigate(ROUTES.notes)}
+          onTaxonomy={() => void navigate(ROUTES.taxonomy)}
           onImport={() => {
-            setTagId(null);
-            setView('notes');
+            if (pathname !== ROUTES.notes) void navigate(ROUTES.notes);
             setImporting(true);
           }}
           onSignOut={() => void signOut()}
-          {...(isAdmin
-            ? {
-                onUsers: () => {
-                  setTagId(null);
-                  setView('users');
-                },
-              }
-            : {})}
+          {...(isAdmin ? { onUsers: () => void navigate(ROUTES.users) } : {})}
         />,
         slot,
       )
@@ -56,28 +47,40 @@ export function Screens() {
   return (
     <>
       {menu}
-      {view === 'users' && isAdmin ? (
-        <Suspense fallback={<Loading label={t('users.loading')} />}>
-          <UsersScreen onBack={() => setView('notes')} />
-        </Suspense>
-      ) : view === 'taxonomy' ? (
-        <Suspense fallback={<Loading label={t('taxonomy.loading')} />}>
-          <TaxonomyScreen
-            onBack={() => setView('notes')}
-            onTag={(id) => {
-              setTagId(id);
-              setView('notes');
-            }}
-          />
-        </Suspense>
-      ) : (
-        <NotesScreen
-          key={tagId ?? 'all'}
-          initialTagId={tagId}
-          importing={importing}
-          onImportClose={() => setImporting(false)}
+      <Routes>
+        <Route
+          path={ROUTES.notes}
+          element={
+            <NotesScreen
+              key={tagId ?? 'all'}
+              initialTagId={tagId}
+              importing={importing}
+              onImportClose={() => setImporting(false)}
+            />
+          }
         />
-      )}
+        <Route
+          path={ROUTES.taxonomy}
+          element={
+            <Suspense fallback={<Loading label={t('taxonomy.loading')} />}>
+              <TaxonomyScreen onBack={goBack} onTag={(id) => void navigate(tagPath(id))} />
+            </Suspense>
+          }
+        />
+        <Route
+          path={ROUTES.users}
+          element={
+            isAdmin ? (
+              <Suspense fallback={<Loading label={t('users.loading')} />}>
+                <UsersScreen onBack={goBack} />
+              </Suspense>
+            ) : (
+              <Navigate to={ROUTES.notes} replace />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to={ROUTES.notes} replace />} />
+      </Routes>
     </>
   );
 }

@@ -109,7 +109,7 @@ features/offline/   outbox.ts (localStorage + idb-keyval), useOnline, OfflineBan
 features/share/     shareTarget.ts.
 ```
 
-No router: one screen with dialogs/sheets; the share target is a query string read on load.
+React Router: one path per screen; the share target is a query string read on load.
 
 Reuse from `~/WebstormProjects/my-holy-attractions-map` (adapt, don't import): `apps/api/src/auth.ts`,
 `apps/api/src/llm/provider.ts` (port + fake), `apps/web/src/features/auth/*`,

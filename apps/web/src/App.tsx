@@ -1,6 +1,7 @@
 import { QueryCache, QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useState } from 'react';
+import { BrowserRouter } from 'react-router';
 import { AuthGate } from './features/auth/AuthGate';
 import { Screens } from './features/shell/Screens';
 import { AuthProvider } from './features/auth/AuthProvider';
@@ -36,13 +37,15 @@ export function App() {
         dehydrateOptions: { shouldDehydrateQuery },
       }}
     >
-      <AuthProvider>
-        <Shell>
-          <AuthGate>
-            <Screens />
-          </AuthGate>
-        </Shell>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <Shell>
+            <AuthGate>
+              <Screens />
+            </AuthGate>
+          </Shell>
+        </AuthProvider>
+      </BrowserRouter>
     </PersistQueryClientProvider>
   );
 }
