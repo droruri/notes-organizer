@@ -69,19 +69,22 @@ failing_checks() {
   local runs statuses
   runs=$(gh api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100" | jq -rs '
     .[].check_runs[] | select(.status == "completed" and (.conclusion | IN("success", "neutral", "skipped") | not)) | .name') || return 1
-  statuses=$(gh api "repos/$REPO/commits/$1/status" --jq '.statuses[] | select(.state | IN("failure", "error")) | .context') || return 1
+  statuses=$(gh api --paginate "repos/$REPO/commits/$1/status" | jq -rs '.[].statuses[] | select(.state | IN("failure", "error")) | .context') || return 1
   printf '%s\n%s\n' "$runs" "$statuses" | sed '/^$/d' | sort -u
 }
 
-# Finds or creates the open `main is red: <check>` issue for a check.
+# Finds or creates the open `main is red: <check>` issue for a check. Lists the open issues instead
+# of using search, which lags behind a just-created issue and would open a duplicate.
 ensure_main_red_issue() {
   local title="main is red: $1" found
-  found=$(gh api -X GET search/issues -f q="repo:$REPO is:issue is:open in:title \"$title\"" |
-    jq --arg t "$title" '[.items[] | select(.title == $t)] | length') || found=""
-  if [ "${found:-}" = 0 ]; then
+  found=$(gh api --paginate "repos/$REPO/issues?state=open&per_page=100" | jq -s --arg t "$title" '[.[][] | select(.title == $t)] | length') || {
+    echo "warn: could not list open issues; not opening '$title'." >&2
+    return
+  }
+  if [ "$found" = 0 ]; then
     gh api "repos/$REPO/issues" -f title="$title" -f 'labels[]=ready-for-agent' \
       -f body="The check \`$1\` is failing on \`main\`. Found while merging PR #$pr, which was red only on checks also red on main. Fix the check, or remove it if it is not ours." > /dev/null \
-      && echo "Opened issue: $title"
+      && echo "Opened issue: $title" || echo "warn: could not open issue '$title'." >&2
   fi
 }
 
@@ -124,7 +127,8 @@ if ! gh api -X PUT "repos/$REPO/pulls/$pr/merge" -f merge_method=squash > /dev/n
 fi
 if [ -n "$merge_note" ]; then
   names=$(printf '%s' "$merge_note" | paste -sd, - | sed 's/,/, /g')
-  gh api "repos/$REPO/issues/$pr/comments" -f body="Merged with checks also red on main: $names" > /dev/null
+  gh api "repos/$REPO/issues/$pr/comments" -f body="Merged with checks also red on main: $names" > /dev/null \
+    || echo "warn: could not comment on merged PR #$pr." >&2
   while IFS= read -r name; do ensure_main_red_issue "$name"; done <<< "$merge_note"
 fi
 git push origin --delete "$branch" > /dev/null 2>&1 || true

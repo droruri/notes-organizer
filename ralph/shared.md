@@ -158,8 +158,9 @@ If creating the issue fails, fall back to "If blocked" below instead of dropping
 ## If blocked
 
 If the **whole issue** is blocked and cannot be split (a decision only the user can make, a result
-that contradicts `docs/plan.md`, CI failing for reasons outside this issue that `main` doesn't share (a PR red only on checks also red on `main` is merged, see `scripts/ralph-merge.sh`), a reviewer mismatch
-twice), do **not** merge. Add the label `needs-human` to the issue, post a comment (on the PR if
+that contradicts `docs/plan.md`, CI failing for reasons outside this issue and not also red on
+`main`, a reviewer mismatch twice), do **not** merge. A PR red only on checks also red on `main`
+is merged by `scripts/ralph-merge.sh` instead, so it is not blocked. Add the label `needs-human` to the issue, post a comment (on the PR if
 there is one, else on the issue) with what is done and the exact next step, and end your turn.
 
 ## Keep context small (saves tokens)
