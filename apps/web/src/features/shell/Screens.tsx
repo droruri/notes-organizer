@@ -48,6 +48,7 @@ export function Screens() {
     <>
       {menu}
       <Routes>
+        {/* NotesScreen stays mounted across its child routes and reads its mode from the URL. */}
         <Route
           path={ROUTES.notes}
           element={
@@ -58,7 +59,11 @@ export function Screens() {
               onImportClose={() => setImporting(false)}
             />
           }
-        />
+        >
+          <Route path="new" element={null} />
+          <Route path="review" element={null} />
+          <Route path="notes/:id" element={null} />
+        </Route>
         <Route
           path={ROUTES.taxonomy}
           element={

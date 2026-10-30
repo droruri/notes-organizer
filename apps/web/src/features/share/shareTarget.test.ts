@@ -31,6 +31,7 @@ describe('shared note at launch', () => {
     window.history.replaceState(null, '', '/?text=hello&keep=1');
     vi.resetModules();
     const { peekSharedNote, clearSharedNote } = await import('./shareTarget');
+    expect(window.location.pathname).toBe('/new');
     expect(window.location.search).toBe('?keep=1');
     expect(peekSharedNote()).toBe('hello');
     expect(peekSharedNote()).toBe('hello');
