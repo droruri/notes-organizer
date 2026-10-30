@@ -51,6 +51,7 @@
     "body": "Text",
     "dueDate": "Due date",
     "importance": "Importance",
+    "importanceFromCategory": "Set by category {{name}}",
     "urgency": "Urgency",
     "none": "—",
     "importanceValues": {

@@ -51,6 +51,7 @@
     "body": "טקסט",
     "dueDate": "תאריך יעד",
     "importance": "חשיבות",
+    "importanceFromCategory": "נקבע לפי הקטגוריה {{name}}",
     "urgency": "דחיפות",
     "none": "—",
     "importanceValues": {
