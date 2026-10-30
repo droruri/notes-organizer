@@ -1,4 +1,6 @@
 import {
+  type ActionsBody,
+  ActionsResponse,
   AddUserBody,
   AllowedUser,
   AllowedUserList,
@@ -202,6 +204,8 @@ export const api = {
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),
   taxonomy: () => request('GET', '/taxonomy', Taxonomy),
+  applyActions: (input: ActionsBody) =>
+    request('POST', '/taxonomy/actions', ActionsResponse, input),
   createCategory: (name: string) => request('POST', '/categories', Category, { name }),
   renameCategory: (id: string, name: string) =>
     request('PATCH', `/categories/${id}`, Category, { name }),

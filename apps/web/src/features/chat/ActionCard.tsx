@@ -1,45 +1,26 @@
 import type { AgentAction } from '@notes/shared';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiRequestError } from '../../lib/api';
-import { applyAction } from './applyAction';
 
-type State = 'idle' | 'busy' | 'done' | 'dismissed';
+export type CardState = 'idle' | 'busy' | 'done' | 'dismissed';
 
-/** A taxonomy change the agent proposed. Nothing happens until Approve. */
+/** A taxonomy change the agent proposed. Presentational: the action group owns its state. */
 export function ActionCard({
   action,
-  onApplied,
-  apply = applyAction,
+  state,
+  error,
+  locked,
+  onApprove,
+  onDismiss,
 }: {
   action: AgentAction;
-  /** Called after a successful approval, to refresh the taxonomy and notes queries. */
-  onApplied: () => void;
-  apply?: (action: AgentAction) => Promise<void>;
+  state: CardState;
+  error: string | null;
+  /** A request is in flight somewhere in the group: every button is disabled. */
+  locked: boolean;
+  onApprove: () => void;
+  onDismiss: () => void;
 }) {
   const { t } = useTranslation();
-  const [state, setState] = useState<State>('idle');
-  const [error, setError] = useState<string | null>(null);
-
-  const approve = async () => {
-    setState('busy');
-    setError(null);
-    try {
-      await apply(action);
-      setState('done');
-      onApplied();
-    } catch (err) {
-      setState('idle');
-      const code = err instanceof ApiRequestError ? err.code : undefined;
-      setError(
-        code === 'name_taken'
-          ? t('chat.action.nameTaken')
-          : code === 'category_deleted'
-            ? t('chat.action.categoryDeleted')
-            : t('chat.action.failed'),
-      );
-    }
-  };
 
   const title = t(`chat.action.${action.action}.${action.kind}`, {
     name: action.name,
@@ -65,8 +46,8 @@ export function ActionCard({
         <div className="flex gap-2">
           <button
             type="button"
-            disabled={state === 'busy'}
-            onClick={() => void approve()}
+            disabled={locked}
+            onClick={onApprove}
             className="btn btn-primary btn-sm"
           >
             {state === 'busy' && <span aria-hidden="true" className="spinner" />}
@@ -74,8 +55,8 @@ export function ActionCard({
           </button>
           <button
             type="button"
-            disabled={state === 'busy'}
-            onClick={() => setState('dismissed')}
+            disabled={locked}
+            onClick={onDismiss}
             className="btn btn-ghost btn-sm"
           >
             {t('chat.action.dismiss')}

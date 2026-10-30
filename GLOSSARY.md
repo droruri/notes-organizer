@@ -98,6 +98,10 @@ _Avoid_: Bot, assistant
 A change the agent proposes, shown to the user, applied only when the user approves it.
 _Avoid_: Command, tool result
 
+**Action group**:
+The action cards from one agent answer. The user can approve them all with one click; each card still succeeds or fails on its own.
+_Avoid_: Batch, bulk action
+
 ## Access
 
 **Allowed user**:
