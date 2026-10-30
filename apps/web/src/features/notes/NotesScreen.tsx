@@ -421,7 +421,7 @@ export function NotesScreen({
           </button>
           <div
             aria-hidden="true"
-            className="bg-bg pointer-events-none fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
+            className="bg-bg fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
           />
           <button
             type="button"
@@ -463,7 +463,7 @@ export function NotesScreen({
         </p>
       )}
       {waiting}
-      <div className="max-sm:pb-28">
+      <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
         <NoteList
           notes={visible}
           filtered={notes.data.length > 0}
