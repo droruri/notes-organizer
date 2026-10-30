@@ -17,7 +17,7 @@ mirrored to a GitHub issue comment so a run on another machine can resume, so ke
 
 ## Environment
 - In cloud sessions use `gh api` REST; GraphQL is blocked. (HTTP 403; every `gh issue|pr <subcommand>` uses it.)
-- Chromium: in claude.ai cloud sessions it is pre-installed at `/opt/pw-browsers` (Playwright configured for it). On the GitHub Actions runner the `ralph.yml` workflow installs it and starts the local Supabase stack. Either way, don't run `playwright install`. Do the browser checks yourself in `build`; in `review` record them in the progress file instead (see the review scope in step 8).
+- Chromium: in claude.ai cloud sessions it is pre-installed at `/opt/pw-browsers` (Playwright configured for it). On the GitHub Actions runner the `ralph.yml` workflow installs it and starts the local Supabase stack. Either way, don't run `playwright install` yourself: `scripts/e2e-setup.sh` (run by the `e2e` agent) installs the browser if missing. Every browser check goes to the `e2e` agent (`.claude/agents/e2e.md`), in `build` and in `review`; don't run Playwright yourself.
 
 `gh` below means REST: `gh api repos/{owner}/{repo}/...`. Shorthand used below (`R` = `repos/{owner}/{repo}`):
 
@@ -94,22 +94,16 @@ dashboard or account steps, subjective product sign-off. Do **not** label the cu
 `needs-human`; finish everything else and move the human part to its own issue. Apply it
 whenever you meet such a criterion (step 2 audit or later), then carry on with the normal phases.
 
-**Not human-only:** device, browser and visual checks. Do them yourself and report what you saw
-(`CLAUDE.md` requires browser checks for UI; iOS simulator and computer-use as needed for
-non-web). Split only after an honest attempt failed.
-
-Web checks run from Bash with the repo's Playwright e2e setup (`apps/web/playwright.config.ts`).
-Sessions have no browser tools. Another worktree may hold ports 3000/5173, so pick free ones:
-`E2E_API_PORT=3100 E2E_WEB_PORT=5200 pnpm --filter @notes/web e2e <file>` (stack up: `pnpm db:start`).
-- A criterion that can be asserted (element visible, link `href`, row not selected): commit it as an
-  e2e test in `apps/web/e2e/`, using the helpers in `e2e/`.
-- A purely visual criterion: in a throwaway spec (not committed) check phone width (~390px) and
-  desktop width, each in light and dark mode (`viewport`, `colorScheme`). Take screenshots, open
-  them with Read, and write what you saw in the PR.
-- A flow needing LLM output the fake provider doesn't produce: add a fake scenario following the
-  existing fake-chat pattern. Never a real LLM.
-- Split a browser check to `needs-human` only after the Playwright run failed. Paste the failure
-  output into the new issue.
+**Not human-only:** device, browser and visual checks. Hand them to the `e2e` agent
+(`.claude/agents/e2e.md`): pass the criteria to verify (copied) and the worktree path. Spawn it like any agent; under
+`/ralph-issue` that means the usual `AGENT_REQUEST type=e2e` relay. It runs `scripts/e2e-setup.sh` itself (reuses or starts the
+Supabase stack, installs the Playwright browser, picks free ports), so a port clash or a missing
+browser is no reason to split. It replies with `pass|fail` lines, screenshot paths and
+`E2E_RESULT: pass|fail|setup-failed`. iOS simulator and computer-use checks for non-web stay yours.
+- `pass`: put the verdict lines and screenshot paths in the PR (or the issue comment when closing).
+- `fail`: a product bug. Fix it and re-run the agent. A `fail` is never a reason to split.
+- `setup-failed` (in practice Docker isn't running): the only case where a browser check is split to
+  `needs-human`. Paste the agent's failure line into the new issue.
 
 **Tool-first check** before calling anything human-only. Look for something that can do the job:
 tools, MCP servers and skills already in the session, a CLI (`gh`, `supabase`, `vercel`, …),
