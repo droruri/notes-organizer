@@ -43,6 +43,7 @@ const ImportDialog = lazy(() =>
 );
 
 const UNDO_MS = 5000;
+const inputDir = (value: string) => (value.trim() ? 'auto' : 'rtl');
 
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
@@ -260,7 +261,7 @@ export function NotesScreen({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={MAX_TITLE_LENGTH}
-            dir="auto"
+            dir={inputDir(title)}
             aria-label={t('notes.noteTitle')}
             placeholder={t('notes.noteTitle')}
             className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
@@ -270,7 +271,7 @@ export function NotesScreen({
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={6}
-            dir="auto"
+            dir={inputDir(text)}
             aria-label={t('notes.body')}
             placeholder={t('notes.placeholder')}
             className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
