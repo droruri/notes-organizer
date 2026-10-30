@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EMPTY_SUGGESTION, type Note, type Suggestion, type Taxonomy } from '@notes/shared';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { i18n } from '../../lib/i18n';
 import { NoteEditor } from './NoteEditor';
@@ -197,6 +197,16 @@ describe('NoteEditor category importance', () => {
   it('raises when an important category is added and shows the hint', () => {
     const { select } = open();
     fireEvent.click(screen.getByRole('button', { name: 'Work' }));
+    expect(select().value).toBe('important');
+    expect(screen.getByText('Set by category Work')).toBeTruthy();
+  });
+
+  it('raises when an important category is added through the dialog', () => {
+    const { select } = open();
+    fireEvent.click(screen.getByRole('button', { name: 'More categories' }));
+    const dialog = screen.getByRole('dialog', { name: 'Choose categories' });
+    fireEvent.click(within(dialog).getByLabelText('Work'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
     expect(select().value).toBe('important');
     expect(screen.getByText('Set by category Work')).toBeTruthy();
   });

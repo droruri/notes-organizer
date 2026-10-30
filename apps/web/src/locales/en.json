@@ -77,7 +77,15 @@
       "createIn": "Add to",
       "newCategory": "New category",
       "add": "Add",
-      "tags": "Tags"
+      "tags": "Tags",
+      "more": "More categories",
+      "dialogTitle": "Choose categories",
+      "filter": "Search categories",
+      "confirm": "OK",
+      "cancel": "Cancel",
+      "close": "Close",
+      "noMatch": "No category by that name. You can create it in the form.",
+      "suggested": "Suggested"
     },
     "expand": "Expand",
     "collapse": "Collapse",
