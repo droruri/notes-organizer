@@ -1,5 +1,5 @@
 import type { NewTag, Taxonomy } from '@notes/shared';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Chip } from './Chip';
 
@@ -83,10 +83,52 @@ export function TaxonomyPicker({
   ];
   const removeNewTag = (tag: NewTag) =>
     onChange({ ...value, newTags: value.newTags.filter((x) => x !== tag) });
-  const categoryLabel = (tag: NewTag) =>
+
+  const newTagChips = (match: (tag: NewTag) => boolean): ReactNode[] =>
+    value.newTags.flatMap((tag, i) =>
+      match(tag)
+        ? [
+            <Chip
+              key={`new-${tag.name}-${i}`}
+              tag
+              label={tag.name}
+              isNew
+              selected
+              onClick={() => removeNewTag(tag)}
+            />,
+          ]
+        : [],
+    );
+  const placed = (tag: NewTag) =>
     'categoryId' in tag
-      ? (usable.find((c) => c.id === tag.categoryId)?.name ?? '')
-      : tag.categoryName;
+      ? usable.some((c) => c.id === tag.categoryId)
+      : offered.includes(tag.categoryName);
+  const tagRows: { key: string; label: string; chips: ReactNode[] }[] = [
+    ...usable.map((c) => ({
+      key: c.id,
+      label: c.name,
+      chips: [
+        ...c.tags
+          .filter((tag) => !tag.deleted)
+          .map((tag) => (
+            <Chip
+              key={tag.id}
+              tag
+              label={tag.name}
+              selected={value.tagIds.includes(tag.id)}
+              onClick={() => toggleTag(c.id, tag.id)}
+            />
+          )),
+        ...newTagChips((tag) => 'categoryId' in tag && tag.categoryId === c.id),
+      ],
+    })),
+    ...offered.map((n) => ({
+      key: `offered-${n}`,
+      label: n,
+      chips: newTagChips((tag) => 'categoryName' in tag && tag.categoryName === n),
+    })),
+    { key: 'unplaced', label: '', chips: newTagChips((tag) => !placed(tag)) },
+  ].filter((row) => row.chips.length > 0);
 
   return (
     <fieldset className="card flex flex-col gap-3 p-4">
@@ -113,29 +155,24 @@ export function TaxonomyPicker({
           />
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {usable.flatMap((c) =>
-          c.tags
-            .filter((tag) => !tag.deleted)
-            .map((tag) => (
-              <Chip
-                key={tag.id}
-                label={`${tag.name} · ${c.name}`}
-                selected={value.tagIds.includes(tag.id)}
-                onClick={() => toggleTag(c.id, tag.id)}
-              />
-            )),
-        )}
-        {value.newTags.map((tag, i) => (
-          <Chip
-            key={`${tag.name}-${i}`}
-            label={`${tag.name} · ${categoryLabel(tag)}`}
-            isNew
-            selected
-            onClick={() => removeNewTag(tag)}
-          />
-        ))}
-      </div>
+      {tagRows.length > 0 && (
+        <>
+          <fieldset className="flex flex-col gap-3">
+            <legend className="sr-only">{t('notes.picker.tags')}</legend>
+            <p aria-hidden="true" className="text-sm font-medium text-muted">
+              {t('notes.picker.tags')}
+            </p>
+            {tagRows.map((row) => (
+              <fieldset key={row.key} className="flex flex-wrap items-center gap-2">
+                {row.label !== '' && (
+                  <legend className="mb-1 text-xs text-muted">{row.label}</legend>
+                )}
+                {row.chips}
+              </fieldset>
+            ))}
+          </fieldset>
+        </>
+      )}
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
         <input
           value={name}

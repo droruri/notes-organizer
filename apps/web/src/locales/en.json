@@ -74,7 +74,8 @@
       "createLabel": "New name",
       "createIn": "Add to",
       "newCategory": "New category",
-      "add": "Add"
+      "add": "Add",
+      "tags": "Tags"
     },
     "expand": "Expand",
     "collapse": "Collapse",
