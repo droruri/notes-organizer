@@ -285,7 +285,8 @@ Rules:
   - `find_notes({categoryIds?, tagIds?, statuses?, overdue?, text?, dueBefore?, dueAfter?,
     limit ≤ 100})` — loads the user's notes and runs shared `filterNotes` + `sortNotes`; returns
     rows `id | status | due | importance | urgency | categories | tags | body (≤ 1 000 chars)`.
-  - `propose_change(action)` — `create | rename | delete | restore` × `category | tag`; checks it
+  - `propose_change(action)` — `create | rename | delete | restore` × `category | tag`, plus
+    `recolor` (category only, one of the 8 palette keys; one call per category); checks it
     against the DB and returns an `AgentAction` or `{error}`. **Writes nothing.**
   - `maxSteps` 6; last 20 messages; answer in the request `locale`; ground answers in tool
     results only; note ids cited in the answer are checked before the web renders them.
@@ -337,7 +338,7 @@ and Re-analyze are the safety net.
   create; below `sm` only suggested + selected categories show inline, the rest via a "more categories" bottom-sheet dialog), due date, importance, urgency, status stepper (one step forward/back), link previews,
   audio player, Re-analyze, Submit/Save.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.
-- **Chat:** side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
+- **Chat:** recolor cards show a `.cat-pill` preview in the new color. Side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
   Approve / Dismiss; the cards of one answer form an action group, with "Approve all (N)" sending
   one `POST /taxonomy/actions`.
 - **Import:** paste into a textarea or pick a `.txt` file → analyze → review (new categories, new

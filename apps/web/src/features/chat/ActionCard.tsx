@@ -26,6 +26,7 @@ export function ActionCard({
     name: action.name,
     newName: action.action === 'rename' ? action.newName : '',
     category: action.action === 'create' && action.kind === 'tag' ? action.categoryName : '',
+    color: action.action === 'recolor' ? t(`taxonomy.color.names.${action.color}`) : '',
   });
 
   return (
@@ -35,6 +36,11 @@ export function ActionCard({
       aria-label={title}
     >
       <p className="font-medium">{title}</p>
+      {action.action === 'recolor' && (
+        <span data-color={action.color} className="cat-pill self-start">
+          {action.name}
+        </span>
+      )}
       {state === 'done' && <p className="text-sm font-medium text-ok">{t('chat.action.done')}</p>}
       {state === 'dismissed' && <p className="text-sm text-muted">{t('chat.action.dismissed')}</p>}
       {error && (
