@@ -257,6 +257,17 @@ export function NotesScreen({
           </p>
         )}
         <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
+          <div className="border-b border-line pb-3">
+            <VoiceRecorder
+              onSend={(audio) =>
+                online
+                  ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
+                  : void saveOffline('', audio, undefined, title)
+              }
+              pending={createVoice.isPending}
+              failed={createVoice.isError}
+            />
+          </div>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -276,17 +287,6 @@ export function NotesScreen({
             placeholder={t('notes.placeholder')}
             className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
           />
-          <div className="border-t border-line pt-3">
-            <VoiceRecorder
-              onSend={(audio) =>
-                online
-                  ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
-                  : void saveOffline('', audio, undefined, title)
-              }
-              pending={createVoice.isPending}
-              failed={createVoice.isError}
-            />
-          </div>
         </div>
         {offlineNotice === 'failed' && (
           <p role="alert" className="notice notice-danger">
