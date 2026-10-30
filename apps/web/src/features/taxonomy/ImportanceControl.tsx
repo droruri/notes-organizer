@@ -1,5 +1,6 @@
 import type { Importance } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
+import { Segmented } from '../../ui/Segmented';
 
 const LEVELS: readonly (Importance | null)[] = [null, 'important', 'not_important'];
 
@@ -17,26 +18,13 @@ export function ImportanceControl({
 }) {
   const { t } = useTranslation();
   return (
-    <div
-      role="radiogroup"
-      aria-label={t('taxonomy.importance.labelFor', { name })}
-      className="segmented self-start"
-    >
-      {LEVELS.map((level) => (
-        <button
-          key={level ?? 'none'}
-          type="button"
-          role="radio"
-          aria-checked={level === value}
-          disabled={disabled}
-          className="segment"
-          onClick={() => {
-            if (level !== value) onChange(level);
-          }}
-        >
-          {t(`taxonomy.importance.${level ?? 'none'}`)}
-        </button>
-      ))}
-    </div>
+    <Segmented
+      label={t('taxonomy.importance.labelFor', { name })}
+      options={LEVELS}
+      value={value}
+      labelOf={(level) => t(`taxonomy.importance.${level ?? 'none'}`)}
+      disabled={disabled}
+      onChange={onChange}
+    />
   );
 }
