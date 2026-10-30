@@ -77,6 +77,23 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     await app.close();
   });
 
+  it('analyze rows inherit category importance', async () => {
+    const cat = await pool.query(
+      `insert into categories (user_id, name, importance) values ($1, 'Vital', 'important') returning id`,
+      [ME.id],
+    );
+    const app = serverWith([{ value: { notes: [{ body: 'a', categoryIds: [cat.rows[0].id] }] } }]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/imports/analyze',
+      headers,
+      payload: { text: 'a', today, locale: 'en' },
+    });
+    const proposal = ImportProposal.parse(res.json());
+    expect(proposal.notes[0]?.suggestion.importance).toBe('important');
+    await app.close();
+  });
+
   it('rejects text over 50 000 characters', async () => {
     const app = serverWith([]);
     const res = await app.inject({

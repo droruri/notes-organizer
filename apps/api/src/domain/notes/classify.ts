@@ -5,6 +5,7 @@ import {
   type LinkContext,
   Importance,
   Urgency,
+  raiseImportance,
   type Locale,
   type Suggestion,
   type Taxonomy,
@@ -161,7 +162,8 @@ export function mapSuggestion(raw: RawSuggestion, taxonomy: Taxonomy): Suggestio
     newCategories,
     newTags,
     dueDate: raw.dueDate ?? null,
-    importance: raw.importance ?? null,
+    // Categories (also those implied by suggested tags) can lift Claude's guess.
+    importance: raiseImportance(raw.importance ?? null, categoryIds, taxonomy),
     urgency: raw.urgency ?? null,
     // Cap by code points, not UTF-16 units, so an emoji is never cut in half.
     title:

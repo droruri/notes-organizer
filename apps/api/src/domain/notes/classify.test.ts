@@ -152,3 +152,34 @@ describe('classify', () => {
     );
   });
 });
+
+describe('classify importance inheritance', () => {
+  const important: Taxonomy = {
+    categories: [
+      {
+        id: C1,
+        name: 'Work',
+        deleted: false,
+        importance: 'important',
+        tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
+      },
+    ],
+  };
+  const input = {
+    body: 'x',
+    today: '2026-10-25',
+    locale: 'en' as const,
+    taxonomy: important,
+    links: [],
+  };
+
+  it('lifts the level when a suggested category is important', async () => {
+    const ai = createFakeAi([{ value: { categoryIds: [C1], importance: 'not_important' } }]);
+    expect((await classify(ai, input)).importance).toBe('important');
+  });
+
+  it('a suggested tag implies its category', async () => {
+    const ai = createFakeAi([{ value: { tagIds: [T1] } }]);
+    expect((await classify(ai, input)).importance).toBe('important');
+  });
+});
