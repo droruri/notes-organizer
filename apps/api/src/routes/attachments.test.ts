@@ -248,4 +248,70 @@ describe.skipIf(!databaseUrl)('attachment routes against the local stack', () =>
     });
     expect(JSON.stringify(mine_)).not.toContain('secret-medical');
   });
+
+  const fileUrl = (noteId: string, id: string) => `/notes/${noteId}/attachments/${id}`;
+
+  it('removes a file for good and frees the quota', async () => {
+    const id = await note();
+    const att = Attachment.parse((await upload(id, { data: Buffer.alloc(1000) })).json());
+    const used = async () =>
+      (
+        await pool.query<{ n: string }>(
+          'select coalesce(sum(size), 0)::text n from note_attachments where note_id = $1',
+          [id],
+        )
+      ).rows[0]?.n;
+    expect(await used()).toBe('1000');
+    const del = await app.inject({ method: 'DELETE', url: fileUrl(id, att.id), headers: mine });
+    expect(del.statusCode).toBe(204);
+    expect(await used()).toBe('0');
+    const got = await app.inject({ method: 'GET', url: fileUrl(id, att.id), headers: mine });
+    expect(got.statusCode).toBe(404);
+    const again = await app.inject({ method: 'DELETE', url: fileUrl(id, att.id), headers: mine });
+    expect(again.statusCode).toBe(404);
+  });
+
+  it('accepts an upload again once a remove frees the quota', async () => {
+    const id = await note();
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into note_attachments (note_id, name, mime, size, data)
+       values ($1, 'big', 'text/plain', $2, repeat('x', $2::int)::bytea) returning id`,
+      [id, ATTACHMENT_QUOTA_BYTES - 3],
+    );
+    const bigId = rows[0]?.id ?? '';
+    const blocked = await upload(id, { data: Buffer.from('abcd') });
+    expect(blocked.statusCode).toBe(422);
+    const del = await app.inject({ method: 'DELETE', url: fileUrl(id, bigId), headers: mine });
+    expect(del.statusCode).toBe(204);
+    const retry = await upload(id, { data: Buffer.from('abcd') });
+    expect(retry.statusCode).toBe(201);
+  });
+
+  it("404s on another user's file, a deleted note and a malformed id", async () => {
+    const id = await note();
+    const att = Attachment.parse((await upload(id)).json());
+    const other = await app.inject({ method: 'DELETE', url: fileUrl(id, att.id), headers: theirs });
+    expect(other.statusCode).toBe(404);
+    const bad = await app.inject({ method: 'DELETE', url: fileUrl(id, 'nope'), headers: mine });
+    expect(bad.statusCode).toBe(404);
+    await pool.query('update notes set deleted_at = now() where id = $1', [id]);
+    const gone = await app.inject({ method: 'DELETE', url: fileUrl(id, att.id), headers: mine });
+    expect(gone.statusCode).toBe(404);
+    const { rows } = await pool.query('select 1 from note_attachments where id = $1', [att.id]);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('logs removal without the file name', async () => {
+    const id = await note();
+    const att = Attachment.parse((await upload(id, { name: SECRET_NAME })).json());
+    const start = lines.length;
+    await app.inject({ method: 'DELETE', url: fileUrl(id, att.id), headers: mine });
+    const out = lines.slice(start);
+    expect(out.find((l) => l.msg === 'attachment removed')).toMatchObject({
+      level: 30,
+      noteId: id,
+      attachmentId: att.id,
+    });
+    expect(JSON.stringify(out)).not.toContain('secret-medical');
+  });
 });

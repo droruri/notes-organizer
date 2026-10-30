@@ -27,10 +27,15 @@ export function Attachments({
   // The editor's note is a snapshot, so files added here are kept locally as well.
   const [added, setAdded] = useState<Attachment[]>([]);
   const [pending, setPending] = useState<Pending[]>([]);
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removeFailed, setRemoveFailed] = useState(false);
   const [downloadFailed, setDownloadFailed] = useState(false);
   const nextKey = useRef(0);
   const known = new Set(attachments.map((a) => a.id));
-  const rows = [...attachments, ...added.filter((a) => !known.has(a.id))];
+  const rows = [...attachments, ...added.filter((a) => !known.has(a.id))].filter(
+    (a) => !removed.has(a.id),
+  );
 
   const patch = (key: number, error: string | null) =>
     setPending((p) => p.map((r) => (r.key === key ? { ...r, error } : r)));
@@ -61,6 +66,26 @@ export function Attachments({
     }
   }
 
+  async function remove(a: Attachment) {
+    if (confirming !== a.id) {
+      setConfirming(a.id);
+      return;
+    }
+    setConfirming(null);
+    setRemoveFailed(false);
+    try {
+      await api.deleteAttachment(noteId, a.id);
+    } catch (err) {
+      // 404: already gone (removed in another tab), so drop the row as well
+      if (!(err instanceof ApiRequestError && err.status === 404)) {
+        setRemoveFailed(true);
+        return;
+      }
+    }
+    setRemoved((r) => new Set(r).add(a.id));
+    void queryClient.invalidateQueries({ queryKey: ['notes'] });
+  }
+
   async function download(a: Attachment) {
     setDownloadFailed(false);
     try {
@@ -81,15 +106,36 @@ export function Attachments({
       {(rows.length > 0 || pending.length > 0) && (
         <ul aria-label={t('attachments.list')} className="flex flex-col gap-1.5">
           {rows.map((a) => (
-            <li key={a.id}>
-              {a.mime.startsWith('image/') ? (
-                <Thumbnail noteId={noteId} a={a} onDownload={() => void download(a)} />
-              ) : (
-                <FileRow
-                  a={a}
-                  onOpen={() => void download(a)}
-                  label={t('attachments.open', { name: a.name })}
-                />
+            <li key={a.id} className="flex items-center gap-1.5">
+              <div className="min-w-0 flex-1">
+                {a.mime.startsWith('image/') ? (
+                  <Thumbnail noteId={noteId} a={a} onDownload={() => void download(a)} />
+                ) : (
+                  <FileRow
+                    a={a}
+                    onOpen={() => void download(a)}
+                    label={t('attachments.open', { name: a.name })}
+                  />
+                )}
+              </div>
+              {editable && (
+                <button
+                  type="button"
+                  onClick={() => void remove(a)}
+                  onBlur={() => setConfirming((c) => (c === a.id ? null : c))}
+                  aria-label={
+                    confirming === a.id
+                      ? t('attachments.confirmRemoveNamed', { name: a.name })
+                      : t('attachments.remove', { name: a.name })
+                  }
+                  className="btn btn-sm shrink-0"
+                >
+                  {confirming === a.id ? (
+                    t('attachments.confirmRemove')
+                  ) : (
+                    <Icon name="close" size={14} />
+                  )}
+                </button>
               )}
             </li>
           ))}
@@ -113,6 +159,11 @@ export function Attachments({
             </li>
           ))}
         </ul>
+      )}
+      {removeFailed && (
+        <p role="alert" className="text-sm text-danger">
+          {t('attachments.removeFailed')}
+        </p>
       )}
       {downloadFailed && (
         <p role="alert" className="text-sm text-danger">
