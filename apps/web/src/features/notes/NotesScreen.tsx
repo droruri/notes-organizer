@@ -5,14 +5,14 @@ import {
   NoteSort,
   filterNotes,
   sortNotes,
-  type NoteCreated,
-  type Note,
+  NoteCreated,
   type NoteFilter,
   MAX_TITLE_LENGTH,
   suggestionOf,
 } from '@notes/shared';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
 import { api, ApiNetworkError } from '../../lib/api';
 import type { ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
@@ -25,6 +25,7 @@ import {
 } from '../offline/outbox';
 import { reportNetworkFailure, useOnline } from '../offline/useOnline';
 import { clearSharedNote, peekSharedNote } from '../share/shareTarget';
+import { ROUTES, notePath, useGoBack } from '../shell/routes';
 import { Loading } from '../../ui/Loading';
 import { Icon } from '../../ui/Icon';
 import { Toast } from '../../ui/Toast';
@@ -40,12 +41,6 @@ const ChatPanel = lazy(() => loadChat().then((m) => ({ default: m.ChatPanel })))
 const ImportDialog = lazy(() =>
   import('../import/ImportDialog').then((m) => ({ default: m.ImportDialog })),
 );
-
-type Mode =
-  | { kind: 'list' }
-  | { kind: 'compose' }
-  | { kind: 'review'; draft: NoteCreated }
-  | { kind: 'edit'; note: Note };
 
 const UNDO_MS = 5000;
 
@@ -67,7 +62,13 @@ export function NotesScreen({
   // A share from another app opens the add-note editor with the shared text.
   const [shared] = useState(peekSharedNote);
   useEffect(clearSharedNote, []);
-  const [mode, setMode] = useState<Mode>({ kind: shared === undefined ? 'list' : 'compose' });
+  const navigate = useNavigate();
+  const goBack = useGoBack();
+  const { pathname, search, state } = useLocation();
+  const editId = useMatch('/notes/:id')?.params.id;
+  // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
+  const open = (to: string, replace = false, draft?: NoteCreated) =>
+    void navigate({ pathname: to, search }, { replace, state: draft });
   const [text, setText] = useState(shared ?? '');
   const [title, setTitle] = useState('');
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
@@ -89,9 +90,10 @@ export function NotesScreen({
     today: localToday(),
     locale: i18n.language === 'en' ? ('en' as const) : ('he' as const),
   });
-  const onDraft = async (draft: NoteCreated) => {
+  /** The draft is ready: review it. From compose it replaces the page, so back returns to the list. */
+  const onDraft = async (draft: NoteCreated, fromCompose = true) => {
     await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-    setMode({ kind: 'review', draft });
+    open(ROUTES.review, fromCompose, draft);
   };
   const online = useOnline();
   const [outbox, setOutbox] = useState(readOutbox);
@@ -125,7 +127,7 @@ export function NotesScreen({
     if (ok) {
       setText('');
       setTitle('');
-      setMode({ kind: 'list' });
+      goBack();
     }
   };
   /** A network-level failure (no HTTP answer) means we are offline after all. Keeps the clientId so a retry is safe. */
@@ -144,14 +146,14 @@ export function NotesScreen({
   const create = useMutation({
     mutationFn: ({ body, title, clientId }: { body: string; title: string; clientId: string }) =>
       api.createNote({ body, ...(title.trim() ? { title } : {}), ...meta(clientId) }),
-    onSuccess: onDraft,
+    onSuccess: (draft) => onDraft(draft),
     onError: (err, vars) =>
       queueOnNetworkError(err, vars.body, vars.clientId, undefined, vars.title),
   });
   const createVoice = useMutation({
     mutationFn: ({ audio, title, clientId }: { audio: Blob; title: string; clientId: string }) =>
       api.createVoiceNote(audio, { ...(title.trim() ? { title } : {}), ...meta(clientId) }),
-    onSuccess: onDraft,
+    onSuccess: (draft) => onDraft(draft),
     onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio, vars.title),
   });
 
@@ -181,7 +183,7 @@ export function NotesScreen({
     }
     await removeFromOutbox(entry.clientId);
     setOutbox(readOutbox());
-    await onDraft(draft);
+    await onDraft(draft, false);
   };
   const submit = useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof api.updateNote>[1] }) =>
@@ -193,7 +195,7 @@ export function NotesScreen({
       ]);
       setText('');
       setTitle('');
-      setMode({ kind: 'list' });
+      goBack();
     },
   });
 
@@ -201,7 +203,7 @@ export function NotesScreen({
     mutationFn: api.deleteNote,
     onSuccess: async (_, id) => {
       await queryClient.invalidateQueries({ queryKey: ['notes'] });
-      setMode({ kind: 'list' });
+      goBack();
       setUndoId(id);
     },
   });
@@ -238,7 +240,7 @@ export function NotesScreen({
       </Toast>
     );
 
-  if (mode.kind === 'compose') {
+  if (pathname === ROUTES.compose) {
     return (
       <form
         className="enter-rise flex flex-col gap-4"
@@ -310,7 +312,7 @@ export function NotesScreen({
             )}
             {create.isPending ? t('notes.suggesting') : t('notes.suggest')}
           </button>
-          <button type="button" onClick={() => setMode({ kind: 'list' })} className="btn btn-ghost">
+          <button type="button" onClick={goBack} className="btn btn-ghost">
             {t('notes.cancel')}
           </button>
         </div>
@@ -332,11 +334,7 @@ export function NotesScreen({
               {t('offline.noData')}
             </p>
           )}
-          <button
-            type="button"
-            onClick={() => setMode({ kind: 'compose' })}
-            className="btn btn-primary"
-          >
+          <button type="button" onClick={() => open(ROUTES.compose)} className="btn btn-primary">
             <Icon name="plus" size={18} />
             {t('notes.add')}
           </button>
@@ -348,18 +346,24 @@ export function NotesScreen({
     return <Loading label={t('status.checking')} />;
   }
 
-  if (mode.kind === 'review' || mode.kind === 'edit') {
-    const note = mode.kind === 'review' ? mode.draft.note : mode.note;
+  if (pathname === ROUTES.review || editId !== undefined) {
+    // History state survives a reload, so it is untrusted like any other input.
+    const parsed = pathname === ROUTES.review ? NoteCreated.safeParse(state) : undefined;
+    if (parsed && !parsed.success) return <Navigate to={ROUTES.notes} replace />;
+    const edited = notes.data.find((n) => n.id === editId);
+    if (!parsed && !edited) return <Navigate to={ROUTES.notes} replace />;
+    const note = parsed?.success ? parsed.data.note : edited;
+    if (!note) return <Navigate to={ROUTES.notes} replace />;
     return (
       <NoteEditor
         key={note.id}
         note={note}
-        suggestion={mode.kind === 'review' ? mode.draft.suggestion : suggestionOf(note)}
+        suggestion={parsed?.success ? parsed.data.suggestion : suggestionOf(note)}
         taxonomy={taxonomy.data}
         busy={submit.isPending}
         failed={submit.isError || remove.isError}
         onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
-        onCancel={() => setMode({ kind: 'list' })}
+        onCancel={goBack}
         onReanalyze={() => reanalyze(note.id)}
         onDelete={() => remove.mutate(note.id)}
         attachable
@@ -419,7 +423,7 @@ export function NotesScreen({
           </button>
           <button
             type="button"
-            onClick={() => setMode({ kind: 'compose' })}
+            onClick={() => open(ROUTES.compose)}
             className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
           >
             <Icon name="plus" size={18} />
@@ -462,8 +466,8 @@ export function NotesScreen({
         filtered={notes.data.length > 0}
         taxonomy={taxonomy.data}
         today={today}
-        onOpen={(note) => setMode({ kind: 'edit', note })}
-        onAdd={() => setMode({ kind: 'compose' })}
+        onOpen={(note) => open(notePath(note.id))}
+        onAdd={() => open(ROUTES.compose)}
       />
       {undo.isError && (
         <p role="alert" className="notice notice-danger">
@@ -476,7 +480,7 @@ export function NotesScreen({
             notes={notes.data}
             onOpenNote={(note) => {
               setChatOpen(false);
-              setMode({ kind: 'edit', note });
+              open(notePath(note.id));
             }}
             onClose={() => setChatOpen(false)}
             onTaxonomyChanged={() => {

@@ -1,4 +1,5 @@
 // Web Share Target launch (`/?title=&text=&url=`, declared in vite.config.ts).
+import { ROUTES } from '../shell/routes';
 
 const SHARE_PARAMS = ['title', 'text', 'url'] as const;
 
@@ -25,7 +26,8 @@ if (shared !== undefined) {
   const params = new URLSearchParams(window.location.search);
   for (const name of SHARE_PARAMS) params.delete(name);
   const rest = params.toString();
-  window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''));
+  // Rewrite to the compose page: back from it returns to the sharing app.
+  window.history.replaceState(null, '', ROUTES.compose + (rest ? `?${rest}` : ''));
 }
 
 /** The text shared into the app at launch (a pure read, safe under StrictMode double-init). */
