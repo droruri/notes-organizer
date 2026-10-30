@@ -1,7 +1,7 @@
 import { lazy, Suspense, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
 import { Loading } from '../../ui/Loading';
@@ -23,6 +23,7 @@ export function Screens() {
   const { isAdmin, signOut } = useAuth();
   const slot = useContext(HeaderSlot);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const goBack = useGoBack();
   const [params] = useSearchParams();
   // The key remounts the list with the tag filter from `?tag=`.
@@ -34,7 +35,7 @@ export function Screens() {
           onNotes={() => void navigate(ROUTES.notes)}
           onTaxonomy={() => void navigate(ROUTES.taxonomy)}
           onImport={() => {
-            void navigate(ROUTES.notes);
+            if (pathname !== ROUTES.notes) void navigate(ROUTES.notes);
             setImporting(true);
           }}
           onSignOut={() => void signOut()}

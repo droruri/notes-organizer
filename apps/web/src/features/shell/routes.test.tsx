@@ -40,8 +40,7 @@ describe('useGoBack', () => {
     renderAt(['/taxonomy']);
     fireEvent.click(screen.getByText('back'));
     expect(screen.getByText('at /')).toBeTruthy();
-    // replaced, not pushed: nothing to go back to
-    fireEvent.click(screen.getByText('forward'));
+    // replaced, not pushed: a second back stays on the notes list
     fireEvent.click(screen.getByText('back'));
     expect(screen.getByText('at /')).toBeTruthy();
   });
