@@ -147,7 +147,7 @@ describe('TaxonomyScreen', () => {
   it('sets, changes and clears a category importance with one tap', async () => {
     const { taxonomyApi } = setup();
     await screen.findByText('עבודה');
-    const group = screen.getByRole('radiogroup', { name: /עבודה/ });
+    const group = screen.getByRole('radiogroup', { name: 'חשיבות ברירת מחדל לעבודה' });
     expect(group).toBeTruthy();
     const none = screen.getByRole('radio', { name: 'ללא' });
     expect(none.getAttribute('aria-checked')).toBe('true');

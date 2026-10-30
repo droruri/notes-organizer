@@ -212,6 +212,7 @@
     "restore": "שחזור",
     "restoreItem": "שחזור {{name}}",
     "importance": {
+      "labelFor": "חשיבות ברירת מחדל ל{{name}}",
       "label": "חשיבות ברירת מחדל",
       "none": "ללא",
       "important": "חשוב",

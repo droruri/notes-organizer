@@ -211,6 +211,7 @@
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
     "importance": {
+      "labelFor": "Default importance for {{name}}",
       "label": "Default importance",
       "none": "None",
       "important": "Important",

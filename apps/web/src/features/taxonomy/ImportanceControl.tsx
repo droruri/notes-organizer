@@ -19,7 +19,7 @@ export function ImportanceControl({
   return (
     <div
       role="radiogroup"
-      aria-label={t('taxonomy.importance.label') + ': ' + name}
+      aria-label={t('taxonomy.importance.labelFor', { name })}
       className="segmented self-start"
     >
       {LEVELS.map((level) => (
