@@ -17,7 +17,17 @@ export const DEFAULT_NOTE_SORT: NoteSort = 'urgency';
 export const HideableField = z.enum(['title', 'categories', 'dueDate', 'importance', 'urgency']);
 export type HideableField = z.infer<typeof HideableField>;
 
-export const NoteForm = z.object({ hiddenFields: z.array(HideableField).default([]) });
+/** How a choice field (importance, urgency) shows in the note form. */
+export const ChoiceDisplay = z.enum(['dropdown', 'buttons']);
+export type ChoiceDisplay = z.infer<typeof ChoiceDisplay>;
+
+const choiceSettings = z.object({ display: ChoiceDisplay.default('dropdown') });
+
+export const NoteForm = z.object({
+  hiddenFields: z.array(HideableField).default([]),
+  importance: choiceSettings.default({ display: 'dropdown' }),
+  urgency: choiceSettings.default({ display: 'dropdown' }),
+});
 export type NoteForm = z.infer<typeof NoteForm>;
 export const DEFAULT_NOTE_FORM: NoteForm = NoteForm.parse({});
 

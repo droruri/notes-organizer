@@ -15,7 +15,7 @@ export function Segmented<T extends string>({
   onChange: (next: T | null) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="segmented self-start">
+    <div role="radiogroup" aria-label={label} className="segmented max-w-full flex-wrap self-start">
       {options.map((option) => (
         <button
           key={option ?? 'none'}

@@ -19,6 +19,7 @@ import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
+import { ChoiceField } from './ChoiceField';
 import { NoteFormSettings } from './NoteFormSettings';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -59,9 +60,8 @@ export function NoteEditor({
   const [body, setBody] = useState(note.body);
   const slow = useSlow(busy);
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
-  const hidden = new Set<HideableField>(
-    (settings.data?.noteForm ?? DEFAULT_NOTE_FORM).hiddenFields,
-  );
+  const noteForm = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
+  const hidden = new Set<HideableField>(noteForm.hiddenFields);
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
   const gridCols = (['dueDate', 'importance', 'urgency'] satisfies HideableField[]).filter(
     (f) => !hidden.has(f),
@@ -212,50 +212,41 @@ export function NoteEditor({
             </label>
           )}
           {!hidden.has('importance') && (
-            <label className="label">
-              {t('notes.importance')}
-              <select
-                value={importance ?? ''}
-                onChange={(e) => {
-                  const v = Importance.safeParse(e.target.value);
-                  setImportance(v.success ? v.data : null);
-                  setImportanceHint(null);
-                }}
-                className={`${field} text-fg`}
-              >
-                <option value="">{t('notes.none')}</option>
-                {Importance.options.map((o) => (
-                  <option key={o} value={o}>
-                    {t(`notes.importanceValues.${o}`)}
-                  </option>
-                ))}
-              </select>
+            <ChoiceField
+              label={t('notes.importance')}
+              options={Importance.options}
+              parse={(v) => {
+                const r = Importance.safeParse(v);
+                return r.success ? r.data : null;
+              }}
+              labelOf={(o) => (o ? t(`notes.importanceValues.${o}`) : t('notes.none'))}
+              display={noteForm.importance.display}
+              value={importance}
+              onChange={(v) => {
+                setImportance(v);
+                setImportanceHint(null);
+              }}
+            >
               {importanceHint && (
                 <span className="text-sm font-normal text-muted">
                   {t('notes.importanceFromCategory', { name: importanceHint })}
                 </span>
               )}
-            </label>
+            </ChoiceField>
           )}
           {!hidden.has('urgency') && (
-            <label className="label">
-              {t('notes.urgency')}
-              <select
-                value={urgency ?? ''}
-                onChange={(e) => {
-                  const v = Urgency.safeParse(e.target.value);
-                  setUrgency(v.success ? v.data : null);
-                }}
-                className={`${field} text-fg`}
-              >
-                <option value="">{t('notes.none')}</option>
-                {Urgency.options.map((o) => (
-                  <option key={o} value={o}>
-                    {t(`notes.urgencyValues.${o}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <ChoiceField
+              label={t('notes.urgency')}
+              options={Urgency.options}
+              parse={(v) => {
+                const r = Urgency.safeParse(v);
+                return r.success ? r.data : null;
+              }}
+              labelOf={(o) => (o ? t(`notes.urgencyValues.${o}`) : t('notes.none'))}
+              display={noteForm.urgency.display}
+              value={urgency}
+              onChange={setUrgency}
+            />
           )}
         </div>
       )}
