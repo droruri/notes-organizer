@@ -3,7 +3,13 @@ import type { Db } from '../../db';
 import { buildTools, MAX_MESSAGES, MAX_STEPS, chatArgs, proposedAction } from './agent';
 
 const ME = '11111111-1111-4111-8111-111111111111';
-const cat = (id: string, name: string) => ({ id, name, deleted: false, importance: null });
+const cat = (id: string, name: string) => ({
+  id,
+  name,
+  deleted: false,
+  importance: null,
+  color: 'slate',
+});
 const C1 = 'c1111111-1111-4111-8111-111111111111';
 const C2 = 'c2222222-2222-4222-8222-222222222222';
 const T1 = 'a1111111-1111-4111-8111-111111111111';

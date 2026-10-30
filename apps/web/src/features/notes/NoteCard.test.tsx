@@ -26,7 +26,9 @@ const note: Note = {
   updatedAt: '2026-10-20T10:00:00Z',
 };
 const taxonomy = {
-  categories: [{ id: CAT, name: 'Home', deleted: false, importance: null, tags: [] }],
+  categories: [
+    { id: CAT, name: 'Home', deleted: false, importance: null, color: 'blue' as const, tags: [] },
+  ],
 };
 
 function renderCard(onOpen = vi.fn()) {
@@ -62,23 +64,52 @@ describe('NoteCard collapse', () => {
     screen.getByText('Groceries');
     screen.getByText('To do');
     expect(screen.queryByText(/milk and eggs/)).toBeNull();
-    expect(screen.queryByText('Home')).toBeNull();
     const toggle = screen.getByRole('button', { name: 'Expand' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(toggle);
     screen.getByText(/milk and eggs/);
-    screen.getByText('Home');
     const open = screen.getByRole('button', { name: 'Collapse' });
     expect(open.getAttribute('aria-expanded')).toBe('true');
     fireEvent.click(open);
-    expect(screen.queryByText('Home')).toBeNull();
+    expect(screen.queryByText(/milk and eggs/)).toBeNull();
+  });
+
+  it('shows the category pill with its color while collapsed; tags only when expanded', () => {
+    const TAG = '44444444-4444-4444-8444-444444444444';
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <NoteCard
+            note={{ ...note, tagIds: [TAG] }}
+            taxonomy={{
+              categories: [
+                {
+                  id: CAT,
+                  name: 'Home',
+                  deleted: false,
+                  importance: null,
+                  color: 'blue' as const,
+                  tags: [{ id: TAG, categoryId: CAT, name: 'urgent-fix', deleted: false }],
+                },
+              ],
+            }}
+            today="2026-10-25"
+            onOpen={vi.fn()}
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText('Home').getAttribute('data-color')).toBe('blue');
+    expect(screen.queryByText('urgent-fix')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    screen.getByText('urgent-fix');
   });
 
   it('opens the editor from the title without expanding', () => {
     const onOpen = renderCard();
     fireEvent.click(screen.getByText('Groceries'));
     expect(onOpen).toHaveBeenCalledWith(note);
-    expect(screen.queryByText('Home')).toBeNull();
   });
 
   it('makes no link-preview request while collapsed', () => {
@@ -105,6 +136,7 @@ describe('NoteCard chips', () => {
                   name: 'Home',
                   deleted: false,
                   importance: null,
+                  color: 'slate' as const,
                   tags: [{ id: TAG, categoryId: CAT, name: 'urgent-fix', deleted: false }],
                 },
               ],
@@ -115,8 +147,8 @@ describe('NoteCard chips', () => {
         </ul>
       </QueryClientProvider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
     expect(screen.getByText('Home').className).toContain('cat-pill');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
     const tag = screen.getByText('urgent-fix');
     expect(tag.className).toContain('tag-box');
     expect(tag.textContent).not.toContain('#');

@@ -4,6 +4,19 @@ import { Attachment } from './attachments';
 export const NoteStatus = z.enum(['draft', 'todo', 'in_progress', 'done']);
 export type NoteStatus = z.infer<typeof NoteStatus>;
 
+/** Palette keys for a category's color, in the order new categories are assigned them. */
+export const CategoryColor = z.enum([
+  'blue',
+  'green',
+  'purple',
+  'amber',
+  'teal',
+  'pink',
+  'red',
+  'slate',
+]);
+export type CategoryColor = z.infer<typeof CategoryColor>;
+
 export const Importance = z.enum(['important', 'not_important']);
 export type Importance = z.infer<typeof Importance>;
 

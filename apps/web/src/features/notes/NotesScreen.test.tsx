@@ -75,6 +75,7 @@ describe('NotesScreen opened from a tag', () => {
           name: 'work',
           deleted: false,
           importance: null,
+          color: 'slate' as const,
           tags: [{ id: T1, categoryId: C, name: 'urgent', deleted: false }],
         },
       ],

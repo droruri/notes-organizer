@@ -163,9 +163,17 @@ describe('NoteEditor category importance', () => {
         name: 'Work',
         deleted: false,
         importance: 'important',
+        color: 'slate' as const,
         tags: [{ id: TAG, categoryId: HI, name: 'Urgent', deleted: false }],
       },
-      { id: LO, name: 'Home', deleted: false, importance: 'not_important', tags: [] },
+      {
+        id: LO,
+        name: 'Home',
+        deleted: false,
+        importance: 'not_important',
+        color: 'slate' as const,
+        tags: [],
+      },
     ],
   };
   const open = (suggestion: Suggestion = EMPTY_SUGGESTION) => {

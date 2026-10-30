@@ -69,6 +69,17 @@ export function NoteCard({
             {overdue && ` · ${t('notes.overdue')}`}
           </span>
         )}
+        {taxonomy.categories
+          .filter((c) => note.categoryIds.includes(c.id))
+          .map((c) => (
+            <span
+              key={c.id}
+              data-color={c.color}
+              className={`cat-pill ${c.deleted ? 'line-through opacity-60' : ''}`}
+            >
+              {c.name}
+            </span>
+          ))}
       </div>
       {expanded ? (
         <NoteCardDetails

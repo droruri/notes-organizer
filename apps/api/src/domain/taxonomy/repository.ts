@@ -1,10 +1,10 @@
-import type { Category, Importance, Tag } from '@notes/shared';
+import { CategoryColor, type Category, type Importance, type Tag } from '@notes/shared';
 import type { Queryable } from '../../tx';
 
 // SQL for categories and tags. Tags have no user_id: ownership is checked through the category.
 
-const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted, c.importance';
-const CATEGORY_RETURNING = 'id, name, deleted_at is not null as deleted, importance';
+const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted, c.importance, c.color';
+const CATEGORY_RETURNING = 'id, name, deleted_at is not null as deleted, importance, color';
 const TAG_COLS = 't.id, t.category_id as "categoryId", t.name, t.deleted_at is not null as deleted';
 
 export async function listCategories(db: Queryable, userId: string): Promise<Category[]> {
@@ -56,10 +56,19 @@ export async function insertCategory(
   userId: string,
   name: string,
 ): Promise<Category> {
+  // Serializes concurrent inserts per user (inside a transaction) so each sees the last one's color.
+  await db.query('select pg_advisory_xact_lock(hashtext($1))', [userId]);
   const { rows } = await db.query<Category>(
-    `insert into categories (user_id, name) values ($1, $2)
+    `insert into categories (user_id, name, color)
+     select $1::uuid, $2::text, p.color
+     from unnest($3::category_color[]) with ordinality as p(color, ord)
+     left join categories c
+       on c.user_id = $1::uuid and c.deleted_at is null and c.color = p.color
+     group by p.color, p.ord
+     order by count(c.id), p.ord
+     limit 1
      returning ${CATEGORY_RETURNING}`,
-    [userId, name],
+    [userId, name, CategoryColor.options],
   );
   return rowOrThrow(rows);
 }

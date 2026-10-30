@@ -1,7 +1,7 @@
 import type { Category, Importance, Tag, Taxonomy, TaxonomyFailure } from '@notes/shared';
 import type { Db } from '../../db';
 import { log, timed } from '../../requestLog';
-import type { Queryable } from '../../tx';
+import { withTransaction, type Queryable } from '../../tx';
 import * as repo from './repository';
 import type { NewTaxonomyPlan } from '../notes/note';
 import { isUsable, normalizeName } from './taxonomy';
@@ -43,7 +43,7 @@ export async function createCategory(
 ): Promise<Result<Category>> {
   const name = normalizeName(rawName);
   if (name === null) return fail('invalid_name');
-  return guarded(() => repo.insertCategory(db, userId, name));
+  return guarded(() => withTransaction(db, (tx) => repo.insertCategory(tx, userId, name)));
 }
 
 export async function renameCategory(

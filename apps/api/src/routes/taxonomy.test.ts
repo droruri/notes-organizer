@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ActionsResponse, Category, Tag, Taxonomy } from '@notes/shared';
+import { ActionsResponse, Category, CategoryColor, Tag, Taxonomy } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import { createPool } from '../db';
@@ -83,6 +83,34 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
     const tag = await newTag(cat.id, 'Garden');
     const taxonomy = Taxonomy.parse((await call('GET', '/taxonomy')).json());
     expect(taxonomy.categories.find((c) => c.id === cat.id)?.tags).toEqual([tag]);
+  });
+
+  it('gives new categories different colors and reuses a color freed by a delete', async () => {
+    const [a, b, c] = [
+      await newCategory('Col A'),
+      await newCategory('Col B'),
+      await newCategory('Col C'),
+    ];
+    expect(new Set([a.color, b.color, c.color]).size).toBe(3);
+    expect((await call('DELETE', `/categories/${b.id}`)).statusCode).toBe(204);
+    const used = new Set(
+      Taxonomy.parse((await call('GET', '/taxonomy')).json())
+        .categories.filter((x) => !x.deleted)
+        .map((x) => x.color),
+    );
+    const palette = CategoryColor.options.filter((k) => !used.has(k));
+    const d = await newCategory('Col D');
+    // Other test files share this user, so the freed color is only guaranteed to be picked when
+    // it is the first unused palette entry: assert the rule, and that the freed color is eligible.
+    expect(palette).toContain(b.color);
+    expect(palette[0]).toBe(d.color);
+    const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+    expect(listed.categories.find((x) => x.id === d.id)?.color).toBe(d.color);
+  });
+
+  it('gives concurrently created categories different colors', async () => {
+    const made = await Promise.all(['Par A', 'Par B', 'Par C'].map((n) => newCategory(n)));
+    expect(new Set(made.map((c) => c.color)).size).toBe(3);
   });
 
   it('rejects empty names and malformed bodies with 400', async () => {
@@ -250,7 +278,10 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
       await call('DELETE', `/categories/${cat.id}`);
       const res = await put(cat.id, { importance: 'important' });
       expect(res.statusCode).toBe(200);
-      expect(Category.parse(res.json())).toMatchObject({ deleted: true, importance: 'important' });
+      expect(Category.parse(res.json())).toMatchObject({
+        deleted: true,
+        importance: 'important',
+      });
     });
 
     it("404s for another user's category and leaves it untouched", async () => {

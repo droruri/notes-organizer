@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Importance } from './notes';
+import { CategoryColor, Importance } from './notes';
 
 // Schemas and types used by both web and api, defined once.
 
@@ -35,6 +35,7 @@ export const Category = z.object({
   deleted: z.boolean(),
   /** Optional default importance for notes in this category. */
   importance: Importance.nullable(),
+  color: CategoryColor,
 });
 export type Category = z.infer<typeof Category>;
 

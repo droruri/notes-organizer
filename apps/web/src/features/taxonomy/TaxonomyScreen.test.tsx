@@ -23,28 +23,48 @@ const taxonomy = () => ({
       name: 'עבודה',
       deleted: false,
       importance: null,
+      color: 'slate' as const,
       tags: [
         { id: T1, categoryId: C1, name: 'דחוף', deleted: false },
         { id: T2, categoryId: C1, name: 'ישן', deleted: true },
       ],
     },
-    { id: C2, name: 'בית', deleted: true, importance: null, tags: [] },
+    { id: C2, name: 'בית', deleted: true, importance: null, color: 'slate' as const, tags: [] },
   ],
 });
 
 function setup(overrides: Record<string, unknown> = {}) {
   const taxonomyApi = {
     taxonomy: vi.fn(async () => taxonomy()),
-    createCategory: vi.fn(async () => ({ id: C1, name: 'x', deleted: false, importance: null })),
-    renameCategory: vi.fn(async () => ({ id: C1, name: 'x', deleted: false, importance: null })),
+    createCategory: vi.fn(async () => ({
+      id: C1,
+      name: 'x',
+      deleted: false,
+      importance: null,
+      color: 'slate' as const,
+    })),
+    renameCategory: vi.fn(async () => ({
+      id: C1,
+      name: 'x',
+      deleted: false,
+      importance: null,
+      color: 'slate' as const,
+    })),
     setCategoryImportance: vi.fn(async () => ({
       id: C1,
       name: 'עבודה',
       deleted: false,
       importance: null,
+      color: 'slate' as const,
     })),
     deleteCategory: vi.fn(async () => undefined),
-    restoreCategory: vi.fn(async () => ({ id: C2, name: 'בית', deleted: false, importance: null })),
+    restoreCategory: vi.fn(async () => ({
+      id: C2,
+      name: 'בית',
+      deleted: false,
+      importance: null,
+      color: 'slate' as const,
+    })),
     createTag: vi.fn(async () => ({ id: T1, categoryId: C1, name: 'x', deleted: false })),
     renameTag: vi.fn(async () => ({ id: T1, categoryId: C1, name: 'x', deleted: false })),
     deleteTag: vi.fn(async () => undefined),
@@ -165,8 +185,22 @@ describe('TaxonomyScreen', () => {
     const { taxonomyApi } = setup({
       taxonomy: vi.fn(async () => ({
         categories: [
-          { id: C1, name: 'עבודה', deleted: false, importance: 'important', tags: [] },
-          { id: C2, name: 'בית', deleted: true, importance: 'not_important', tags: [] },
+          {
+            id: C1,
+            name: 'עבודה',
+            deleted: false,
+            importance: 'important',
+            color: 'slate' as const,
+            tags: [],
+          },
+          {
+            id: C2,
+            name: 'בית',
+            deleted: true,
+            importance: 'not_important',
+            color: 'slate' as const,
+            tags: [],
+          },
         ],
       })),
     });
