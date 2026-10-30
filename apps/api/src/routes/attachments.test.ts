@@ -271,6 +271,22 @@ describe.skipIf(!databaseUrl)('attachment routes against the local stack', () =>
     expect(again.statusCode).toBe(404);
   });
 
+  it('accepts an upload again once a remove frees the quota', async () => {
+    const id = await note();
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into note_attachments (note_id, name, mime, size, data)
+       values ($1, 'big', 'text/plain', $2, repeat('x', $2::int)::bytea) returning id`,
+      [id, ATTACHMENT_QUOTA_BYTES - 3],
+    );
+    const bigId = rows[0]?.id ?? '';
+    const blocked = await upload(id, { data: Buffer.from('abcd') });
+    expect(blocked.statusCode).toBe(422);
+    const del = await app.inject({ method: 'DELETE', url: fileUrl(id, bigId), headers: mine });
+    expect(del.statusCode).toBe(204);
+    const retry = await upload(id, { data: Buffer.from('abcd') });
+    expect(retry.statusCode).toBe(201);
+  });
+
   it("404s on another user's file, a deleted note and a malformed id", async () => {
     const id = await note();
     const att = Attachment.parse((await upload(id)).json());

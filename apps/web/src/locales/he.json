@@ -125,6 +125,7 @@
   "attachments": {
     "remove": "הסרת {{name}}",
     "confirmRemove": "להסיר?",
+    "confirmRemoveNamed": "להסיר את {{name}}?",
     "removeFailed": "הסרת הקובץ נכשלה.",
     "add": "הוספת קובץ",
     "uploading": "מעלה…",

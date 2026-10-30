@@ -75,11 +75,15 @@ export function Attachments({
     setRemoveFailed(false);
     try {
       await api.deleteAttachment(noteId, a.id);
-      setRemoved((r) => new Set(r).add(a.id));
-      void queryClient.invalidateQueries({ queryKey: ['notes'] });
-    } catch {
-      setRemoveFailed(true);
+    } catch (err) {
+      // 404: already gone (removed in another tab), so drop the row as well
+      if (!(err instanceof ApiRequestError && err.status === 404)) {
+        setRemoveFailed(true);
+        return;
+      }
     }
+    setRemoved((r) => new Set(r).add(a.id));
+    void queryClient.invalidateQueries({ queryKey: ['notes'] });
   }
 
   async function download(a: Attachment) {
@@ -119,7 +123,11 @@ export function Attachments({
                   type="button"
                   onClick={() => void remove(a)}
                   onBlur={() => setConfirming((c) => (c === a.id ? null : c))}
-                  aria-label={t('attachments.remove', { name: a.name })}
+                  aria-label={
+                    confirming === a.id
+                      ? t('attachments.confirmRemoveNamed', { name: a.name })
+                      : t('attachments.remove', { name: a.name })
+                  }
                   className="btn btn-sm shrink-0"
                 >
                   {confirming === a.id ? (
