@@ -330,7 +330,7 @@ and Re-analyze are the safety net.
   status, category and tag chips (deleted ones greyed), link previews, audio player, a
   "link not read" chip per entry in `unreadLinks`.
 - **NoteEditor** — one component with four callers: new draft review, edit, outbox item, import
-  row. Body, `TaxonomyPicker` (existing chips, Claude's new names with a "new" badge, inline
+  row. Body, `TaxonomyPicker` (existing chips, alphabetical (Hebrew-aware), Claude's new names with a "new" badge, inline
   create), due date, importance, urgency, status stepper (one step forward/back), link previews,
   audio player, Re-analyze, Submit/Save.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.

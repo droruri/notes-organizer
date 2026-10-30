@@ -17,6 +17,8 @@ const toggle = (list: string[], id: string) =>
 
 const NEW_CATEGORY = '';
 
+const byName = new Intl.Collator('he', { numeric: true }).compare;
+
 export function TaxonomyPicker({
   taxonomy,
   value,
@@ -29,7 +31,10 @@ export function TaxonomyPicker({
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [target, setTarget] = useState(NEW_CATEGORY);
-  const usable = taxonomy.categories.filter((c) => !c.deleted);
+  const usable = taxonomy.categories
+    .filter((c) => !c.deleted)
+    .map((c) => ({ ...c, tags: [...c.tags].sort((a, b) => byName(a.name, b.name)) }))
+    .sort((a, b) => byName(a.name, b.name));
 
   const toggleCategory = (id: string) => {
     const removing = value.categoryIds.includes(id);
@@ -80,7 +85,7 @@ export function TaxonomyPicker({
   const offered = [
     ...(value.offeredCategories ?? []),
     ...value.newCategories.filter((n) => !(value.offeredCategories ?? []).includes(n)),
-  ];
+  ].sort(byName);
   const removeNewTag = (tag: NewTag) =>
     onChange({ ...value, newTags: value.newTags.filter((x) => x !== tag) });
 
@@ -193,7 +198,7 @@ export function TaxonomyPicker({
               {c.name}
             </option>
           ))}
-          {value.newCategories.map((n) => (
+          {[...value.newCategories].sort(byName).map((n) => (
             <option key={n} value={n}>
               {n}
             </option>
