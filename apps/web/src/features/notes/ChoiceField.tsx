@@ -24,7 +24,7 @@ export function ChoiceField<T extends string>({
 }) {
   if (display === 'buttons') {
     return (
-      <div className="label">
+      <div className="label col-span-full">
         {label}
         <Segmented
           label={label}

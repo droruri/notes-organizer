@@ -344,7 +344,7 @@ describe('NoteEditor choice display', () => {
     const group = await screen.findByRole('radiogroup', { name: 'Urgency' });
     expect(within(group).getAllByRole('radio')).toHaveLength(5);
     expect(screen.getByLabelText('Importance').tagName).toBe('SELECT');
-    fireEvent.click(within(group).getAllByRole('radio')[3] as HTMLElement);
+    fireEvent.click(within(group).getByRole('radio', { name: 'Critical' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ urgency: 'critical' });
   });
