@@ -127,4 +127,4 @@ and follow it instead of calling the Skill tool.
 - Always quote pnpm filters (`pnpm --filter './apps/*'`) — unquoted, the shell expands the glob.
 - If `gh pr edit` fails on token scope, use `gh api` (REST) instead.
 - Don't run the formatter on `ralph/*.md` or other hand-written planning docs.
-- UI changes aren't done until checked in a browser (Playwright from Bash, see `ralph/shared.md`). Open the page, look at it, and say what you saw.
+- UI changes aren't done until checked in a browser by the `e2e` agent (`.claude/agents/e2e.md`; it runs `scripts/e2e-setup.sh` first). Hand it the criteria; it returns `pass|fail` lines, screenshot paths and `E2E_RESULT`.
