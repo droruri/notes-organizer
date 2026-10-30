@@ -419,12 +419,16 @@ export function NotesScreen({
             <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
           </button>
+          <div
+            aria-hidden="true"
+            className="bg-bg fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
+          />
           <button
             type="button"
             onClick={() => open(ROUTES.compose)}
-            className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
+            className="btn btn-primary sm:min-h-11 sm:px-5 max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-16 max-sm:-translate-x-1/2 max-sm:rounded-2xl max-sm:px-8 max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
           >
-            <Icon name="plus" size={18} />
+            <Icon name="plus" size={22} />
             {t('notes.add')}
           </button>
         </div>
@@ -459,14 +463,16 @@ export function NotesScreen({
         </p>
       )}
       {waiting}
-      <NoteList
-        notes={visible}
-        filtered={notes.data.length > 0}
-        taxonomy={taxonomy.data}
-        today={today}
-        onOpen={(note) => open(notePath(note.id))}
-        onAdd={() => open(ROUTES.compose)}
-      />
+      <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <NoteList
+          notes={visible}
+          filtered={notes.data.length > 0}
+          taxonomy={taxonomy.data}
+          today={today}
+          onOpen={(note) => open(notePath(note.id))}
+          onAdd={() => open(ROUTES.compose)}
+        />
+      </div>
       {undo.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
