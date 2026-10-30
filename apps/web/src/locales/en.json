@@ -14,6 +14,7 @@
   "auth": {
     "loading": "Signing in…",
     "signInGoogle": "Sign in with Google",
+    "signInError": "Sign-in failed. Please try again.",
     "devSignIn": "Dev sign-in",
     "signOut": "Sign out",
     "noAccess": {

@@ -1,9 +1,29 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { DevSignIn } from './DevSignIn';
 
 export function SignIn() {
   const { t } = useTranslation();
+  const [failed, setFailed] = useState(false);
+
+  async function signIn() {
+    setFailed(false);
+    try {
+      const { data, error } = await supabase().auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) {
+        setFailed(true);
+        return;
+      }
+      window.location.replace(data.url);
+    } catch {
+      setFailed(true);
+    }
+  }
+
   return (
     <section className="enter-rise mx-auto mt-10 flex max-w-sm flex-col items-center gap-6 text-center">
       <div aria-hidden="true" className="relative h-32 w-60">
@@ -28,16 +48,7 @@ export function SignIn() {
         <p className="text-muted">{t('auth.welcome.body')}</p>
       </div>
       <div className="flex w-full flex-col gap-2">
-        <button
-          type="button"
-          onClick={() =>
-            void supabase().auth.signInWithOAuth({
-              provider: 'google',
-              options: { redirectTo: window.location.origin },
-            })
-          }
-          className="btn w-full"
-        >
+        <button type="button" onClick={() => void signIn()} className="btn w-full">
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
             <path
               fill="#EA4335"
@@ -58,6 +69,11 @@ export function SignIn() {
           </svg>
           {t('auth.signInGoogle')}
         </button>
+        {failed ? (
+          <p role="alert" className="notice notice-danger">
+            {t('auth.signInError')}
+          </p>
+        ) : null}
         {import.meta.env.DEV ? <DevSignIn /> : null}
       </div>
     </section>
