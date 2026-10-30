@@ -13,6 +13,7 @@ const taxonomy: Taxonomy = {
       name: 'Work',
       deleted: false,
       importance: null,
+      color: 'slate',
       tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
     },
     {
@@ -20,6 +21,7 @@ const taxonomy: Taxonomy = {
       name: 'Old',
       deleted: true,
       importance: null,
+      color: 'slate',
       tags: [{ id: T2, categoryId: C2, name: 'x', deleted: false }],
     },
   ],

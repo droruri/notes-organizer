@@ -31,6 +31,7 @@ Decisions taken with the user:
 | New taxonomy from Claude | Allowed, shown with a "new" badge, created only when the note is submitted. |
 | Status | `draft → todo → in_progress → done`; one step forward or back; no skipping; `draft` leaves only by submit. |
 | Category importance | A category has an optional default importance (none / important / not important), set with one tap on the categories screen and clearable. Deleted categories show it as a muted pill. |
+| Category color | Every category has one of 8 palette colors (`blue, green, purple, amber, teal, pink, red, slate`), assigned on creation as the least-used among the user's active categories (ties → palette order). Notes show their categories as colored tabs on the collapsed card. |
 | Deleting a category/tag | Soft delete: not offered for new choices, shown disabled on notes that have it, restorable. A deleted category makes its tags unavailable too. |
 | Notes | Every field editable after submit; soft delete with an Undo toast; "Re-analyze" re-runs Claude and fills the editor without writing. |
 | Link preview | YouTube/Vimeo play in an iframe; articles show an OG card; tap opens a server-extracted reader view. |
@@ -141,7 +142,7 @@ erDiagram
   notes ||--o{ note_attachments : ""
   auth_users ||--o{ allowed_users : "added_by"
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
-  categories { uuid id PK uuid user_id FK text name importance importance "optional default" timestamptz deleted_at timestamptz created_at }
+  categories { uuid id PK uuid user_id FK text name importance importance "optional default" category_color color timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
   notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
   note_categories { uuid note_id PK uuid category_id PK }
@@ -152,7 +153,8 @@ erDiagram
 ```
 
 - Enums: `note_status (draft, todo, in_progress, done)`, `importance (important, not_important)`,
-  `urgency (not_critical, medium, critical, urgent)`. `importance`, `urgency`, `due_date` nullable.
+  `urgency (not_critical, medium, critical, urgent)`,
+  `category_color (blue, green, purple, amber, teal, pink, red, slate)`. `importance`, `urgency`, `due_date` nullable.
 - Unique active names: `unique (user_id, lower(name)) where deleted_at is null` on categories;
   `unique (category_id, lower(name)) where deleted_at is null` on tags;
   `unique (user_id, client_id)` on notes.

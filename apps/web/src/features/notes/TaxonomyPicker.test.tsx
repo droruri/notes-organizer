@@ -7,7 +7,9 @@ import { TaxonomyPicker } from './TaxonomyPicker';
 
 const C = '11111111-1111-4111-8111-111111111111';
 const taxonomy: Taxonomy = {
-  categories: [{ id: C, name: 'עבודה', deleted: false, importance: null, tags: [] }],
+  categories: [
+    { id: C, name: 'עבודה', deleted: false, importance: null, color: 'slate' as const, tags: [] },
+  ],
 };
 afterEach(cleanup);
 
@@ -32,6 +34,7 @@ describe('TaxonomyPicker', () => {
       tagIds: [],
       dueDate: null,
       importance: null,
+      color: 'slate' as const,
       urgency: null,
       title: null,
       unreadLinks: [],
@@ -88,6 +91,7 @@ describe('TaxonomyPicker', () => {
           name: 'עבודה',
           deleted: false,
           importance: null,
+          color: 'slate' as const,
           tags: [{ id: T, categoryId: C, name: 'דחוף', deleted: false }],
         },
       ],
@@ -147,6 +151,7 @@ describe('TaxonomyPicker', () => {
         name,
         deleted: false,
         importance: null,
+        color: 'slate' as const,
         tags: name === 'אוכל' ? [tag('t1', 'תה'), tag('t2', 'אורז')] : [],
       })),
     };
