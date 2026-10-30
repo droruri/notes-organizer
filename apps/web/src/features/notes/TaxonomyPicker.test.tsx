@@ -1,5 +1,5 @@
 import type { Taxonomy } from '@notes/shared';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { pickedFrom } from './picked';
@@ -77,5 +77,35 @@ describe('TaxonomyPicker', () => {
     fireEvent.change(screen.getByLabelText('שם חדש'), { target: { value: ' קניות ' } });
     fireEvent.click(screen.getByText('הוספה'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ newCategories: ['קניות'] }));
+  });
+
+  it('groups tags under their category with a bare accessible name', () => {
+    const T = '22222222-2222-4222-8222-222222222222';
+    const tax: Taxonomy = {
+      categories: [
+        {
+          id: C,
+          name: 'עבודה',
+          deleted: false,
+          tags: [{ id: T, categoryId: C, name: 'דחוף', deleted: false }],
+        },
+      ],
+    };
+    render(
+      <TaxonomyPicker
+        taxonomy={tax}
+        value={{
+          categoryIds: [],
+          tagIds: [],
+          newCategories: ['בית'],
+          newTags: [{ categoryName: 'בית', name: 'כביסה' }],
+        }}
+        onChange={() => undefined}
+      />,
+    );
+    const work = screen.getByRole('group', { name: 'עבודה' });
+    expect(within(work).getByRole('button', { name: 'דחוף' })).toBeTruthy();
+    const home = screen.getByRole('group', { name: 'בית' });
+    expect(within(home).getByRole('button', { name: /כביסה/ })).toBeTruthy();
   });
 });

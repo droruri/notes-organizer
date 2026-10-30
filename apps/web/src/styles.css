@@ -367,6 +367,17 @@
     transition-duration: 150ms;
     transition-timing-function: ease-out;
   }
+  .chip-tag {
+    border-radius: 6px;
+  }
+  .chip-tag::before {
+    content: '#';
+    content: '#' / '';
+    color: var(--muted);
+  }
+  .chip-tag[aria-pressed='true']::before {
+    color: inherit;
+  }
   .chip[aria-pressed='true'] {
     border-color: var(--accent);
     background: var(--accent-soft);
