@@ -100,8 +100,10 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
     );
     const palette = CategoryColor.options.filter((k) => !used.has(k));
     const d = await newCategory('Col D');
+    // Other test files share this user, so the freed color is only guaranteed to be picked when
+    // it is the first unused palette entry: assert the rule, and that the freed color is eligible.
+    expect(palette).toContain(b.color);
     expect(palette[0]).toBe(d.color);
-    expect(d.color).toBe(b.color);
     const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
     expect(listed.categories.find((x) => x.id === d.id)?.color).toBe(d.color);
   });
