@@ -120,6 +120,7 @@ export function NoteFilters({
               <Chip
                 key={tag.id}
                 label={tag.name}
+                tag
                 deleted={tag.deleted}
                 selected={filter.tagIds.includes(tag.id)}
                 onClick={() => set({ tagIds: toggle(filter.tagIds, tag.id) })}
