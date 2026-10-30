@@ -93,7 +93,9 @@ export function Attachments({
                 <span dir="auto" className="min-w-0 flex-1 truncate text-start">
                   {a.name}
                 </span>
-                <span className="text-xs text-muted tabular-nums">{formatSize(a.size)}</span>
+                <span dir="ltr" className="text-xs text-muted tabular-nums">
+                  {formatSize(a.size)}
+                </span>
               </button>
             </li>
           ))}
