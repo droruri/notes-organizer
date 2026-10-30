@@ -218,6 +218,12 @@ export const api = {
   noteAudio,
   uploadAttachment,
   attachmentFile,
+  deleteAttachment: (noteId: string, id: string) =>
+    request(
+      'DELETE',
+      `/notes/${encodeURIComponent(noteId)}/attachments/${encodeURIComponent(id)}`,
+      NoContent,
+    ),
   updateNote: (id: string, edit: NoteEdit) => request('PATCH', `/notes/${id}`, Note, edit),
   deleteNote: (id: string) => request('DELETE', `/notes/${id}`, NoContent),
   restoreNote: (id: string) => request('POST', `/notes/${id}/restore`, Note),

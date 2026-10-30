@@ -67,3 +67,16 @@ export function getAttachment(
     return found;
   });
 }
+
+export function removeAttachment(
+  db: Db,
+  userId: string,
+  noteId: string,
+  id: string,
+): Promise<boolean> {
+  return timed('removeAttachment', { noteId, attachmentId: id }, async () => {
+    const removed = await repo.deleteAttachment(db, userId, noteId, id);
+    if (removed) log().info({ noteId, attachmentId: id }, 'attachment removed');
+    return removed;
+  });
+}

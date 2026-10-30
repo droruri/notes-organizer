@@ -54,4 +54,17 @@ export function attachmentsRoutes(app: FastifyInstance, db: Db): void {
     if (!file) return reply.code(404).send({ error: 'not_found' });
     return reply.type(file.mime).header('x-content-type-options', 'nosniff').send(file.data);
   });
+
+  app.delete('/notes/:id/attachments/:attachmentId', async (req, reply) => {
+    const params = FileParams.safeParse(req.params);
+    if (!params.success) return reply.code(404).send({ error: 'not_found' });
+    const removed = await service.removeAttachment(
+      db,
+      currentUser(req).id,
+      params.data.id,
+      params.data.attachmentId,
+    );
+    if (!removed) return reply.code(404).send({ error: 'not_found' });
+    return reply.code(204).send();
+  });
 }

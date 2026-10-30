@@ -122,6 +122,9 @@
     "audioFailed": "Could not load the recording."
   },
   "attachments": {
+    "remove": "Remove {{name}}",
+    "confirmRemove": "Remove?",
+    "removeFailed": "Removing the file failed.",
     "add": "Add file",
     "uploading": "Uploading…",
     "loading": "Loading…",

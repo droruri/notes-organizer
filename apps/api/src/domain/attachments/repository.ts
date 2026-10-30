@@ -64,3 +64,17 @@ export async function findAttachment(
   );
   return rows[0];
 }
+
+export async function deleteAttachment(
+  db: Queryable,
+  userId: string,
+  noteId: string,
+  id: string,
+): Promise<boolean> {
+  const { rowCount } = await db.query(
+    `delete from note_attachments a using notes n
+     where a.id = $1 and a.note_id = $2 and n.id = a.note_id and n.user_id = $3 and n.deleted_at is null`,
+    [id, noteId, userId],
+  );
+  return (rowCount ?? 0) > 0;
+}

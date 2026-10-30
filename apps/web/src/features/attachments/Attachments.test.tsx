@@ -101,4 +101,22 @@ describe('Attachments', () => {
     expect(camera.getAttribute('accept')).toBe('image/*');
     expect(camera.getAttribute('capture')).toBe('environment');
   });
+
+  it('needs a second tap to remove, then drops the row', async () => {
+    const a = att('old.pdf');
+    const del = vi.spyOn(api, 'deleteAttachment').mockResolvedValue(undefined);
+    setup([a]);
+    const button = screen.getByRole('button', { name: 'Remove old.pdf' });
+    fireEvent.click(button);
+    expect(del).not.toHaveBeenCalled();
+    expect(screen.getByText('Remove?')).toBeTruthy();
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.queryByText('old.pdf')).toBeNull());
+    expect(del).toHaveBeenCalledWith(NOTE, a.id);
+  });
+
+  it('has no remove button when read-only', () => {
+    setup([att('old.pdf')], false);
+    expect(screen.queryByRole('button', { name: 'Remove old.pdf' })).toBeNull();
+  });
 });

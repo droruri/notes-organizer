@@ -123,6 +123,9 @@
     "audioFailed": "טעינת ההקלטה נכשלה."
   },
   "attachments": {
+    "remove": "הסרת {{name}}",
+    "confirmRemove": "להסיר?",
+    "removeFailed": "הסרת הקובץ נכשלה.",
     "add": "הוספת קובץ",
     "uploading": "מעלה…",
     "loading": "טוען…",
