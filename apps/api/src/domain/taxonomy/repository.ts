@@ -1,9 +1,10 @@
-import type { Category, Tag } from '@notes/shared';
+import type { Category, Importance, Tag } from '@notes/shared';
 import type { Queryable } from '../../tx';
 
 // SQL for categories and tags. Tags have no user_id: ownership is checked through the category.
 
-const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted';
+const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted, c.importance';
+const CATEGORY_RETURNING = 'id, name, deleted_at is not null as deleted, importance';
 const TAG_COLS = 't.id, t.category_id as "categoryId", t.name, t.deleted_at is not null as deleted';
 
 export async function listCategories(db: Queryable, userId: string): Promise<Category[]> {
@@ -57,7 +58,7 @@ export async function insertCategory(
 ): Promise<Category> {
   const { rows } = await db.query<Category>(
     `insert into categories (user_id, name) values ($1, $2)
-     returning id, name, deleted_at is not null as deleted`,
+     returning ${CATEGORY_RETURNING}`,
     [userId, name],
   );
   return rowOrThrow(rows);
@@ -82,8 +83,20 @@ export async function updateCategory(
        name = coalesce($2, name),
        deleted_at = case when $3::boolean is null then deleted_at
                          when $3 then coalesce(deleted_at, now()) else null end
-     where id = $1 returning id, name, deleted_at is not null as deleted`,
+     where id = $1 returning ${CATEGORY_RETURNING}`,
     [id, 'name' in change ? change.name : null, 'deleted' in change ? change.deleted : null],
+  );
+  return rowOrThrow(rows);
+}
+
+export async function updateCategoryImportance(
+  db: Queryable,
+  id: string,
+  importance: Importance | null,
+): Promise<Category> {
+  const { rows } = await db.query<Category>(
+    `update categories set importance = $2 where id = $1 returning ${CATEGORY_RETURNING}`,
+    [id, importance],
   );
   return rowOrThrow(rows);
 }

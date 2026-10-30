@@ -22,22 +22,29 @@ const taxonomy = () => ({
       id: C1,
       name: 'עבודה',
       deleted: false,
+      importance: null,
       tags: [
         { id: T1, categoryId: C1, name: 'דחוף', deleted: false },
         { id: T2, categoryId: C1, name: 'ישן', deleted: true },
       ],
     },
-    { id: C2, name: 'בית', deleted: true, tags: [] },
+    { id: C2, name: 'בית', deleted: true, importance: null, tags: [] },
   ],
 });
 
 function setup(overrides: Record<string, unknown> = {}) {
   const taxonomyApi = {
     taxonomy: vi.fn(async () => taxonomy()),
-    createCategory: vi.fn(async () => ({ id: C1, name: 'x', deleted: false })),
-    renameCategory: vi.fn(async () => ({ id: C1, name: 'x', deleted: false })),
+    createCategory: vi.fn(async () => ({ id: C1, name: 'x', deleted: false, importance: null })),
+    renameCategory: vi.fn(async () => ({ id: C1, name: 'x', deleted: false, importance: null })),
+    setCategoryImportance: vi.fn(async () => ({
+      id: C1,
+      name: 'עבודה',
+      deleted: false,
+      importance: null,
+    })),
     deleteCategory: vi.fn(async () => undefined),
-    restoreCategory: vi.fn(async () => ({ id: C2, name: 'בית', deleted: false })),
+    restoreCategory: vi.fn(async () => ({ id: C2, name: 'בית', deleted: false, importance: null })),
     createTag: vi.fn(async () => ({ id: T1, categoryId: C1, name: 'x', deleted: false })),
     renameTag: vi.fn(async () => ({ id: T1, categoryId: C1, name: 'x', deleted: false })),
     deleteTag: vi.fn(async () => undefined),
@@ -135,5 +142,38 @@ describe('TaxonomyScreen', () => {
     const { onTag } = setup();
     fireEvent.click(await screen.findByRole('button', { name: 'דחוף' }));
     expect(onTag).toHaveBeenCalledWith(T1);
+  });
+
+  it('sets, changes and clears a category importance with one tap', async () => {
+    const { taxonomyApi } = setup();
+    await screen.findByText('עבודה');
+    const group = screen.getByRole('radiogroup', { name: 'חשיבות ברירת מחדל לעבודה' });
+    expect(group).toBeTruthy();
+    const none = screen.getByRole('radio', { name: 'ללא' });
+    expect(none.getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(screen.getByRole('radio', { name: 'חשוב' }));
+    await waitFor(() =>
+      expect(taxonomyApi.setCategoryImportance).toHaveBeenCalledWith(C1, 'important'),
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'לא חשוב' }));
+    await waitFor(() =>
+      expect(taxonomyApi.setCategoryImportance).toHaveBeenCalledWith(C1, 'not_important'),
+    );
+  });
+
+  it('clears the level by tapping none, and shows deleted categories a pill instead', async () => {
+    const { taxonomyApi } = setup({
+      taxonomy: vi.fn(async () => ({
+        categories: [
+          { id: C1, name: 'עבודה', deleted: false, importance: 'important', tags: [] },
+          { id: C2, name: 'בית', deleted: true, importance: 'not_important', tags: [] },
+        ],
+      })),
+    });
+    await screen.findByText('עבודה');
+    fireEvent.click(screen.getByRole('radio', { name: 'ללא' }));
+    await waitFor(() => expect(taxonomyApi.setCategoryImportance).toHaveBeenCalledWith(C1, null));
+    expect(screen.getAllByRole('radiogroup')).toHaveLength(1);
+    expect(screen.getByText('ברירת מחדל: לא חשוב')).toBeTruthy();
   });
 });

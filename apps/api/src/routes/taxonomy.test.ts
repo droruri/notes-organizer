@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import { createPool } from '../db';
 import { buildServer } from '../server';
+import { captureLogs } from '../test-logs';
 import type { VerifyToken } from '../auth';
 
 // Own users, so these tests don't race the settings tests that delete ALLOWED_USER.
@@ -29,10 +30,17 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
   const mine = { authorization: 'Bearer allowed' };
   const theirs = { authorization: 'Bearer other' };
 
-  const call = (method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, payload?: object) =>
-    app.inject({ method, url, headers: mine, ...(payload ? { payload } : {}) });
-  const as = (headers: typeof mine, method: 'POST' | 'PATCH' | 'DELETE', url: string, p?: object) =>
-    app.inject({ method, url, headers, ...(p ? { payload: p } : {}) });
+  const call = (
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers: mine, ...(payload ? { payload } : {}) });
+  const as = (
+    headers: typeof mine,
+    method: 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+    url: string,
+    p?: object,
+  ) => app.inject({ method, url, headers, ...(p ? { payload: p } : {}) });
 
   async function newCategory(name: string) {
     const res = await call('POST', '/categories', { name });
@@ -221,6 +229,75 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
         expect(res.statusCode).toBe(400);
         expect(res.json()).toEqual({ error: 'invalid_body' });
       }
+    });
+  });
+
+  describe('PUT /categories/:id/importance', () => {
+    const put = (id: string, payload: object, headers = mine) =>
+      as(headers, 'PUT', `/categories/${id}/importance`, payload);
+
+    it('sets, changes and clears the level; GET /taxonomy shows it; works on deleted categories', async () => {
+      const cat = await newCategory(`imp-${randomUUID()}`);
+      expect(cat.importance).toBeNull();
+      const levels = ['important', 'not_important', null] as const;
+      for (const importance of levels) {
+        const res = await put(cat.id, { importance });
+        expect(res.statusCode).toBe(200);
+        expect(Category.parse(res.json()).importance).toBe(importance);
+        const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+        expect(listed.categories.find((c) => c.id === cat.id)?.importance).toBe(importance);
+      }
+      await call('DELETE', `/categories/${cat.id}`);
+      const res = await put(cat.id, { importance: 'important' });
+      expect(res.statusCode).toBe(200);
+      expect(Category.parse(res.json())).toMatchObject({ deleted: true, importance: 'important' });
+    });
+
+    it("404s for another user's category and leaves it untouched", async () => {
+      const cat = await newCategory(`imp-own-${randomUUID()}`);
+      const res = await put(cat.id, { importance: 'important' }, theirs);
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toEqual({ error: 'not_found' });
+      const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+      expect(listed.categories.find((c) => c.id === cat.id)?.importance).toBeNull();
+    });
+
+    it('400s on a bad body', async () => {
+      const cat = await newCategory(`imp-bad-${randomUUID()}`);
+      for (const body of [{ importance: 'urgent' }, {}, { importance: 1 }]) {
+        const res = await put(cat.id, body);
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_body' });
+      }
+    });
+
+    it('logs the outcome and the not-found warning', async () => {
+      const { app: logged, lines } = captureLogs({
+        db: pool,
+        verifyToken: fakeVerifyToken,
+        allowedEmails: new Set([ALLOWED_USER.email, OTHER_USER.email]),
+      });
+      const cat = await newCategory(`imp-log-${randomUUID()}`);
+      const send = (id: string, headers: typeof mine) =>
+        logged.inject({
+          method: 'PUT',
+          url: `/categories/${id}/importance`,
+          headers,
+          payload: { importance: 'important' },
+        });
+      expect((await send(cat.id, mine)).statusCode).toBe(200);
+      expect(lines.find((l) => l.msg === 'category importance set')).toMatchObject({
+        level: 30,
+        categoryId: cat.id,
+        importance: 'important',
+      });
+      expect((await send(cat.id, theirs)).statusCode).toBe(404);
+      expect(lines.find((l) => l.msg === 'category importance failed')).toMatchObject({
+        level: 40,
+        categoryId: cat.id,
+        error: 'not_found',
+      });
+      await logged.close();
     });
   });
 });

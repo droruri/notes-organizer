@@ -211,6 +211,14 @@
     "deleteItem": "מחיקת {{name}}",
     "restore": "שחזור",
     "restoreItem": "שחזור {{name}}",
+    "importance": {
+      "labelFor": "חשיבות ברירת מחדל ל{{name}}",
+      "label": "חשיבות ברירת מחדל",
+      "none": "ללא",
+      "important": "חשוב",
+      "not_important": "לא חשוב",
+      "pill": "ברירת מחדל: {{level}}"
+    },
     "deleted": "נמחק",
     "save": "שמירה",
     "cancel": "ביטול",

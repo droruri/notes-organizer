@@ -30,6 +30,7 @@ Decisions taken with the user:
 | Models | Classification and import: `claude-haiku-5-5`. Chat: `claude-sonnet-5-5`. Both set by env. |
 | New taxonomy from Claude | Allowed, shown with a "new" badge, created only when the note is submitted. |
 | Status | `draft → todo → in_progress → done`; one step forward or back; no skipping; `draft` leaves only by submit. |
+| Category importance | A category has an optional default importance (none / important / not important), set with one tap on the categories screen and clearable. Deleted categories show it as a muted pill. |
 | Deleting a category/tag | Soft delete: not offered for new choices, shown disabled on notes that have it, restorable. A deleted category makes its tags unavailable too. |
 | Notes | Every field editable after submit; soft delete with an Undo toast; "Re-analyze" re-runs Claude and fills the editor without writing. |
 | Link preview | YouTube/Vimeo play in an iframe; articles show an OG card; tap opens a server-extracted reader view. |
@@ -102,7 +103,7 @@ lib/i18n.ts         i18next: he (default) + en; sets <html lang dir>. locales/he
 features/auth/      AuthProvider, SignIn (Google), DevSignIn (seed user, DEV only), NoAccess.
 features/notes/     NotesScreen, NoteList, NoteCard, NoteFilters, NoteEditor, TaxonomyPicker,
                     VoiceRecorder, LinkPreview, UndoToast, useNotes.
-features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore; tap a tag to filter notes).
+features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore, set a category's default importance with a three-segment radio group; tap a tag to filter notes).
 features/chat/      ChatPanel, ActionCard.
 features/imports/   ImportDialog.
 features/offline/   outbox.ts (localStorage + idb-keyval), useOnline, OfflineBanner, OutboxDialog.
@@ -140,7 +141,7 @@ erDiagram
   notes ||--o{ note_attachments : ""
   auth_users ||--o{ allowed_users : "added_by"
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
-  categories { uuid id PK uuid user_id FK text name timestamptz deleted_at timestamptz created_at }
+  categories { uuid id PK uuid user_id FK text name importance importance "optional default" timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
   notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
   note_categories { uuid note_id PK uuid category_id PK }
@@ -215,6 +216,7 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/categories` | `{name}` | `201 Category` · `409 name_taken` |
 | PATCH | `/categories/:id` | `{name}` | `Category` · `409 name_taken` |
 | DELETE | `/categories/:id` | — | `204` (soft) |
+| PUT | `/categories/:id/importance` | `{importance: important\|not_important\|null}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | POST | `/categories/:id/restore` | — | `Category` · `409 name_taken` if an active one has the name |
 | POST | `/categories/:id/tags` | `{name}` | `201 Tag` · `409 name_taken` · `422 category_deleted` |
 | PATCH / DELETE | `/tags/:id` | `{name}` / — | `Tag` / `204` |

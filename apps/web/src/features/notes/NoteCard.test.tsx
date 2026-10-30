@@ -25,7 +25,9 @@ const note: Note = {
   createdAt: '2026-10-20T10:00:00Z',
   updatedAt: '2026-10-20T10:00:00Z',
 };
-const taxonomy = { categories: [{ id: CAT, name: 'Home', deleted: false, tags: [] }] };
+const taxonomy = {
+  categories: [{ id: CAT, name: 'Home', deleted: false, importance: null, tags: [] }],
+};
 
 function renderCard(onOpen = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -102,6 +104,7 @@ describe('NoteCard chips', () => {
                   id: CAT,
                   name: 'Home',
                   deleted: false,
+                  importance: null,
                   tags: [{ id: TAG, categoryId: CAT, name: 'urgent-fix', deleted: false }],
                 },
               ],

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { api, ApiRequestError } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
+import { ImportanceControl } from './ImportanceControl';
 
 type TaxonomyApi = Pick<
   typeof api,
@@ -12,6 +13,7 @@ type TaxonomyApi = Pick<
   | 'renameCategory'
   | 'deleteCategory'
   | 'restoreCategory'
+  | 'setCategoryImportance'
   | 'createTag'
   | 'renameTag'
   | 'deleteTag'
@@ -203,6 +205,23 @@ export function TaxonomyScreen({
                   </>
                 )}
               </div>
+
+              {c.deleted ? (
+                c.importance && (
+                  <span className="pill self-start">
+                    {t('taxonomy.importance.pill', {
+                      level: t(`taxonomy.importance.${c.importance}`),
+                    })}
+                  </span>
+                )
+              ) : (
+                <ImportanceControl
+                  name={c.name}
+                  value={c.importance}
+                  disabled={run.isPending}
+                  onChange={(next) => write(() => taxonomyApi.setCategoryImportance(c.id, next))}
+                />
+              )}
 
               <ul className="flex flex-col gap-2">
                 {c.tags.map((tag) => (
