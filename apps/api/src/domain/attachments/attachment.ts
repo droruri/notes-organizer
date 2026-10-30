@@ -11,11 +11,15 @@ import {
 
 /** Trims, replaces path separators and control characters with `_`, caps the length. Null when nothing is left. */
 export function cleanName(name: string): string | null {
-  const cleaned = name
-    // eslint-disable-next-line no-control-regex
-    .replace(/[/\\\u0000-\u001f\u007f-\u009f]/g, '_')
-    .trim()
+  const cleaned = Array.from(
+    name
+      // eslint-disable-next-line no-control-regex
+      .replace(/[/\\\u0000-\u001f\u007f-\u009f]/g, '_')
+      .trim(),
+  )
+    // Counts code points, so a cut never splits an emoji into a lone surrogate.
     .slice(0, MAX_ATTACHMENT_NAME_LENGTH)
+    .join('')
     .trim();
   return cleaned === '' ? null : cleaned;
 }

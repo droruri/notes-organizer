@@ -7,6 +7,7 @@ import {
   type NoteStatus,
   type Urgency,
 } from '@notes/shared';
+import { log } from '../../requestLog';
 import type { Queryable } from '../../tx';
 import type { Links } from './note';
 
@@ -32,6 +33,7 @@ const NOTE_SELECT = `
 function toNote(row: NoteRow): Note {
   const proposed = Proposed.safeParse(row.proposed);
   const attachments = z.array(Attachment).safeParse(row.attachments);
+  if (!attachments.success) log().warn({ noteId: row.id }, 'note attachments unreadable');
   return {
     ...row,
     proposed: proposed.success ? proposed.data : null,

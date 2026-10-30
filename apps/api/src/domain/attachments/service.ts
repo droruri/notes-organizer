@@ -44,6 +44,7 @@ async function addUntimed(
   const name = cleanName(file.name);
   if (name === null || file.data.length === 0) return fail('invalid_body');
   return withTransaction(db, async (tx) => {
+    await repo.lockUserUploads(tx, userId);
     if (!(await repo.lockNote(tx, userId, noteId))) return fail('not_found');
     const usage = await repo.countAndUsage(tx, userId, noteId);
     const error = checkUpload({ mime: file.mime, size: file.data.length, ...usage });

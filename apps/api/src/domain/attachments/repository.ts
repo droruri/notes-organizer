@@ -22,6 +22,11 @@ export async function insertAttachment(
   return { ...row, createdAt: row.createdAt.toISOString() };
 }
 
+/** Serializes uploads per user, so two notes cannot both pass the quota check. Held until the transaction ends. */
+export async function lockUserUploads(db: Queryable, userId: string): Promise<void> {
+  await db.query("select pg_advisory_xact_lock(hashtext('attachments:' || $1))", [userId]);
+}
+
 /** Locks the user's live note row until the transaction ends; false when there is none. */
 export async function lockNote(db: Queryable, userId: string, noteId: string): Promise<boolean> {
   const { rowCount } = await db.query(

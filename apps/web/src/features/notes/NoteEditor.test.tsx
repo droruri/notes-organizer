@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EMPTY_SUGGESTION, type Note, type Suggestion } from '@notes/shared';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
@@ -119,5 +120,34 @@ describe('NoteEditor title', () => {
     fireEvent.change(input(), { target: { value: '  ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ title: null }));
+  });
+});
+
+describe('attachments gate', () => {
+  const renderEditor = (attachable: boolean) =>
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <NoteEditor
+          note={note('Plan')}
+          suggestion={EMPTY_SUGGESTION}
+          taxonomy={{ categories: [] }}
+          busy={false}
+          failed={false}
+          onSubmit={vi.fn()}
+          onCancel={() => undefined}
+          onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+          attachable={attachable}
+        />
+      </QueryClientProvider>,
+    );
+
+  it('offers Add file when the editor is attachable', () => {
+    renderEditor(true);
+    expect(screen.getByText('Add file')).toBeTruthy();
+  });
+
+  it('hides Add file for import rows and outbox items', () => {
+    renderEditor(false);
+    expect(screen.queryByText('Add file')).toBeNull();
   });
 });

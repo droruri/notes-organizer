@@ -57,7 +57,9 @@ describe('Attachments', () => {
     pick(new File(['x'], 'huge.pdf'), new File(['x'], 'small.pdf'));
     expect(await screen.findByText('The file is larger than 10 MB.')).toBeTruthy();
     expect(await screen.findByRole('button', { name: 'Download small.pdf' })).toBeTruthy();
-    expect(screen.getByText('huge.pdf')).toBeTruthy();
+    expect(screen.getByText('huge.pdf').closest('li')?.textContent).toContain(
+      'The file is larger than 10 MB.',
+    );
   });
 
   it('is read-only on a card: lists files without the add button', () => {
