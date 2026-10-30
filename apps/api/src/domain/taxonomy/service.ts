@@ -1,5 +1,6 @@
-import type { Category, Tag, Taxonomy, TaxonomyFailure } from '@notes/shared';
+import type { Category, Importance, Tag, Taxonomy, TaxonomyFailure } from '@notes/shared';
 import type { Db } from '../../db';
+import { log, timed } from '../../requestLog';
 import type { Queryable } from '../../tx';
 import * as repo from './repository';
 import type { NewTaxonomyPlan } from '../notes/note';
@@ -65,6 +66,24 @@ export async function setCategoryDeleted(
 ): Promise<Result<Category>> {
   if (!(await repo.findCategory(db, userId, id))) return fail('not_found');
   return guarded(() => repo.updateCategory(db, id, { deleted }));
+}
+
+/** Set or clear a category's default importance. Allowed on deleted categories too. */
+export function setCategoryImportance(
+  db: Db,
+  userId: string,
+  id: string,
+  importance: Importance | null,
+): Promise<Result<Category>> {
+  return timed('setCategoryImportance', { categoryId: id }, async () => {
+    if (!(await repo.findCategory(db, userId, id))) {
+      log().warn({ categoryId: id, error: 'not_found' }, 'category importance failed');
+      return fail('not_found');
+    }
+    const category = await repo.updateCategoryImportance(db, id, importance);
+    log().info({ categoryId: id, importance }, 'category importance set');
+    return ok(category);
+  });
 }
 
 export async function createTag(

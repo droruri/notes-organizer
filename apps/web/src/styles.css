@@ -310,6 +310,48 @@
     --slip: var(--ok);
   }
 
+  /* Segmented radio group ---------------------------------------------------- */
+  .segmented {
+    display: inline-flex;
+    padding: 2px;
+    gap: 2px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+  .segment {
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+  .segment[aria-checked='true'] {
+    background: var(--accent);
+    color: var(--accent-fg);
+  }
+  .segment:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  @media (hover: hover) {
+    .segment:not(:disabled):not([aria-checked='true']):hover {
+      background: var(--surface-hover);
+    }
+    .segment[aria-checked='true']:not(:disabled):hover {
+      background: var(--accent-hover);
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .segment:not(:disabled):active {
+      scale: 0.96;
+    }
+  }
+
   /* Small labels ----------------------------------------------------------- */
   .pill {
     display: inline-flex;

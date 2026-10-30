@@ -8,8 +8,8 @@ const C = '11111111-1111-4111-8111-111111111111';
 const D = '22222222-2222-4222-8222-222222222222';
 const taxonomy: Taxonomy = {
   categories: [
-    { id: C, name: 'עבודה', deleted: false, tags: [] },
-    { id: D, name: 'ישן', deleted: true, tags: [] },
+    { id: C, name: 'עבודה', deleted: false, importance: null, tags: [] },
+    { id: D, name: 'ישן', deleted: true, importance: null, tags: [] },
   ],
 };
 afterEach(cleanup);

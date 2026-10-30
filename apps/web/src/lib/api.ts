@@ -13,6 +13,7 @@ import {
   Category,
   HealthResponse,
   type ImportAnalyze,
+  type Importance,
   type ImportConfirm,
   ImportCreated,
   ImportProposal,
@@ -209,6 +210,8 @@ export const api = {
   createCategory: (name: string) => request('POST', '/categories', Category, { name }),
   renameCategory: (id: string, name: string) =>
     request('PATCH', `/categories/${id}`, Category, { name }),
+  setCategoryImportance: (id: string, importance: Importance | null) =>
+    request('PUT', `/categories/${id}/importance`, Category, { importance }),
   deleteCategory: (id: string) => request('DELETE', `/categories/${id}`, NoContent),
   restoreCategory: (id: string) => request('POST', `/categories/${id}/restore`, Category),
   createTag: (categoryId: string, name: string) =>

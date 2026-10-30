@@ -1,4 +1,4 @@
-import { ActionsBody, NameBody } from '@notes/shared';
+import { ActionsBody, ImportanceBody, NameBody } from '@notes/shared';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { currentUser } from '../auth';
@@ -67,6 +67,17 @@ export function taxonomyRoutes(app: FastifyInstance, db: Db): void {
     const p = parse(req, reply, false);
     if (!p) return reply;
     return send(reply, await service.setCategoryDeleted(db, currentUser(req).id, p.id, true), 204);
+  });
+
+  app.put('/categories/:id/importance', async (req, reply) => {
+    const p = parse(req, reply, false);
+    if (!p) return reply;
+    const body = ImportanceBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
+    return send(
+      reply,
+      await service.setCategoryImportance(db, currentUser(req).id, p.id, body.data.importance),
+    );
   });
 
   app.post('/categories/:id/restore', async (req, reply) => {

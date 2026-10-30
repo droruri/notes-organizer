@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Importance } from './notes';
 
 // Schemas and types used by both web and api, defined once.
 
@@ -32,6 +33,8 @@ export const Category = z.object({
   id: z.uuid(),
   name: z.string(),
   deleted: z.boolean(),
+  /** Optional default importance for notes in this category. */
+  importance: Importance.nullable(),
 });
 export type Category = z.infer<typeof Category>;
 
@@ -44,6 +47,10 @@ export type Taxonomy = z.infer<typeof Taxonomy>;
 /** Body of the create and rename taxonomy requests. */
 export const NameBody = z.object({ name: z.string() });
 export type NameBody = z.infer<typeof NameBody>;
+
+/** Body of `PUT /categories/:id/importance`; `null` clears the level. */
+export const ImportanceBody = z.object({ importance: Importance.nullable() });
+export type ImportanceBody = z.infer<typeof ImportanceBody>;
 
 export * from './attachments';
 export * from './notes';

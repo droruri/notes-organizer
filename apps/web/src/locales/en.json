@@ -210,6 +210,13 @@
     "deleteItem": "Delete {{name}}",
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
+    "importance": {
+      "label": "Default importance",
+      "none": "None",
+      "important": "Important",
+      "not_important": "Not important",
+      "pill": "Default: {{level}}"
+    },
     "deleted": "Deleted",
     "save": "Save",
     "cancel": "Cancel",

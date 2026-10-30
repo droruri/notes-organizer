@@ -74,6 +74,7 @@ describe('NotesScreen opened from a tag', () => {
           id: C,
           name: 'work',
           deleted: false,
+          importance: null,
           tags: [{ id: T1, categoryId: C, name: 'urgent', deleted: false }],
         },
       ],
