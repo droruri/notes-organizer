@@ -122,6 +122,22 @@
     "loading": "טוען…",
     "audioFailed": "טעינת ההקלטה נכשלה."
   },
+  "attachments": {
+    "add": "הוספת קובץ",
+    "uploading": "מעלה…",
+    "open": "הורדת {{name}}",
+    "list": "קבצים מצורפים",
+    "downloadFailed": "הורדת הקובץ נכשלה.",
+    "errors": {
+      "attachment_too_large": "הקובץ גדול מ-10 MB.",
+      "unsupported_type": "סוג הקובץ אינו נתמך.",
+      "too_many_attachments": "אפשר לצרף עד 20 קבצים להערה.",
+      "quota_exceeded": "נפח האחסון לקבצים (30 MB) מלא.",
+      "invalid_body": "הקובץ ריק או ששמו אינו תקין.",
+      "not_found": "ההערה לא נמצאה.",
+      "failed": "העלאת הקובץ נכשלה."
+    }
+  },
   "links": {
     "unread": "הקישור לא נקרא",
     "filter": "קישורים שלא נקראו",

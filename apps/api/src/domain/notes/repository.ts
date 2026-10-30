@@ -1,11 +1,20 @@
-import { Proposed, type Importance, type Note, type NoteStatus, type Urgency } from '@notes/shared';
+import { z } from 'zod';
+import {
+  Attachment,
+  Proposed,
+  type Importance,
+  type Note,
+  type NoteStatus,
+  type Urgency,
+} from '@notes/shared';
 import type { Queryable } from '../../tx';
 import type { Links } from './note';
 
 // SQL for notes and their category/tag links.
 
-type NoteRow = Omit<Note, 'proposed' | 'createdAt' | 'updatedAt'> & {
+type NoteRow = Omit<Note, 'proposed' | 'attachments' | 'createdAt' | 'updatedAt'> & {
   proposed: unknown;
+  attachments: unknown;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -16,14 +25,19 @@ const NOTE_SELECT = `
     n.created_at as "createdAt", n.updated_at as "updatedAt",
     coalesce((select array_agg(nc.category_id::text) from note_categories nc where nc.note_id = n.id), '{}') as "categoryIds",
     coalesce((select array_agg(nt.tag_id::text) from note_tags nt where nt.note_id = n.id), '{}') as "tagIds",
-    exists(select 1 from note_audio a where a.note_id = n.id) as "hasAudio"
+    exists(select 1 from note_audio a where a.note_id = n.id) as "hasAudio",
+    coalesce((select json_agg(json_build_object('id', at.id, 'name', at.name, 'mime', at.mime, 'size', at.size, 'createdAt', at.created_at) order by at.created_at, at.id) from note_attachments at where at.note_id = n.id), '[]'::json) as attachments
   from notes n`;
 
 function toNote(row: NoteRow): Note {
   const proposed = Proposed.safeParse(row.proposed);
+  const attachments = z.array(Attachment).safeParse(row.attachments);
   return {
     ...row,
     proposed: proposed.success ? proposed.data : null,
+    attachments: attachments.success
+      ? attachments.data.map((a) => ({ ...a, createdAt: new Date(a.createdAt).toISOString() }))
+      : [],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

@@ -121,6 +121,22 @@
     "loading": "Loading…",
     "audioFailed": "Could not load the recording."
   },
+  "attachments": {
+    "add": "Add file",
+    "uploading": "Uploading…",
+    "open": "Download {{name}}",
+    "list": "Attachments",
+    "downloadFailed": "Could not download the file.",
+    "errors": {
+      "attachment_too_large": "The file is larger than 10 MB.",
+      "unsupported_type": "This file type is not supported.",
+      "too_many_attachments": "A note can have at most 20 files.",
+      "quota_exceeded": "Your 30 MB file storage is full.",
+      "invalid_body": "The file is empty or its name is invalid.",
+      "not_found": "The note was not found.",
+      "failed": "Could not upload the file."
+    }
+  },
   "links": {
     "unread": "Link not read",
     "filter": "Links not read",

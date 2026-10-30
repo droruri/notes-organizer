@@ -45,6 +45,7 @@ export type Taxonomy = z.infer<typeof Taxonomy>;
 export const NameBody = z.object({ name: z.string() });
 export type NameBody = z.infer<typeof NameBody>;
 
+export * from './attachments';
 export * from './notes';
 export * from './noteQuery';
 export * from './links';

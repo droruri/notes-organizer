@@ -64,6 +64,15 @@ const PATHS = {
       <path d="M15 3v5h5M8 13h8M8 17h5" />
     </>
   ),
+  paperclip: (
+    <path d="m21.4 11-8.5 8.5a5.7 5.7 0 0 1-8-8l9-9a3.8 3.8 0 0 1 5.4 5.4l-9 9a1.9 1.9 0 0 1-2.7-2.7l8.5-8.5" />
+  ),
+  file: (
+    <>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 /** Icons whose meaning follows reading direction; flipped under dir="rtl". */

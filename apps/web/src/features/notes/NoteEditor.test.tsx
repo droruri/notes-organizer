@@ -24,6 +24,7 @@ const note = (title: string | null): Note => ({
   categoryIds: [],
   tagIds: [],
   hasAudio: false,
+  attachments: [],
   createdAt: '',
   updatedAt: '',
 });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Attachment } from './attachments';
 
 export const NoteStatus = z.enum(['draft', 'todo', 'in_progress', 'done']);
 export type NoteStatus = z.infer<typeof NoteStatus>;
@@ -67,6 +68,7 @@ export const Note = z.object({
   categoryIds: z.array(z.uuid()),
   tagIds: z.array(z.uuid()),
   hasAudio: z.boolean(),
+  attachments: z.array(Attachment),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

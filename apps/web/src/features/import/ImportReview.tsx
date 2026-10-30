@@ -21,6 +21,7 @@ const asNote = (row: Row): Note => ({
   categoryIds: row.suggestion.categoryIds,
   tagIds: row.suggestion.tagIds,
   hasAudio: false,
+  attachments: [],
   createdAt: '',
   updatedAt: '',
 });
