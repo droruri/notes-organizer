@@ -14,6 +14,7 @@
   "auth": {
     "loading": "מתחבר…",
     "signInGoogle": "התחברות עם Google",
+    "signInError": "ההתחברות נכשלה. נסו שוב.",
     "devSignIn": "כניסת פיתוח",
     "signOut": "התנתקות",
     "noAccess": {
