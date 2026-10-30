@@ -1,14 +1,15 @@
 **Review scope (the `review` phase, run on the cheap model).** The phase relays reviewer
 findings and fixes them. Nothing else. The `build` session, when it runs steps 8-9 itself, is
 not bound by this block.
-   - Allowed: spawn the reviewers, fix their findings, run step 6, push, flip the checklist.
-   - Not allowed: browser checks, Playwright or any other ad-hoc script (shell, node, python)
+   - Allowed: spawn the reviewers, fix their findings, run step 6, push, flip the checklist, and
+     spawn the `e2e` agent for browser checks (the only ad-hoc verification allowed).
+   - Not allowed: running Playwright yourself or any other ad-hoc script (shell, node, python)
      written to verify behavior, edits to `ralph/*.md`, `run-ralph.sh`, `scripts/ralph-*.sh` or
      `.claude/skills/` (unless the issue itself is about the ralph loop), and work on anything the
      findings and acceptance criteria do not name.
-   - A criterion that needs a browser or device check: do not do it. Add the line
-     `needs browser check: <criterion and what to look at>` to the progress file, leave its
-     checklist box unchecked, and go on. The opus pass or a human does that check.
+   - A criterion that needs a browser check: spawn the `e2e` agent with the criterion and the
+     worktree path. `pass` → flip its box and note the verdict in the progress file. `fail` → record
+     it as a finding and fix it. `setup-failed` → split per "Human-only work" with the failure pasted in.
    - Turn budget: **25 turns**. Spawning the reviewers, fixing and pushing fit well inside it. At
      turn 20, stop adding fixes: push what passes step 6, record the unfixed findings in the
      progress file under `review findings:` (`open: …`), set `next: step 10`, and end your turn.

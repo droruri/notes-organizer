@@ -22,7 +22,7 @@
      unblock dependents (step 11), set `step: done`. Finished — no branch, no PR.
    - **Some met** → check those boxes now (step 9). The rest of the run covers only the
      `missing` criteria.
-   - Real-device and browser checks are yours to do (see "Human-only work → split out"). A
+   - Browser checks go to the `e2e` agent (see "Human-only work → split out"). A
      criterion that needs hosted config, secrets or product sign-off → apply that rule.
    - **Only struck items remain** (all other criteria met, rest already split out) → close the
      issue (comment "Done; human-only items moved to #M", then PATCH `state=closed`),
@@ -61,5 +61,8 @@
 
 7. **PR Creation**:
    - Commit changes, push the branch to GitHub, and open a Pull Request targeting `main`.
+   - Browser checks: for a UI change or a browser criterion, spawn the `e2e` agent with the criteria and
+     the worktree path before opening the PR; its verdict lines and screenshot paths go in the PR body.
+     On `fail`, fix the product bug and re-run it; only `E2E_RESULT: setup-failed` splits the check.
    - Set the PR body to include `Closes #<ISSUE_NUMBER>`. If you split out human-only work, the
      body also names each follow-up issue (`Human-only items moved to #M`).
