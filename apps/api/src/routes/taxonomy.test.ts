@@ -165,8 +165,8 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
     expect((await call('PATCH', '/categories/not-a-uuid', { name: 'x' })).statusCode).toBe(404);
   });
   describe('POST /taxonomy/actions', () => {
-    const batch = (headers: typeof mine, body: unknown) =>
-      app.inject({ method: 'POST', url: '/taxonomy/actions', headers, payload: body as object });
+    const batch = (headers: typeof mine, body: object) =>
+      app.inject({ method: 'POST', url: '/taxonomy/actions', headers, payload: body });
     const create = (name: string) => ({ action: 'create', kind: 'category', name });
 
     it('keeps going past a failed action', async () => {

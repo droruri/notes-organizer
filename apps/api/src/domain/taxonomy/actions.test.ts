@@ -41,15 +41,19 @@ describe.skipIf(!databaseUrl)('applyActions logs', () => {
         actions: [
           { action: 'create', kind: 'category', name: other },
           { action: 'create', kind: 'category', name },
+          { action: 'create', kind: 'category', name: `${other}-2` },
         ],
       },
     });
-    expect(res.json()).toEqual({ results: [{ ok: true }, { ok: false, error: 'name_taken' }] });
-    expect(lines.find((l) => l.msg === 'actions applied')).toMatchObject({
-      applied: 1,
-      failed: 1,
+    expect(res.json()).toEqual({
+      results: [{ ok: true }, { ok: false, error: 'name_taken' }, { ok: true }],
     });
-    expect(lines.find((l) => l.msg === 'action rejected')).toMatchObject({
+    const applied = lines.filter((l) => l.msg === 'actions applied');
+    expect(applied).toHaveLength(1);
+    expect(applied[0]).toMatchObject({ applied: 2, failed: 1 });
+    const rejected = lines.filter((l) => l.msg === 'action rejected');
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({
       index: 1,
       action: 'create',
       kind: 'category',
