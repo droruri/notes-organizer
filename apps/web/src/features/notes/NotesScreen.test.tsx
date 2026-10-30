@@ -47,7 +47,7 @@ describe('NotesScreen offline with no loaded data', () => {
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
-          <NotesScreen importing={false} onImportClose={() => {}} />
+          <NotesScreen />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -83,7 +83,7 @@ describe('NotesScreen opened from a tag', () => {
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
-          <NotesScreen initialTagId={T1} importing={false} onImportClose={() => {}} />
+          <NotesScreen initialTagId={T1} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -105,9 +105,11 @@ describe('NotesScreen modes from the URL', () => {
         <MemoryRouter initialEntries={[entry]}>
           <Where />
           <Routes>
-            <Route path="/" element={<NotesScreen importing={false} onImportClose={() => {}} />}>
+            <Route path="/" element={<NotesScreen />}>
               <Route path="new" element={null} />
               <Route path="review" element={null} />
+              <Route path="chat" element={null} />
+              <Route path="import" element={null} />
               <Route path="notes/:id" element={null} />
             </Route>
           </Routes>
@@ -145,5 +147,22 @@ describe('NotesScreen modes from the URL', () => {
     setup('/notes/00000000-0000-4000-8000-0000000000ff');
     await screen.findByText('first note');
     expect(screen.getByTestId('where').textContent).toBe('/');
+  });
+
+  it('opens chat at /chat and closes it back to the list', async () => {
+    setup('/');
+    await screen.findByText('first note');
+    fireEvent.click(screen.getByRole('button', { name: 'Ask' }));
+    const drawer = await screen.findByRole('dialog', { name: 'Ask about your notes' });
+    expect(screen.getByTestId('where').textContent).toBe('/chat');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.transitionEnd(drawer);
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows the import dialog on /import', async () => {
+    setup('/import');
+    await screen.findByRole('dialog', { name: /import/i });
   });
 });

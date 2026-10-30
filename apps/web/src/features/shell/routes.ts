@@ -5,6 +5,8 @@ export const ROUTES = {
   notes: '/',
   compose: '/new',
   review: '/review',
+  chat: '/chat',
+  import: '/import',
   taxonomy: '/taxonomy',
   users: '/users',
 } as const;
