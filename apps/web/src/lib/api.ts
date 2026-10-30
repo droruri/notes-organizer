@@ -106,19 +106,25 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
   return request('POST', '/notes', NoteCreated, form);
 }
 
-/** The recording bytes of a note (an `<audio>` tag cannot send the bearer token). */
-async function noteAudio(id: string): Promise<Blob> {
+/** Bytes of an authenticated GET (an `<audio>`/`<img>` tag cannot send the bearer token). */
+async function fetchBlob(path: string, mimes: readonly string[]): Promise<Blob> {
   const token = await accessToken();
-  const res = await send(`${baseUrl}/notes/${id}/audio`, {
+  const res = await send(`${baseUrl}${path}`, {
     headers: token ? { authorization: `Bearer ${token}` } : {},
   });
-  if (!res.ok) throw new ApiRequestError(res.status, undefined, `GET audio failed: ${res.status}`);
+  if (!res.ok)
+    throw new ApiRequestError(res.status, undefined, `GET ${path} failed: ${res.status}`);
   const blob = await res.blob();
   const mime = (blob.type.split(';')[0] ?? '').trim();
-  if (!(AUDIO_MIMES as readonly string[]).includes(mime)) {
-    throw new ApiRequestError(res.status, undefined, `GET audio: unexpected type ${blob.type}`);
+  if (!mimes.includes(mime)) {
+    throw new ApiRequestError(res.status, undefined, `GET ${path}: unexpected type ${blob.type}`);
   }
   return blob;
+}
+
+/** The recording bytes of a note. */
+function noteAudio(id: string): Promise<Blob> {
+  return fetchBlob(`/notes/${encodeURIComponent(id)}/audio`, AUDIO_MIMES);
 }
 
 /**
