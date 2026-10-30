@@ -202,9 +202,10 @@ export function NotesScreen({
   const remove = useMutation({
     mutationFn: api.deleteNote,
     onSuccess: async (_, id) => {
-      await queryClient.invalidateQueries({ queryKey: ['notes'] });
+      // Leave the editor before the refetch can drop the note and redirect over it.
       goBack();
       setUndoId(id);
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
     },
   });
   const undo = useMutation({
