@@ -198,6 +198,26 @@ describe('TaxonomyPicker on small screens', () => {
   const base = { categoryIds: [B], tagIds: [TB], newCategories: [], newTags: [] };
   const value = { ...base, suggestedCategoryIds: [A] };
 
+  it('keeps a tag row visible on phones while one of its tags is selected', () => {
+    // Beta is not inline here, but its tag is selected (e.g. from a suggestion), so its row stays.
+    render(
+      <TaxonomyPicker
+        taxonomy={tax}
+        value={{
+          categoryIds: [],
+          tagIds: [TB],
+          newCategories: [],
+          newTags: [],
+          suggestedCategoryIds: [A],
+        }}
+        onChange={() => undefined}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'tb' }).closest('fieldset')?.className).not.toContain(
+      'max-sm:hidden',
+    );
+  });
+
   it('hides non-inline chips and tag rows, shows the more chip on phones only', () => {
     render(<TaxonomyPicker taxonomy={tax} value={value} onChange={() => undefined} />);
     expect(screen.getByRole('button', { name: 'Delta' }).className).toContain('max-sm:hidden');

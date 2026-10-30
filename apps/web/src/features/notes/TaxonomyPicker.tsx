@@ -60,8 +60,15 @@ export function TaxonomyPicker({
     value.categoryIds.includes(id) ||
     pinned.includes(id);
   const hiddenOnPhone = (id: string) => (isInline(id) ? '' : 'max-sm:hidden');
+  // A tag row stays visible while one of its tags is selected, so nothing submitted is hidden.
+  const holdsSelection = (c: (typeof usable)[number]) =>
+    c.tags.some((tag) => value.tagIds.includes(tag.id)) ||
+    value.newTags.some((tag) => 'categoryId' in tag && tag.categoryId === c.id);
   const confirmDialog = (ids: string[]) => {
-    setPinned([...pinned, ...ids.filter((id) => !value.categoryIds.includes(id))]);
+    setPinned([
+      ...pinned,
+      ...ids.filter((id) => !pinned.includes(id) && !value.categoryIds.includes(id)),
+    ]);
     setCategories(ids);
     setDialogOpen(false);
     moreRef.current?.focus();
@@ -133,7 +140,7 @@ export function TaxonomyPicker({
     ...usable.map((c) => ({
       key: c.id,
       label: c.name,
-      hidden: hiddenOnPhone(c.id),
+      hidden: isInline(c.id) || holdsSelection(c) ? '' : 'max-sm:hidden',
       chips: [
         ...c.tags
           .filter((tag) => !tag.deleted)
