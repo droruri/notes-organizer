@@ -67,3 +67,53 @@ test('open a note → back returns to the list; save → back does not reopen th
   await page.goBack();
   await expect(page).not.toHaveURL(/\/notes\//);
 });
+
+test('chat opens as a page, and back closes it', async ({ page }) => {
+  await signIn(page);
+  await page.getByRole('button', { name: 'שאלה' }).first().click();
+  await expect(page).toHaveURL(/\/chat$/);
+  await expect(page.getByRole('dialog', { name: 'שאלות על הפתקים' })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('chat → open a note → back returns to the list', async ({ page }) => {
+  await signIn(page);
+  const body = unique('צאט');
+  await composeNote(page, body);
+  await page.getByRole('button', { name: 'שמירה' }).click();
+  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await page.getByText(body).first().click();
+  await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
+  const id = page.url().split('/notes/')[1];
+  await page.goBack();
+  await page.route(/\/chat$/, (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: `data: ${JSON.stringify({ type: 'text-delta', delta: `ראו [[note:${id}]]` })}\n\n`,
+    });
+  });
+  await page.getByRole('button', { name: 'שאלה' }).first().click();
+  const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
+  await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('איפה?');
+  await chat.getByRole('button', { name: 'שליחה' }).click();
+  await chat.getByRole('button', { name: new RegExp(body.slice(0, 10)) }).click();
+  await expect(page).toHaveURL(new RegExp(`/notes/${id}$`));
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('menu → Import → back closes the dialog', async ({ page }) => {
+  await signIn(page);
+  await page.getByRole('button', { name: 'תפריט' }).click();
+  await page.getByRole('menuitem', { name: /ייבוא/ }).click();
+  await expect(page).toHaveURL(/\/import$/);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});

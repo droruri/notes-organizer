@@ -48,14 +48,10 @@ const UNDO_MS = 5000;
 const localToday = () => new Date().toLocaleDateString('en-CA');
 
 export function NotesScreen({
-  importing,
-  onImportClose,
   initialTagId = null,
 }: {
   /** Start with the list filtered to this tag. */
   initialTagId?: string | null;
-  importing: boolean;
-  onImportClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -65,6 +61,8 @@ export function NotesScreen({
   const navigate = useNavigate();
   const goBack = useGoBack();
   const { pathname, search, state } = useLocation();
+  const chatOpen = pathname === ROUTES.chat;
+  const importing = pathname === ROUTES.import;
   const editId = useMatch('/notes/:id')?.params.id;
   // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
   const open = (to: string, replace = false, draft?: NoteCreated) =>
@@ -74,7 +72,6 @@ export function NotesScreen({
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
-  const [chatOpen, setChatOpen] = useState(false);
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(
@@ -392,9 +389,9 @@ export function NotesScreen({
             taxonomy={taxonomy.data}
             today={today}
             locale={locale}
-            onClose={onImportClose}
+            onClose={goBack}
             onImported={(result) => {
-              onImportClose();
+              goBack();
               setImported(result);
               void queryClient.invalidateQueries({ queryKey: ['notes'] });
               void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
@@ -414,7 +411,7 @@ export function NotesScreen({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setChatOpen(true)}
+            onClick={() => open(ROUTES.chat)}
             onPointerEnter={() => void loadChat()}
             onFocus={() => void loadChat()}
             className="btn"
@@ -480,10 +477,9 @@ export function NotesScreen({
           <ChatPanel
             notes={notes.data}
             onOpenNote={(note) => {
-              setChatOpen(false);
-              open(notePath(note.id));
+              open(notePath(note.id), true);
             }}
-            onClose={() => setChatOpen(false)}
+            onClose={goBack}
             onTaxonomyChanged={() => {
               void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
               void queryClient.invalidateQueries({ queryKey: ['notes'] });

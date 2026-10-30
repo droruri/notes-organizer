@@ -1,7 +1,7 @@
-import { lazy, Suspense, useContext, useState } from 'react';
+import { lazy, Suspense, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router';
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
 import { Loading } from '../../ui/Loading';
@@ -23,21 +23,16 @@ export function Screens() {
   const { isAdmin, signOut } = useAuth();
   const slot = useContext(HeaderSlot);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const goBack = useGoBack();
   const [params] = useSearchParams();
   // The key remounts the list with the tag filter from `?tag=`.
   const tagId = params.get('tag');
-  const [importing, setImporting] = useState(false);
   const menu = slot
     ? createPortal(
         <AppMenu
           onNotes={() => void navigate(ROUTES.notes)}
           onTaxonomy={() => void navigate(ROUTES.taxonomy)}
-          onImport={() => {
-            if (pathname !== ROUTES.notes) void navigate(ROUTES.notes);
-            setImporting(true);
-          }}
+          onImport={() => void navigate(ROUTES.import)}
           onSignOut={() => void signOut()}
           {...(isAdmin ? { onUsers: () => void navigate(ROUTES.users) } : {})}
         />,
@@ -51,17 +46,12 @@ export function Screens() {
         {/* NotesScreen stays mounted across its child routes and reads its mode from the URL. */}
         <Route
           path={ROUTES.notes}
-          element={
-            <NotesScreen
-              key={tagId ?? 'all'}
-              initialTagId={tagId}
-              importing={importing}
-              onImportClose={() => setImporting(false)}
-            />
-          }
+          element={<NotesScreen key={tagId ?? 'all'} initialTagId={tagId} />}
         >
           <Route path="new" element={null} />
           <Route path="review" element={null} />
+          <Route path="chat" element={null} />
+          <Route path="import" element={null} />
           <Route path="notes/:id" element={null} />
         </Route>
         <Route
