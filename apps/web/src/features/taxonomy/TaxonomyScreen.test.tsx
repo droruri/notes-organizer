@@ -1,3 +1,4 @@
+import type { CategoryColor } from '@notes/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
@@ -16,14 +17,14 @@ beforeEach(async () => {
 });
 afterEach(cleanup);
 
-const taxonomy = () => ({
+const taxonomy = (color1: CategoryColor = 'slate') => ({
   categories: [
     {
       id: C1,
       name: 'עבודה',
       deleted: false,
       importance: null,
-      color: 'slate' as const,
+      color: color1,
       tags: [
         { id: T1, categoryId: C1, name: 'דחוף', deleted: false },
         { id: T2, categoryId: C1, name: 'ישן', deleted: true },
@@ -49,6 +50,13 @@ function setup(overrides: Record<string, unknown> = {}) {
       deleted: false,
       importance: null,
       color: 'slate' as const,
+    })),
+    setCategoryColor: vi.fn(async () => ({
+      id: C1,
+      name: 'עבודה',
+      deleted: false,
+      importance: null,
+      color: 'red' as const,
     })),
     setCategoryImportance: vi.fn(async () => ({
       id: C1,
@@ -164,6 +172,22 @@ describe('TaxonomyScreen', () => {
     expect(onTag).toHaveBeenCalledWith(T1);
   });
 
+  it('saves a category color with one tap and shows the swatch as checked', async () => {
+    const { taxonomyApi } = setup();
+    await screen.findByText('עבודה');
+    expect(screen.getByRole('radiogroup', { name: 'צבע של עבודה' })).toBeTruthy();
+    expect(
+      screen.getAllByRole('radio', { name: /^(כחול|ירוק|סגול|כתום|טורקיז|ורוד|אדום|אפור)$/ }),
+    ).toHaveLength(8);
+    expect(screen.getByRole('radio', { name: 'אפור' }).getAttribute('aria-checked')).toBe('true');
+    taxonomyApi.taxonomy.mockResolvedValue(taxonomy('red'));
+    fireEvent.click(screen.getByRole('radio', { name: 'אדום' }));
+    await waitFor(() => expect(taxonomyApi.setCategoryColor).toHaveBeenCalledWith(C1, 'red'));
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: 'אדום' }).getAttribute('aria-checked')).toBe('true'),
+    );
+  });
+
   it('sets, changes and clears a category importance with one tap', async () => {
     const { taxonomyApi } = setup();
     await screen.findByText('עבודה');
@@ -207,7 +231,8 @@ describe('TaxonomyScreen', () => {
     await screen.findByText('עבודה');
     fireEvent.click(screen.getByRole('radio', { name: 'ללא' }));
     await waitFor(() => expect(taxonomyApi.setCategoryImportance).toHaveBeenCalledWith(C1, null));
-    expect(screen.getAllByRole('radiogroup')).toHaveLength(1);
+    expect(screen.getAllByRole('radiogroup')).toHaveLength(2);
+    expect(screen.queryByRole('radiogroup', { name: 'צבע של בית' })).toBeNull();
     expect(screen.getByText('ברירת מחדל: לא חשוב')).toBeTruthy();
   });
 });

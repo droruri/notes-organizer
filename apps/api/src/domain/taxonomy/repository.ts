@@ -110,6 +110,18 @@ export async function updateCategoryImportance(
   return rowOrThrow(rows);
 }
 
+export async function updateCategoryColor(
+  db: Queryable,
+  id: string,
+  color: CategoryColor,
+): Promise<Category> {
+  const { rows } = await db.query<Category>(
+    `update categories set color = $2 where id = $1 returning ${CATEGORY_RETURNING}`,
+    [id, color],
+  );
+  return rowOrThrow(rows);
+}
+
 export async function updateTag(
   db: Queryable,
   id: string,

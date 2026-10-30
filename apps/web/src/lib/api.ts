@@ -1,4 +1,5 @@
 import {
+  type CategoryColor,
   type ActionsBody,
   ActionsResponse,
   AddUserBody,
@@ -210,6 +211,8 @@ export const api = {
   createCategory: (name: string) => request('POST', '/categories', Category, { name }),
   renameCategory: (id: string, name: string) =>
     request('PATCH', `/categories/${id}`, Category, { name }),
+  setCategoryColor: (id: string, color: CategoryColor) =>
+    request('PUT', `/categories/${id}/color`, Category, { color }),
   setCategoryImportance: (id: string, importance: Importance | null) =>
     request('PUT', `/categories/${id}/importance`, Category, { importance }),
   deleteCategory: (id: string) => request('DELETE', `/categories/${id}`, NoContent),

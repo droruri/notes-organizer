@@ -385,6 +385,35 @@
     }
   }
 
+  /* Category color swatches ---------------------------------------------------- */
+  .swatch {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: 9999px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .swatch-dot {
+    inline-size: 24px;
+    block-size: 24px;
+    border-radius: 9999px;
+    border: 2px solid;
+  }
+  .swatch[aria-checked='true'] {
+    box-shadow: 0 0 0 2px var(--fg);
+  }
+  .swatch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .swatch:not(:disabled):active {
+      scale: 0.92;
+    }
+  }
+
   /* Small labels ----------------------------------------------------------- */
   .pill {
     display: inline-flex;

@@ -104,7 +104,7 @@ lib/i18n.ts         i18next: he (default) + en; sets <html lang dir>. locales/he
 features/auth/      AuthProvider, SignIn (Google), DevSignIn (seed user, DEV only), NoAccess.
 features/notes/     NotesScreen, NoteList, NoteCard, NoteFilters, NoteEditor, TaxonomyPicker,
                     VoiceRecorder, LinkPreview, UndoToast, useNotes.
-features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore, set a category's default importance with a three-segment radio group; tap a tag to filter notes).
+features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore, set a category's default importance with a three-segment radio group and its color with a row of 8 swatches (`ColorControl`); tap a tag to filter notes).
 features/chat/      ChatPanel, ActionCard.
 features/imports/   ImportDialog.
 features/offline/   outbox.ts (localStorage + idb-keyval), useOnline, OfflineBanner, OutboxDialog.
@@ -218,6 +218,7 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/categories` | `{name}` | `201 Category` · `409 name_taken` |
 | PATCH | `/categories/:id` | `{name}` | `Category` · `409 name_taken` |
 | DELETE | `/categories/:id` | — | `204` (soft) |
+| PUT | `/categories/:id/color` | `{color: blue\|green\|purple\|amber\|teal\|pink\|red\|slate}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | PUT | `/categories/:id/importance` | `{importance: important\|not_important\|null}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | POST | `/categories/:id/restore` | — | `Category` · `409 name_taken` if an active one has the name |
 | POST | `/categories/:id/tags` | `{name}` | `201 Tag` · `409 name_taken` · `422 category_deleted` |

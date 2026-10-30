@@ -331,4 +331,70 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
       await logged.close();
     });
   });
+
+  describe('PUT /categories/:id/color', () => {
+    const put = (id: string, payload: object, headers = mine) =>
+      as(headers, 'PUT', `/categories/${id}/color`, payload);
+
+    it('sets the color; GET /taxonomy shows it; works on deleted categories', async () => {
+      const cat = await newCategory(`col-${randomUUID()}`);
+      const target = cat.color === 'pink' ? 'teal' : 'pink';
+      const res = await put(cat.id, { color: target });
+      expect(res.statusCode).toBe(200);
+      expect(Category.parse(res.json()).color).toBe(target);
+      const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+      expect(listed.categories.find((c) => c.id === cat.id)?.color).toBe(target);
+      await call('DELETE', `/categories/${cat.id}`);
+      const again = await put(cat.id, { color: 'red' });
+      expect(again.statusCode).toBe(200);
+      expect(Category.parse(again.json())).toMatchObject({ deleted: true, color: 'red' });
+    });
+
+    it("404s for another user's category and leaves it untouched", async () => {
+      const cat = await newCategory(`col-own-${randomUUID()}`);
+      const res = await put(cat.id, { color: 'red' }, theirs);
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toEqual({ error: 'not_found' });
+      const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+      expect(listed.categories.find((c) => c.id === cat.id)?.color).toBe(cat.color);
+    });
+
+    it('400s on a bad body', async () => {
+      const cat = await newCategory(`col-bad-${randomUUID()}`);
+      for (const body of [{ color: 'yellow' }, {}, { color: 1 }]) {
+        const res = await put(cat.id, body);
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_body' });
+      }
+    });
+
+    it('logs the outcome and the not-found warning', async () => {
+      const { app: logged, lines } = captureLogs({
+        db: pool,
+        verifyToken: fakeVerifyToken,
+        allowedEmails: new Set([ALLOWED_USER.email, OTHER_USER.email]),
+      });
+      const cat = await newCategory(`col-log-${randomUUID()}`);
+      const send = (headers: typeof mine) =>
+        logged.inject({
+          method: 'PUT',
+          url: `/categories/${cat.id}/color`,
+          headers,
+          payload: { color: 'red' },
+        });
+      expect((await send(mine)).statusCode).toBe(200);
+      expect(lines.find((l) => l.msg === 'category color set')).toMatchObject({
+        level: 30,
+        categoryId: cat.id,
+        color: 'red',
+      });
+      expect((await send(theirs)).statusCode).toBe(404);
+      expect(lines.find((l) => l.msg === 'category color failed')).toMatchObject({
+        level: 40,
+        categoryId: cat.id,
+        error: 'not_found',
+      });
+      await logged.close();
+    });
+  });
 });
