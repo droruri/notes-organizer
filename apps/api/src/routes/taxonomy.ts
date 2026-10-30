@@ -1,8 +1,9 @@
-import { NameBody } from '@notes/shared';
+import { ActionsBody, NameBody } from '@notes/shared';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { currentUser } from '../auth';
 import type { Db } from '../db';
+import { applyActions } from '../domain/taxonomy/actions';
 import * as service from '../domain/taxonomy/service';
 
 const STATUS: Record<service.Failure, number> = {
@@ -43,6 +44,12 @@ export function taxonomyRoutes(app: FastifyInstance, db: Db): void {
   }
 
   app.get('/taxonomy', async (req) => service.getTaxonomy(db, currentUser(req).id));
+
+  app.post('/taxonomy/actions', async (req, reply) => {
+    const body = ActionsBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
+    return { results: await applyActions(db, currentUser(req).id, body.data.actions) };
+  });
 
   app.post('/categories', async (req, reply) => {
     const body = NameBody.safeParse(req.body);

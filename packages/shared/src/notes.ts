@@ -205,6 +205,28 @@ export const AgentAction = z.union([
 ]);
 export type AgentAction = z.infer<typeof AgentAction>;
 
+/** Why a taxonomy change was refused. */
+export const TaxonomyFailure = z.enum([
+  'invalid_name',
+  'not_found',
+  'name_taken',
+  'category_deleted',
+]);
+export type TaxonomyFailure = z.infer<typeof TaxonomyFailure>;
+
+/** `POST /taxonomy/actions`: apply the approved chat cards in order, one result per action. */
+export const ActionsBody = z.object({ actions: z.array(AgentAction).min(1).max(20) });
+export type ActionsBody = z.infer<typeof ActionsBody>;
+
+export const ActionResult = z.union([
+  z.object({ ok: z.literal(true) }),
+  z.object({ ok: z.literal(false), error: TaxonomyFailure }),
+]);
+export type ActionResult = z.infer<typeof ActionResult>;
+
+export const ActionsResponse = z.object({ results: z.array(ActionResult) });
+export type ActionsResponse = z.infer<typeof ActionsResponse>;
+
 /** The streamed parts the chat panel reads (a subset of the AI SDK's UI message parts). */
 export const ChatPart = z.discriminatedUnion('type', [
   z.object({ type: z.literal('data-actions'), data: z.array(AgentAction) }),

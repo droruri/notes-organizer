@@ -1,4 +1,5 @@
-import { Category, Tag, Taxonomy } from '@notes/shared';
+import { randomUUID } from 'node:crypto';
+import { ActionsResponse, Category, Tag, Taxonomy } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
 import { createPool } from '../db';
@@ -162,5 +163,64 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
     const listed = await app.inject({ method: 'GET', url: '/taxonomy', headers: theirs });
     expect(Taxonomy.parse(listed.json()).categories).toEqual([]);
     expect((await call('PATCH', '/categories/not-a-uuid', { name: 'x' })).statusCode).toBe(404);
+  });
+  describe('POST /taxonomy/actions', () => {
+    const batch = (headers: typeof mine, body: object) =>
+      app.inject({ method: 'POST', url: '/taxonomy/actions', headers, payload: body });
+    const create = (name: string) => ({ action: 'create', kind: 'category', name });
+
+    it('keeps going past a failed action', async () => {
+      const taken = await newCategory(`batch-${randomUUID()}`);
+      const [a, c] = [`a-${randomUUID()}`, `c-${randomUUID()}`];
+      const res = await batch(mine, { actions: [create(a), create(taken.name), create(c)] });
+      expect(res.statusCode).toBe(200);
+      expect(ActionsResponse.parse(res.json()).results).toEqual([
+        { ok: true },
+        { ok: false, error: 'name_taken' },
+        { ok: true },
+      ]);
+      const names = Taxonomy.parse((await call('GET', '/taxonomy')).json()).categories.map(
+        (x) => x.name,
+      );
+      expect(names).toEqual(expect.arrayContaining([a, c]));
+    });
+
+    it('applies in order: delete then restore leaves the tag active', async () => {
+      const cat = await newCategory(`ord-${randomUUID()}`);
+      const tag = Tag.parse(
+        (await call('POST', `/categories/${cat.id}/tags`, { name: 't' })).json(),
+      );
+      const res = await batch(mine, {
+        actions: [
+          { action: 'delete', kind: 'tag', id: tag.id, name: 't' },
+          { action: 'restore', kind: 'tag', id: tag.id, name: 't' },
+        ],
+      });
+      expect(res.json()).toEqual({ results: [{ ok: true }, { ok: true }] });
+      const got = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+      const found = got.categories.find((x) => x.id === cat.id)?.tags.find((x) => x.id === tag.id);
+      expect(found?.deleted).toBe(false);
+    });
+
+    it("gives not_found for another user's id", async () => {
+      const cat = await newCategory(`own-${randomUUID()}`);
+      const res = await batch(theirs, {
+        actions: [{ action: 'delete', kind: 'category', id: cat.id, name: cat.name }],
+      });
+      expect(res.json()).toEqual({ results: [{ ok: false, error: 'not_found' }] });
+    });
+
+    it('rejects an empty list, 21 actions and a malformed body', async () => {
+      const bodies = [
+        { actions: [] },
+        { actions: Array.from({ length: 21 }, () => create('x')) },
+        { nope: 1 },
+      ];
+      for (const body of bodies) {
+        const res = await batch(mine, body);
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_body' });
+      }
+    });
   });
 });

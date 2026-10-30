@@ -1,11 +1,11 @@
-import type { Category, Tag, Taxonomy } from '@notes/shared';
+import type { Category, Tag, Taxonomy, TaxonomyFailure } from '@notes/shared';
 import type { Db } from '../../db';
 import type { Queryable } from '../../tx';
 import * as repo from './repository';
 import type { NewTaxonomyPlan } from '../notes/note';
 import { isUsable, normalizeName } from './taxonomy';
 
-export type Failure = 'invalid_name' | 'not_found' | 'name_taken' | 'category_deleted';
+export type Failure = TaxonomyFailure;
 export type Result<T> = { ok: true; value: T } | { ok: false; error: Failure };
 
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
