@@ -141,7 +141,7 @@ erDiagram
   notes ||--o| note_audio : ""
   notes ||--o{ note_attachments : ""
   auth_users ||--o{ allowed_users : "added_by"
-  user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
+  user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" jsonb note_form "nullable, null = defaults" }
   categories { uuid id PK uuid user_id FK text name importance importance "optional default" category_color color timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
   notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
@@ -213,7 +213,7 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/users` | `{email, isAdmin?}` | `201 {email, isAdmin, createdAt}` · `422 invalid_email` · `409 exists` |
 | PATCH | `/users/:email` | `{isAdmin}` | updated user · `404` · `422 invalid_body` · `422 last_admin` / `cannot_change_self` on demote |
 | DELETE | `/users/:email` | — | `204` · `404` · `422 last_admin` / `cannot_change_self` |
-| GET / PUT | `/settings` | `{noteSort}` | `Settings` (defaults when no row) |
+| GET / PUT | `/settings` | `{noteSort?, noteForm?}` (patch; defined keys merged) | `Settings` (defaults when no row) |
 | GET | `/taxonomy` | — | categories with their tags, deleted ones included and flagged |
 | POST | `/categories` | `{name}` | `201 Category` · `409 name_taken` |
 | PATCH | `/categories/:id` | `{name}` | `Category` · `409 name_taken` |

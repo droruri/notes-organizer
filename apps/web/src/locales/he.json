@@ -105,7 +105,26 @@
     "suggestHint": "Claude יציע קטגוריה, תגיות ותאריך יעד. אפשר לשנות הכל לפני השמירה.",
     "reviewTitle": "בדיקת הפתק",
     "editTitle": "עריכת פתק",
-    "suggested": "הצעה של Claude"
+    "suggested": "הצעה של Claude",
+    "formSettings": {
+      "open": "הגדרות טופס",
+      "title": "הגדרות טופס",
+      "save": "שמירת הגדרות",
+      "cancel": "ביטול",
+      "saving": "שומר…",
+      "error": "לא הצלחנו לשמור את ההגדרות. נסו שוב.",
+      "always": "תמיד מוצג",
+      "hidden": "מוסתר",
+      "show": "הצגת {{field}}",
+      "fields": {
+        "title": "כותרת",
+        "body": "טקסט",
+        "categories": "קטגוריות ותגיות",
+        "dueDate": "תאריך יעד",
+        "importance": "חשיבות",
+        "urgency": "דחיפות"
+      }
+    }
   },
   "filters": {
     "title": "סינון",

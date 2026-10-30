@@ -1,4 +1,6 @@
 import {
+  DEFAULT_NOTE_FORM,
+  HideableField,
   Importance,
   MAX_TITLE_LENGTH,
   Urgency,
@@ -9,12 +11,15 @@ import {
   type Suggestion,
   type Taxonomy,
 } from '@notes/shared';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
+import { NoteFormSettings } from './NoteFormSettings';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusStepper } from './StatusStepper';
@@ -53,6 +58,14 @@ export function NoteEditor({
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const slow = useSlow(busy);
+  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const hidden = new Set<HideableField>(
+    (settings.data?.noteForm ?? DEFAULT_NOTE_FORM).hiddenFields,
+  );
+  const [formSettingsOpen, setFormSettingsOpen] = useState(false);
+  const gridCols = ['dueDate', 'importance', 'urgency'].filter(
+    (f) => !hidden.has(HideableField.parse(f)),
+  ).length;
   // Any field Claude filled in counts; comparing JSON would depend on key order.
   const hasSuggestion = Object.values(suggestion).some((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
@@ -143,17 +156,27 @@ export function NoteEditor({
             {t('notes.suggested')}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => setFormSettingsOpen(true)}
+          aria-label={t('notes.formSettings.open')}
+          className="btn btn-ghost btn-icon btn-sm ms-auto"
+        >
+          <Icon name="sliders" size={18} />
+        </button>
       </div>
-      <label className="label">
-        {t('notes.noteTitle')}
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={MAX_TITLE_LENGTH}
-          dir="auto"
-          className={`${field} text-fg`}
-        />
-      </label>
+      {!hidden.has('title') && (
+        <label className="label">
+          {t('notes.noteTitle')}
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={MAX_TITLE_LENGTH}
+            dir="auto"
+            className={`${field} text-fg`}
+          />
+        </label>
+      )}
       <label className="label">
         {t('notes.body')}
         <textarea
@@ -172,60 +195,70 @@ export function NoteEditor({
       <LinkPreviews body={body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
       {attachable && <Attachments noteId={note.id} attachments={note.attachments} editable />}
-      <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={changePicked} />
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="label">
-          {t('notes.dueDate')}
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={`${field} text-fg`}
-          />
-        </label>
-        <label className="label">
-          {t('notes.importance')}
-          <select
-            value={importance ?? ''}
-            onChange={(e) => {
-              const v = Importance.safeParse(e.target.value);
-              setImportance(v.success ? v.data : null);
-              setImportanceHint(null);
-            }}
-            className={`${field} text-fg`}
-          >
-            <option value="">{t('notes.none')}</option>
-            {Importance.options.map((o) => (
-              <option key={o} value={o}>
-                {t(`notes.importanceValues.${o}`)}
-              </option>
-            ))}
-          </select>
-          {importanceHint && (
-            <span className="text-sm font-normal text-muted">
-              {t('notes.importanceFromCategory', { name: importanceHint })}
-            </span>
+      {!hidden.has('categories') && (
+        <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={changePicked} />
+      )}
+      {gridCols > 0 && (
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]">
+          {!hidden.has('dueDate') && (
+            <label className="label">
+              {t('notes.dueDate')}
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={`${field} text-fg`}
+              />
+            </label>
           )}
-        </label>
-        <label className="label">
-          {t('notes.urgency')}
-          <select
-            value={urgency ?? ''}
-            onChange={(e) => {
-              const v = Urgency.safeParse(e.target.value);
-              setUrgency(v.success ? v.data : null);
-            }}
-            className={`${field} text-fg`}
-          >
-            <option value="">{t('notes.none')}</option>
-            {Urgency.options.map((o) => (
-              <option key={o} value={o}>
-                {t(`notes.urgencyValues.${o}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+          {!hidden.has('importance') && (
+            <label className="label">
+              {t('notes.importance')}
+              <select
+                value={importance ?? ''}
+                onChange={(e) => {
+                  const v = Importance.safeParse(e.target.value);
+                  setImportance(v.success ? v.data : null);
+                  setImportanceHint(null);
+                }}
+                className={`${field} text-fg`}
+              >
+                <option value="">{t('notes.none')}</option>
+                {Importance.options.map((o) => (
+                  <option key={o} value={o}>
+                    {t(`notes.importanceValues.${o}`)}
+                  </option>
+                ))}
+              </select>
+              {importanceHint && (
+                <span className="text-sm font-normal text-muted">
+                  {t('notes.importanceFromCategory', { name: importanceHint })}
+                </span>
+              )}
+            </label>
+          )}
+          {!hidden.has('urgency') && (
+            <label className="label">
+              {t('notes.urgency')}
+              <select
+                value={urgency ?? ''}
+                onChange={(e) => {
+                  const v = Urgency.safeParse(e.target.value);
+                  setUrgency(v.success ? v.data : null);
+                }}
+                className={`${field} text-fg`}
+              >
+                <option value="">{t('notes.none')}</option>
+                {Urgency.options.map((o) => (
+                  <option key={o} value={o}>
+                    {t(`notes.urgencyValues.${o}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
       {note.status !== 'draft' && <StatusStepper status={status} onChange={setStatus} />}
       {(failed || analyzeFailed) && (
         <p role="alert" className="notice notice-danger">
@@ -259,6 +292,7 @@ export function NoteEditor({
           </button>
         )}
       </div>
+      {formSettingsOpen && <NoteFormSettings onClose={() => setFormSettingsOpen(false)} />}
     </form>
   );
 }

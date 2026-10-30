@@ -93,7 +93,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
     );
     const first = await app.inject({ method: 'GET', url: '/settings', headers });
     expect(first.statusCode).toBe(200);
-    expect(first.json()).toEqual({ noteSort: 'urgency' });
+    expect(first.json()).toEqual({ noteSort: 'urgency', noteForm: { hiddenFields: [] } });
 
     const put = await app.inject({
       method: 'PUT',
@@ -101,9 +101,34 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       headers,
       payload: { noteSort: 'newest' },
     });
-    expect(put.json()).toEqual({ noteSort: 'newest' });
+    expect(put.json()).toEqual({ noteSort: 'newest', noteForm: { hiddenFields: [] } });
     const again = await app.inject({ method: 'GET', url: '/settings', headers });
-    expect(again.json()).toEqual({ noteSort: 'newest' });
+    expect(again.json()).toEqual({ noteSort: 'newest', noteForm: { hiddenFields: [] } });
+  });
+
+  it('keeps noteSort on a noteForm patch and noteForm on a noteSort patch', async () => {
+    const form = { hiddenFields: ['dueDate'] };
+    const a = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteForm: form },
+    });
+    expect(a.json()).toEqual({ noteSort: 'newest', noteForm: form });
+    const b = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteSort: 'oldest' },
+    });
+    expect(b.json()).toEqual({ noteSort: 'oldest', noteForm: form });
+    const bad = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteForm: { hiddenFields: ['body'] } },
+    });
+    expect(bad.statusCode).toBe(400);
   });
 
   it('rejects an invalid body with 400', async () => {

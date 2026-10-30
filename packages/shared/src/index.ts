@@ -13,8 +13,26 @@ export const NoteSort = z.enum(['urgency', 'due_date', 'newest', 'oldest']);
 export type NoteSort = z.infer<typeof NoteSort>;
 export const DEFAULT_NOTE_SORT: NoteSort = 'urgency';
 
-export const Settings = z.object({ noteSort: NoteSort });
+/** Optional note-form fields the user can hide. Body and status are required, so not listed. */
+export const HideableField = z.enum(['title', 'categories', 'dueDate', 'importance', 'urgency']);
+export type HideableField = z.infer<typeof HideableField>;
+
+export const NoteForm = z.object({ hiddenFields: z.array(HideableField).default([]) });
+export type NoteForm = z.infer<typeof NoteForm>;
+export const DEFAULT_NOTE_FORM: NoteForm = NoteForm.parse({});
+
+export const Settings = z.object({
+  noteSort: NoteSort,
+  noteForm: NoteForm.default(DEFAULT_NOTE_FORM),
+});
 export type Settings = z.infer<typeof Settings>;
+
+/** Written out by hand: `Settings.partial()` would let the Zod default wipe the stored form. */
+export const SettingsPatch = z.object({
+  noteSort: NoteSort.optional(),
+  noteForm: NoteForm.optional(),
+});
+export type SettingsPatch = z.infer<typeof SettingsPatch>;
 
 /** Error body the API returns for auth failures: `401 unauthorized`, `403 not_allowed`. */
 export const ApiError = z.object({ error: z.string() });

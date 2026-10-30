@@ -80,7 +80,10 @@ describe('NotesScreen opened from a tag', () => {
         },
       ],
     });
-    vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'newest' });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: { hiddenFields: [] },
+    });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
@@ -99,7 +102,10 @@ describe('NotesScreen modes from the URL', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(api, 'notes').mockResolvedValue([note(1, 'first note', [])]);
     vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
-    vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'newest' });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: { hiddenFields: [] },
+    });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const Where = () => <p data-testid="where">{useLocation().pathname}</p>;
     render(

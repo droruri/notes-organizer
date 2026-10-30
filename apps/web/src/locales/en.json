@@ -104,7 +104,26 @@
     "suggestHint": "Claude suggests a category, tags and a due date. You can change anything before saving.",
     "reviewTitle": "Review note",
     "editTitle": "Edit note",
-    "suggested": "Suggested by Claude"
+    "suggested": "Suggested by Claude",
+    "formSettings": {
+      "open": "Form settings",
+      "title": "Form settings",
+      "save": "Save settings",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "error": "Could not save the settings. Try again.",
+      "always": "Always shown",
+      "hidden": "Hidden",
+      "show": "Show {{field}}",
+      "fields": {
+        "title": "Title",
+        "body": "Text",
+        "categories": "Categories & tags",
+        "dueDate": "Due date",
+        "importance": "Importance",
+        "urgency": "Urgency"
+      }
+    }
   },
   "filters": {
     "title": "Filter",
