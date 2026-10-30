@@ -63,8 +63,8 @@ export function NoteEditor({
     (settings.data?.noteForm ?? DEFAULT_NOTE_FORM).hiddenFields,
   );
   const [formSettingsOpen, setFormSettingsOpen] = useState(false);
-  const gridCols = ['dueDate', 'importance', 'urgency'].filter(
-    (f) => !hidden.has(HideableField.parse(f)),
+  const gridCols = (['dueDate', 'importance', 'urgency'] satisfies HideableField[]).filter(
+    (f) => !hidden.has(f),
   ).length;
   // Any field Claude filled in counts; comparing JSON would depend on key order.
   const hasSuggestion = Object.values(suggestion).some((v) =>

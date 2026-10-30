@@ -61,6 +61,8 @@ describe('query cache persistence', () => {
     expect(keys).not.toContain('taxonomy');
     expect(keys).not.toContain('users');
     expect(keys).toContain('notes');
+    // A settings cache saved before noteForm existed still restores.
+    expect(keys).toContain('settings');
   });
 
   it('returns nothing for garbage', async () => {

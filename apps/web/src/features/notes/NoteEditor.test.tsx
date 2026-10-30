@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { EMPTY_SUGGESTION, type Note, type Suggestion, type Taxonomy } from '@notes/shared';
+import {
+  EMPTY_SUGGESTION,
+  HideableField,
+  type Note,
+  type Suggestion,
+  type Taxonomy,
+} from '@notes/shared';
 import {
   cleanup,
   fireEvent,
@@ -258,10 +264,10 @@ describe('NoteEditor category importance', () => {
 });
 
 describe('NoteEditor form settings', () => {
-  const mount = (hiddenFields: string[]) => {
+  const mount = (hiddenFields: HideableField[]) => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'urgency',
-      noteForm: { hiddenFields: hiddenFields as never },
+      noteForm: { hiddenFields },
     });
     const onSubmit = vi.fn();
     render(

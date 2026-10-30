@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { DEFAULT_NOTE_FORM, HideableField } from '@notes/shared';
+import { HideableField } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -22,9 +22,9 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
-  const [hidden, setHidden] = useState<ReadonlyArray<HideableField>>(
-    (settings.data?.noteForm ?? DEFAULT_NOTE_FORM).hiddenFields,
-  );
+  // Null until the user changes a switch; until the stored choice loads, nothing is hidden and Save stays off.
+  const [edited, setEdited] = useState<ReadonlyArray<HideableField> | null>(null);
+  const hidden = edited ?? settings.data?.noteForm.hiddenFields ?? [];
   const save = useMutation({
     mutationFn: () => api.saveSettings({ noteForm: { hiddenFields: [...hidden] } }),
     onSuccess: (saved) => {
@@ -37,7 +37,7 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
   useEscape(close);
 
   const toggle = (f: HideableField, shown: boolean) =>
-    setHidden((cur) => (shown ? cur.filter((x) => x !== f) : [...cur, f]));
+    setEdited(shown ? hidden.filter((x) => x !== f) : [...hidden, f]);
 
   return (
     <div
@@ -105,7 +105,7 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={() => save.mutate()}
-            disabled={save.isPending}
+            disabled={!settings.data || save.isPending}
             className="btn btn-primary"
           >
             {save.isPending ? t('notes.formSettings.saving') : t('notes.formSettings.save')}
