@@ -138,4 +138,30 @@ describe('TaxonomyPicker', () => {
     );
     expect(screen.queryByRole('group', { name: 'תגיות' })).toBeNull();
   });
+
+  it('lists categories, tags and new names alphabetically', () => {
+    const tag = (id: string, name: string) => ({ id, categoryId: C, name, deleted: false });
+    const sorted: Taxonomy = {
+      categories: ['תל אביב', 'Zoo', 'אוכל', 'בית'].map((name, i) => ({
+        id: `00000000-0000-4000-8000-00000000000${i}`,
+        name,
+        deleted: false,
+        importance: null,
+        tags: name === 'אוכל' ? [tag('t1', 'תה'), tag('t2', 'אורז')] : [],
+      })),
+    };
+    render(
+      <TaxonomyPicker
+        taxonomy={sorted}
+        value={{ categoryIds: [], tagIds: [], newCategories: ['ים', 'דגים'], newTags: [] }}
+        onChange={() => undefined}
+      />,
+    );
+    const names = screen.getAllByRole('button').map((b) => b.textContent ?? '');
+    const at = (n: string) => names.findIndex((t) => t.startsWith(n));
+    const order = ['אוכל', 'בית', 'תל אביב', 'Zoo', 'דגים', 'ים'].map(at);
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(at('אורז')).toBeLessThan(at('תה'));
+  });
 });
