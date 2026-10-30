@@ -115,6 +115,8 @@
       "always": "Always shown",
       "hidden": "Hidden",
       "show": "Show {{field}}",
+      "values": "Values",
+      "lastValue": "At least one value stays offered.",
       "displayAs": "Show as",
       "display": {
         "dropdown": "Dropdown",

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CategoryColor, Importance } from './notes';
+import { CategoryColor, Importance, Urgency } from './notes';
 
 // Schemas and types used by both web and api, defined once.
 
@@ -21,12 +21,17 @@ export type HideableField = z.infer<typeof HideableField>;
 export const ChoiceDisplay = z.enum(['dropdown', 'buttons']);
 export type ChoiceDisplay = z.infer<typeof ChoiceDisplay>;
 
-const choiceSettings = z.object({ display: ChoiceDisplay.default('dropdown') });
+const choiceSettings = <T extends z.ZodEnum>(values: T) =>
+  z.object({
+    display: ChoiceDisplay.default('dropdown'),
+    /** Values the form does not offer; a note that already has one still shows it. */
+    hiddenValues: z.array(values).default([]),
+  });
 
 export const NoteForm = z.object({
   hiddenFields: z.array(HideableField).default([]),
-  importance: choiceSettings.default({ display: 'dropdown' }),
-  urgency: choiceSettings.default({ display: 'dropdown' }),
+  importance: choiceSettings(Importance).default({ display: 'dropdown', hiddenValues: [] }),
+  urgency: choiceSettings(Urgency).default({ display: 'dropdown', hiddenValues: [] }),
 });
 export type NoteForm = z.infer<typeof NoteForm>;
 export const DEFAULT_NOTE_FORM: NoteForm = NoteForm.parse({});
