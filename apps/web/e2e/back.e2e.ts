@@ -86,7 +86,8 @@ test('chat → open a note → back returns to the list', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
   await page.getByText(body).first().click();
   await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
-  const id = page.url().split('/notes/')[1];
+  const id = page.url().match(/\/notes\/([0-9a-f-]+)$/)?.[1];
+  if (!id) throw new Error(`no note id in url: ${page.url()}`);
   await page.goBack();
   await page.route(/\/chat$/, (route) => {
     if (route.request().method() !== 'POST') return route.fallback();
