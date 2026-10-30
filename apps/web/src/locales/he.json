@@ -126,6 +126,8 @@
     "add": "הוספת קובץ",
     "uploading": "מעלה…",
     "open": "הורדת {{name}}",
+    "takePhoto": "צילום תמונה",
+    "view": "פתיחת {{name}}",
     "list": "קבצים מצורפים",
     "downloadFailed": "הורדת הקובץ נכשלה.",
     "errors": {

@@ -77,4 +77,28 @@ describe('Attachments', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Download a.pdf' }));
     await waitFor(() => expect(fetchFile).toHaveBeenCalledWith(NOTE, a.id));
   });
+
+  it('renders an image attachment as a named thumbnail', async () => {
+    const a = { ...att('cat.png'), mime: 'image/png' };
+    vi.spyOn(api, 'attachmentFile').mockResolvedValue(new Blob(['x'], { type: 'image/png' }));
+    URL.createObjectURL = vi.fn(() => 'blob:thumb');
+    setup([a], false);
+    const img = await screen.findByRole('img', { name: 'cat.png' });
+    expect(img.getAttribute('src')).toBe('blob:thumb');
+  });
+
+  it('falls back to the file row when the thumbnail fails to load', async () => {
+    const a = { ...att('cat.png'), mime: 'image/png' };
+    vi.spyOn(api, 'attachmentFile').mockRejectedValue(new Error('offline'));
+    setup([a], false);
+    expect(await screen.findByRole('button', { name: 'Download cat.png' })).toBeTruthy();
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('has a Take photo input that opens the camera', () => {
+    setup();
+    const camera = screen.getByTestId('attachment-camera-input');
+    expect(camera.getAttribute('accept')).toBe('image/*');
+    expect(camera.getAttribute('capture')).toBe('environment');
+  });
 });

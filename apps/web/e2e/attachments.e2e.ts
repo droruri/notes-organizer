@@ -35,3 +35,26 @@ test('attach a PDF in the draft → it is listed on the expanded card → tappin
   const path = await download.path();
   expect((await readFile(path)).equals(PDF)).toBe(true);
 });
+
+// 1×1 transparent PNG.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+test('attach a PNG → its thumbnail shows on the expanded card', async ({ page }) => {
+  await signIn(page);
+  const body = unique('thumb');
+  const name = `pic-${Date.now()}.png`;
+
+  await composeNote(page, body);
+  await page
+    .getByTestId('attachment-input')
+    .setInputFiles({ name, mimeType: 'image/png', buffer: PNG });
+  await expect(page.getByRole('img', { name })).toBeVisible();
+
+  await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+  const card = page.locator('ul.gap-3 > li', { hasText: body });
+  await card.getByRole('button', { name: 'הרחבה' }).click();
+  await expect(card.getByRole('img', { name })).toBeVisible();
+});

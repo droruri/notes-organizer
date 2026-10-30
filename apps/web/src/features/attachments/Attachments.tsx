@@ -4,13 +4,11 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiRequestError } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
+import { FileRow } from './FileRow';
+import { shrinkImage } from './shrinkImage';
+import { Thumbnail } from './Thumbnail';
 
 type Pending = { key: number; name: string; error: string | null };
-
-const formatSize = (bytes: number): string =>
-  bytes >= 1024 * 1024
-    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 /** A note's files: tap one to download it; `editable` adds the "Add file" button. */
 export function Attachments({
@@ -25,6 +23,7 @@ export function Attachments({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
   // The editor's note is a snapshot, so files added here are kept locally as well.
   const [added, setAdded] = useState<Attachment[]>([]);
   const [pending, setPending] = useState<Pending[]>([]);
@@ -52,7 +51,7 @@ export function Attachments({
     // One at a time; a failure stays on its own row and the rest continue.
     for (const { key, file } of queued) {
       try {
-        const attachment = await api.uploadAttachment(noteId, file);
+        const attachment = await api.uploadAttachment(noteId, await shrinkImage(file));
         setAdded((a) => [...a, attachment]);
         setPending((p) => p.filter((r) => r.key !== key));
         void queryClient.invalidateQueries({ queryKey: ['notes'] });
@@ -83,20 +82,15 @@ export function Attachments({
         <ul aria-label={t('attachments.list')} className="flex flex-col gap-1.5">
           {rows.map((a) => (
             <li key={a.id}>
-              <button
-                type="button"
-                onClick={() => void download(a)}
-                aria-label={t('attachments.open', { name: a.name })}
-                className="btn btn-sm w-full justify-start"
-              >
-                <Icon name="file" size={16} className="shrink-0 text-muted" />
-                <span dir="auto" className="min-w-0 flex-1 truncate text-start">
-                  {a.name}
-                </span>
-                <span dir="ltr" className="text-xs text-muted tabular-nums">
-                  {formatSize(a.size)}
-                </span>
-              </button>
+              {a.mime.startsWith('image/') ? (
+                <Thumbnail noteId={noteId} a={a} onDownload={() => void download(a)} />
+              ) : (
+                <FileRow
+                  a={a}
+                  onOpen={() => void download(a)}
+                  label={t('attachments.open', { name: a.name })}
+                />
+              )}
             </li>
           ))}
           {pending.map((r) => (
@@ -137,10 +131,26 @@ export function Attachments({
             data-testid="attachment-input"
             onChange={(e) => void onPick(e)}
           />
-          <button type="button" onClick={() => input.current?.click()} className="btn btn-sm w-fit">
-            <Icon name="paperclip" size={14} />
-            {t('attachments.add')}
-          </button>
+          <input
+            ref={camera}
+            type="file"
+            hidden
+            accept="image/*"
+            capture="environment"
+            aria-label={t('attachments.takePhoto')}
+            data-testid="attachment-camera-input"
+            onChange={(e) => void onPick(e)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => input.current?.click()} className="btn btn-sm">
+              <Icon name="paperclip" size={14} />
+              {t('attachments.add')}
+            </button>
+            <button type="button" onClick={() => camera.current?.click()} className="btn btn-sm">
+              <Icon name="camera" size={14} />
+              {t('attachments.takePhoto')}
+            </button>
+          </div>
         </>
       )}
     </div>

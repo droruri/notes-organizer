@@ -125,6 +125,8 @@
     "add": "Add file",
     "uploading": "Uploading…",
     "open": "Download {{name}}",
+    "takePhoto": "Take photo",
+    "view": "Open {{name}}",
     "list": "Attachments",
     "downloadFailed": "Could not download the file.",
     "errors": {
