@@ -75,18 +75,27 @@ describe('ActionGroup', () => {
           release = resolve;
         }),
     );
-    fireEvent.click(screen.getAllByRole('button', { name: /דחייה|dismiss/i })[0] as HTMLElement);
+    const [dismiss] = screen.getAllByRole('button', { name: /דחייה|dismiss/i });
+    if (!dismiss) throw new Error('no dismiss button rendered');
+    fireEvent.click(dismiss);
     expect(screen.getByRole('button', { name: allBtn })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: allBtn }));
     expect(fn).toHaveBeenCalledWith({ actions: [A[1], A[2]] });
-    for (const b of screen.getAllByRole('button'))
-      expect((b as HTMLButtonElement).disabled).toBe(true);
+    for (const b of screen.getAllByRole('button')) expect(b.hasAttribute('disabled')).toBe(true);
     release({ results: [{ ok: true }, { ok: true }] });
     await waitFor(() => expect(screen.queryByRole('button')).toBeNull());
   });
 
+  it('approves a single card alone and refreshes once', async () => {
+    const { fn, onApplied } = setup(A.slice(0, 1));
+    fireEvent.click(screen.getByRole('button', { name: approveBtn }));
+    await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1));
+    expect(fn).toHaveBeenCalledWith({ actions: [A[0]] });
+    expect(screen.getAllByText(/בוצע|done/i)).toHaveLength(1);
+  });
+
   it('hides approve-all with a single pending card and dismiss applies nothing', () => {
-    const { fn } = setup([A[0] as AgentAction]);
+    const { fn } = setup(A.slice(0, 1));
     expect(screen.queryByRole('button', { name: allBtn })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /דחייה|dismiss/i }));
     expect(fn).not.toHaveBeenCalled();

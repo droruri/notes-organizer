@@ -1,5 +1,5 @@
 import type { ActionsBody, ActionsResponse, AgentAction } from '@notes/shared';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { ActionCard, type CardState } from './ActionCard';
@@ -22,6 +22,8 @@ export function ActionGroup({
   // Keyed by position: actions can keep arriving while the answer streams, and start idle.
   const [cards, setCards] = useState<Record<number, Card>>({});
   const [inFlight, setInFlight] = useState(false);
+  // A ref, not state: two clicks before the next render must not both send a request.
+  const inFlightRef = useRef(false);
 
   const cardAt = (k: number): Card => cards[k] ?? IDLE;
   const pending = actions.flatMap((_, k) => (cardAt(k).state === 'idle' ? [k] : []));
@@ -40,7 +42,8 @@ export function ActionGroup({
       const action = actions[k];
       return action ? [{ k, action }] : [];
     });
-    if (selected.length === 0 || inFlight) return;
+    if (selected.length === 0 || inFlightRef.current) return;
+    inFlightRef.current = true;
     setInFlight(true);
     set(Object.fromEntries(selected.map(({ k }) => [k, { state: 'busy', error: null }])));
     const next: Record<number, Card> = {};
@@ -60,6 +63,7 @@ export function ActionGroup({
       for (const { k } of selected) next[k] = { state: 'idle', error: errorText(undefined) };
     }
     set(next);
+    inFlightRef.current = false;
     setInFlight(false);
     if (applied) onApplied();
   };
