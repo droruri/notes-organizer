@@ -38,4 +38,15 @@ describe('SignIn', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('ההתחברות נכשלה. נסו שוב.');
     expect(replace).not.toHaveBeenCalled();
   });
+
+  it('shows the alert when no URL comes back or the call throws', async () => {
+    signInWithOAuth.mockResolvedValueOnce({ data: { url: null }, error: null });
+    click();
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    signInWithOAuth.mockRejectedValueOnce(new Error('network'));
+    cleanup();
+    click();
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(replace).not.toHaveBeenCalled();
+  });
 });

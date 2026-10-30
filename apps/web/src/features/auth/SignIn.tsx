@@ -9,15 +9,19 @@ export function SignIn() {
 
   async function signIn() {
     setFailed(false);
-    const { data, error } = await supabase().auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
-    });
-    if (error || !data.url) {
+    try {
+      const { data, error } = await supabase().auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
+      });
+      if (error || !data.url) {
+        setFailed(true);
+        return;
+      }
+      window.location.replace(data.url);
+    } catch {
       setFailed(true);
-      return;
     }
-    window.location.replace(data.url);
   }
 
   return (
