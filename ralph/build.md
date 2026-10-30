@@ -63,6 +63,6 @@
    - Commit changes, push the branch to GitHub, and open a Pull Request targeting `main`.
    - Browser checks: for a UI change or a browser criterion, spawn the `e2e` agent with the criteria and
      the worktree path before opening the PR; its verdict lines and screenshot paths go in the PR body.
-     On `fail`, fix the product bug and re-run it; only `E2E_RESULT: setup-failed` splits the check.
+     On `fail`, fix the product bug and re-run it (at most 2 re-runs, then record the open failure in the progress file and go on); only `E2E_RESULT: setup-failed` splits the check.
    - Set the PR body to include `Closes #<ISSUE_NUMBER>`. If you split out human-only work, the
      body also names each follow-up issue (`Human-only items moved to #M`).

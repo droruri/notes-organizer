@@ -95,8 +95,8 @@ dashboard or account steps, subjective product sign-off. Do **not** label the cu
 whenever you meet such a criterion (step 2 audit or later), then carry on with the normal phases.
 
 **Not human-only:** device, browser and visual checks. Hand them to the `e2e` agent
-(`.claude/agents/e2e.md`): pass the criteria to verify (copied) and the worktree path. In `/ralph-issue`
-request it with `AGENT_REQUEST type=e2e`. It runs `scripts/e2e-setup.sh` itself (reuses or starts the
+(`.claude/agents/e2e.md`): pass the criteria to verify (copied) and the worktree path. Spawn it like any agent; under
+`/ralph-issue` that means the usual `AGENT_REQUEST type=e2e` relay. It runs `scripts/e2e-setup.sh` itself (reuses or starts the
 Supabase stack, installs the Playwright browser, picks free ports), so a port clash or a missing
 browser is no reason to split. It replies with `pass|fail` lines, screenshot paths and
 `E2E_RESULT: pass|fail|setup-failed`. iOS simulator and computer-use checks for non-web stay yours.
