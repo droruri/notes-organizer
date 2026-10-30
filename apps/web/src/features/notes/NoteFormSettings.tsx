@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { HideableField } from '@notes/shared';
+import { ChoiceDisplay, DEFAULT_NOTE_FORM, HideableField, type NoteForm } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
+import { Segmented } from '../../ui/Segmented';
 import { useEscape } from '../../ui/useEscape';
 import { useExit } from '../../ui/useExit';
 
@@ -24,9 +25,21 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   // Null until the user changes a switch; until the stored choice loads, nothing is hidden and Save stays off.
   const [edited, setEdited] = useState<ReadonlyArray<HideableField> | null>(null);
-  const hidden = edited ?? settings.data?.noteForm.hiddenFields ?? [];
+  const stored = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
+  const hidden = edited ?? stored.hiddenFields;
+  const [displays, setDisplays] = useState<
+    Partial<Record<'importance' | 'urgency', ChoiceDisplay>>
+  >({});
+  const displayOf = (f: 'importance' | 'urgency') => displays[f] ?? stored[f].display;
   const save = useMutation({
-    mutationFn: () => api.saveSettings({ noteForm: { hiddenFields: [...hidden] } }),
+    mutationFn: () =>
+      api.saveSettings({
+        noteForm: {
+          hiddenFields: [...hidden],
+          importance: { display: displayOf('importance') },
+          urgency: { display: displayOf('urgency') },
+        } satisfies NoteForm,
+      }),
     onSuccess: (saved) => {
       queryClient.setQueryData(['settings'], saved);
       close();
@@ -77,7 +90,10 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
             }
             const shown = !hidden.includes(row);
             return (
-              <li key={row} className={`flex items-center gap-3 py-3 ${shown ? '' : 'text-muted'}`}>
+              <li
+                key={row}
+                className={`flex flex-wrap items-center gap-x-3 py-3 ${shown ? '' : 'text-muted'}`}
+              >
                 <label className="flex w-full items-center gap-3">
                   <span>{name}</span>
                   {!shown && (
@@ -92,6 +108,20 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
                     className={`h-5 w-9 accent-[var(--accent)] ${shown ? 'ms-auto' : ''}`}
                   />
                 </label>
+                {shown && (row === 'importance' || row === 'urgency') && (
+                  <div className="mt-2 flex w-full items-center gap-3 text-sm text-muted">
+                    <span>{t('notes.formSettings.displayAs')}</span>
+                    <Segmented
+                      label={t('notes.formSettings.displayAs')}
+                      options={ChoiceDisplay.options}
+                      value={displayOf(row)}
+                      labelOf={(o) => (o ? t(`notes.formSettings.display.${o}`) : '')}
+                      onChange={(next) => {
+                        if (next) setDisplays({ ...displays, [row]: next });
+                      }}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}

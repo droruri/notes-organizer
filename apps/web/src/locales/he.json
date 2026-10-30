@@ -116,6 +116,11 @@
       "always": "תמיד מוצג",
       "hidden": "מוסתר",
       "show": "הצגת {{field}}",
+      "displayAs": "הצגה כ־",
+      "display": {
+        "dropdown": "רשימה נפתחת",
+        "buttons": "כפתורים"
+      },
       "fields": {
         "title": "כותרת",
         "body": "טקסט",

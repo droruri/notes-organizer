@@ -139,7 +139,14 @@ describe('settings logs', () => {
     );
     const res = await app.inject({ method: 'GET', url: '/settings', headers });
     await app.close();
-    expect(res.json()).toEqual({ noteSort: 'urgency', noteForm: { hiddenFields: [] } });
+    expect(res.json()).toEqual({
+      noteSort: 'urgency',
+      noteForm: {
+        hiddenFields: [],
+        importance: { display: 'dropdown' },
+        urgency: { display: 'dropdown' },
+      },
+    });
     expect(lines.find((l) => l.msg === 'stored settings invalid')).toMatchObject({
       level: 40,
       field: 'noteForm',

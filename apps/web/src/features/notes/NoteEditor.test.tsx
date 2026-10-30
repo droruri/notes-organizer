@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  DEFAULT_NOTE_FORM,
   EMPTY_SUGGESTION,
   HideableField,
   type Note,
+  type NoteForm,
   type Suggestion,
   type Taxonomy,
 } from '@notes/shared';
@@ -267,7 +269,7 @@ describe('NoteEditor form settings', () => {
   const mount = (hiddenFields: HideableField[]) => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'urgency',
-      noteForm: { hiddenFields },
+      noteForm: { ...DEFAULT_NOTE_FORM, hiddenFields },
     });
     const onSubmit = vi.fn();
     render(
@@ -295,7 +297,7 @@ describe('NoteEditor form settings', () => {
     mount([]);
     const save = vi.spyOn(api, 'saveSettings').mockResolvedValue({
       noteSort: 'urgency',
-      noteForm: { hiddenFields: ['urgency'] },
+      noteForm: { ...DEFAULT_NOTE_FORM, hiddenFields: ['urgency'] },
     });
     fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'typed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Form settings' }));
@@ -305,7 +307,66 @@ describe('NoteEditor form settings', () => {
     fireEvent.click(within(dialog).getByRole('switch', { name: 'Show Urgency' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save settings' }));
     await waitFor(() => expect(screen.queryByLabelText('Urgency')).toBeNull());
-    expect(save).toHaveBeenCalledWith({ noteForm: { hiddenFields: ['urgency'] } });
+    expect(save).toHaveBeenCalledWith({
+      noteForm: { ...DEFAULT_NOTE_FORM, hiddenFields: ['urgency'] },
+    });
     expect(screen.getByLabelText<HTMLTextAreaElement>('Text').value).toBe('typed');
+  });
+});
+
+describe('NoteEditor choice display', () => {
+  const HI = '11111111-1111-4111-8111-111111111111';
+  const mount = (noteForm: NoteForm, taxonomy: Taxonomy = { categories: [] }) => {
+    vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'urgency', noteForm });
+    const onSubmit = vi.fn();
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={EMPTY_SUGGESTION}
+        taxonomy={taxonomy}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+      />,
+    );
+    return onSubmit;
+  };
+
+  it('shows dropdowns by default', () => {
+    mount(DEFAULT_NOTE_FORM);
+    expect(screen.getByLabelText('Importance').tagName).toBe('SELECT');
+    expect(screen.getByLabelText('Urgency').tagName).toBe('SELECT');
+  });
+
+  it('shows buttons with none + every value and submits the pick', async () => {
+    const onSubmit = mount({ ...DEFAULT_NOTE_FORM, urgency: { display: 'buttons' } });
+    const group = await screen.findByRole('radiogroup', { name: 'Urgency' });
+    expect(within(group).getAllByRole('radio')).toHaveLength(5);
+    expect(screen.getByLabelText('Importance').tagName).toBe('SELECT');
+    fireEvent.click(within(group).getAllByRole('radio')[3] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ urgency: 'critical' });
+  });
+
+  it('keeps the importance hint in buttons mode', async () => {
+    mount(
+      { ...DEFAULT_NOTE_FORM, importance: { display: 'buttons' } },
+      {
+        categories: [
+          {
+            id: HI,
+            name: 'Work',
+            deleted: false,
+            importance: 'important',
+            color: 'slate' as const,
+            tags: [],
+          },
+        ],
+      },
+    );
+    await screen.findByRole('radiogroup', { name: 'Importance' });
+    fireEvent.click(screen.getByRole('button', { name: 'Work' }));
+    expect(screen.getByText('Set by category Work')).toBeTruthy();
   });
 });

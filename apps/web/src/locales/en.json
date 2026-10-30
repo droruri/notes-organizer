@@ -115,6 +115,11 @@
       "always": "Always shown",
       "hidden": "Hidden",
       "show": "Show {{field}}",
+      "displayAs": "Show as",
+      "display": {
+        "dropdown": "Dropdown",
+        "buttons": "Buttons"
+      },
       "fields": {
         "title": "Title",
         "body": "Text",

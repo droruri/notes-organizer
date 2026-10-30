@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { EMPTY_SUGGESTION, type Note } from '@notes/shared';
+import { DEFAULT_NOTE_FORM, EMPTY_SUGGESTION, type Note } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
@@ -82,7 +82,7 @@ describe('NotesScreen opened from a tag', () => {
     });
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
-      noteForm: { hiddenFields: [] },
+      noteForm: DEFAULT_NOTE_FORM,
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -104,7 +104,7 @@ describe('NotesScreen modes from the URL', () => {
     vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
-      noteForm: { hiddenFields: [] },
+      noteForm: DEFAULT_NOTE_FORM,
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const Where = () => <p data-testid="where">{useLocation().pathname}</p>;
