@@ -124,7 +124,7 @@ async function fetchBlob(path: string, mimes: readonly string[]): Promise<Blob> 
 
 /** The recording bytes of a note. */
 function noteAudio(id: string): Promise<Blob> {
-  return fetchBlob(`/notes/${id}/audio`, AUDIO_MIMES);
+  return fetchBlob(`/notes/${encodeURIComponent(id)}/audio`, AUDIO_MIMES);
 }
 
 /**
