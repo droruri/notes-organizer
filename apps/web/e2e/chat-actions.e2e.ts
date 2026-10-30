@@ -51,7 +51,7 @@ test('"approve all" applies the chat action cards in one request', async ({ page
 });
 
 test('"approve all" recolors several categories from chat', async ({ page }) => {
-  const names = [unique('צבע א'), unique('צבע ב')];
+  const names = [unique('עבודה'), unique('בית')];
   await signIn(page);
   await page.getByRole('button', { name: 'תפריט' }).click();
   await page.getByRole('menuitem', { name: 'קטגוריות ותגיות' }).click();
