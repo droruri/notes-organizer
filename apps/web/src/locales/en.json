@@ -124,6 +124,7 @@
   "attachments": {
     "add": "Add file",
     "uploading": "Uploading…",
+    "loading": "Loading…",
     "open": "Download {{name}}",
     "takePhoto": "Take photo",
     "view": "Open {{name}}",

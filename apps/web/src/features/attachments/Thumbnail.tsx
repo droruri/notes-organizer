@@ -31,7 +31,7 @@ export function Thumbnail({
     return (
       <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-surface-2">
         <span aria-hidden="true" className="spinner" />
-        <span className="sr-only">{t('attachments.uploading')}</span>
+        <span className="sr-only">{t('attachments.loading')}</span>
       </div>
     );
   }
