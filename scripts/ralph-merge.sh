@@ -63,6 +63,44 @@ check_state() {
   echo "$runs"
 }
 
+# failing_checks <sha>: prints the names of failing check runs and legacy statuses, one per line, sorted.
+# Returns non-zero on an API failure.
+failing_checks() {
+  local runs statuses
+  runs=$(gh api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100" | jq -rs '
+    .[].check_runs[] | select(.status == "completed" and (.conclusion | IN("success", "neutral", "skipped") | not)) | .name') || return 1
+  statuses=$(gh api --paginate "repos/$REPO/commits/$1/status" | jq -rs '.[].statuses[] | select(.state | IN("failure", "error")) | .context') || return 1
+  printf '%s\n%s\n' "$runs" "$statuses" | sed '/^$/d' | sort -u
+}
+
+# Finds or creates the open `main is red: <check>` issue for a check. Lists the open issues instead
+# of using search, which lags behind a just-created issue and would open a duplicate.
+ensure_main_red_issue() {
+  local title="main is red: $1" found
+  found=$(gh api --paginate "repos/$REPO/issues?state=open&per_page=100" | jq -s --arg t "$title" '[.[][] | select(.title == $t)] | length') || {
+    echo "warn: could not list open issues; not opening '$title'." >&2
+    return
+  }
+  if [ "$found" = 0 ]; then
+    gh api "repos/$REPO/issues" -f title="$title" -f 'labels[]=ready-for-agent' \
+      -f body="The check \`$1\` is failing on \`main\`. Found while merging PR #$pr, which was red only on checks also red on main. Fix the check, or remove it if it is not ours." > /dev/null \
+      && echo "Opened issue: $title" || echo "warn: could not open issue '$title'." >&2
+  fi
+}
+
+# Set when CI is red only on checks that also fail on main's latest commit.
+merge_note=""
+red_only_on_main() {
+  local pr_fail main_fail main_sha extra
+  main_sha=$(gh api "repos/$REPO/commits/main" --jq .sha) || return 1
+  pr_fail=$(failing_checks "$sha") || return 1
+  main_fail=$(failing_checks "$main_sha") || return 1
+  [ -n "$pr_fail" ] || return 1
+  extra=$(comm -23 <(printf '%s\n' "$pr_fail") <(printf '%s\n' "$main_fail"))
+  [ -z "$extra" ] || return 1
+  merge_note="$pr_fail"
+}
+
 # Checks can take a moment to register after the last push; CI itself can take a while.
 echo "Waiting for CI on PR #$pr..."
 state=none
@@ -74,7 +112,9 @@ for i in $(seq 1 360); do
   esac
   sleep 10
 done
-if [ "$state" != green ]; then
+if [ "$state" = red ] && red_only_on_main; then
+  echo "PR #$pr is red only on checks also red on main; merging anyway."
+elif [ "$state" != green ]; then
   echo "CI is not green on PR #$pr ($state)."
   exit 1
 fi
@@ -84,6 +124,12 @@ fi
 if ! gh api -X PUT "repos/$REPO/pulls/$pr/merge" -f merge_method=squash > /dev/null; then
   echo "Merge of PR #$pr failed."
   exit 1
+fi
+if [ -n "$merge_note" ]; then
+  names=$(printf '%s' "$merge_note" | paste -sd, - | sed 's/,/, /g')
+  gh api "repos/$REPO/issues/$pr/comments" -f body="Merged with checks also red on main: $names" > /dev/null \
+    || echo "warn: could not comment on merged PR #$pr." >&2
+  while IFS= read -r name; do ensure_main_red_issue "$name"; done <<< "$merge_note"
 fi
 git push origin --delete "$branch" > /dev/null 2>&1 || true
 
