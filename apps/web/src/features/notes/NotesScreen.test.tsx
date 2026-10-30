@@ -124,6 +124,18 @@ describe('NotesScreen modes from the URL', () => {
     await screen.findByRole('button', { name: 'Suggest' });
   });
 
+  it('compose fields are rtl while empty and auto once they have text', async () => {
+    setup('/new');
+    const title = await screen.findByRole('textbox', { name: i18n.t('notes.noteTitle') });
+    const body = screen.getByRole('textbox', { name: i18n.t('notes.body') });
+    expect(title.getAttribute('dir')).toBe('rtl');
+    expect(body.getAttribute('dir')).toBe('rtl');
+    fireEvent.change(body, { target: { value: 'hello' } });
+    expect(body.getAttribute('dir')).toBe('auto');
+    fireEvent.change(body, { target: { value: '   ' } });
+    expect(body.getAttribute('dir')).toBe('rtl');
+  });
+
   it('shows the editor on /notes/:id', async () => {
     setup(`/notes/${note(1, '', []).id}`);
     await screen.findByDisplayValue('first note');
