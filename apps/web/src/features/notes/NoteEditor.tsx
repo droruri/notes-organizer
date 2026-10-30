@@ -221,6 +221,7 @@ export function NoteEditor({
               }}
               labelOf={(o) => (o ? t(`notes.importanceValues.${o}`) : t('notes.none'))}
               display={noteForm.importance.display}
+              hiddenValues={noteForm.importance.hiddenValues}
               value={importance}
               onChange={(v) => {
                 setImportance(v);
@@ -244,6 +245,7 @@ export function NoteEditor({
               }}
               labelOf={(o) => (o ? t(`notes.urgencyValues.${o}`) : t('notes.none'))}
               display={noteForm.urgency.display}
+              hiddenValues={noteForm.urgency.hiddenValues}
               value={urgency}
               onChange={setUrgency}
             />

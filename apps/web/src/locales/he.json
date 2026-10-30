@@ -116,6 +116,8 @@
       "always": "תמיד מוצג",
       "hidden": "מוסתר",
       "show": "הצגת {{field}}",
+      "values": "ערכים",
+      "lastValue": "לפחות ערך אחד נשאר זמין.",
       "displayAs": "הצגה כ־",
       "display": {
         "dropdown": "רשימה נפתחת",

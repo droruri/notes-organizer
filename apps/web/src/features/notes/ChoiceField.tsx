@@ -9,6 +9,7 @@ export function ChoiceField<T extends string>({
   parse,
   labelOf,
   display,
+  hiddenValues,
   value,
   onChange,
   children,
@@ -18,17 +19,20 @@ export function ChoiceField<T extends string>({
   parse: (raw: string) => T | null;
   labelOf: (option: T | null) => string;
   display: ChoiceDisplay;
+  hiddenValues: readonly T[];
   value: T | null;
   onChange: (next: T | null) => void;
   children?: ReactNode;
 }) {
+  // The note's current value stays offered even when hidden.
+  const offered = options.filter((o) => !hiddenValues.includes(o) || o === value);
   if (display === 'buttons') {
     return (
       <div className="label col-span-full">
         {label}
         <Segmented
           label={label}
-          options={[null, ...options]}
+          options={[null, ...offered]}
           value={value}
           labelOf={labelOf}
           onChange={onChange}
@@ -46,7 +50,7 @@ export function ChoiceField<T extends string>({
         className="field text-fg"
       >
         <option value="">{labelOf(null)}</option>
-        {options.map((o) => (
+        {offered.map((o) => (
           <option key={o} value={o}>
             {labelOf(o)}
           </option>

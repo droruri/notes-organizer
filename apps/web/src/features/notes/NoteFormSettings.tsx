@@ -1,5 +1,12 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { ChoiceDisplay, DEFAULT_NOTE_FORM, HideableField, type NoteForm } from '@notes/shared';
+import {
+  ChoiceDisplay,
+  DEFAULT_NOTE_FORM,
+  HideableField,
+  Importance,
+  Urgency,
+  type NoteForm,
+} from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -7,6 +14,7 @@ import { Icon } from '../../ui/Icon';
 import { Segmented } from '../../ui/Segmented';
 import { useEscape } from '../../ui/useEscape';
 import { useExit } from '../../ui/useExit';
+import { Chip } from './Chip';
 
 /** Rows in the order the form shows them; body is required, so it has no switch. */
 const ROWS: ReadonlyArray<HideableField | 'body'> = [
@@ -31,13 +39,24 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
     Partial<Record<'importance' | 'urgency', ChoiceDisplay>>
   >({});
   const displayOf = (f: 'importance' | 'urgency') => displays[f] ?? stored[f].display;
+  const [hiddenValues, setHiddenValues] = useState<
+    Partial<Record<'importance' | 'urgency', readonly string[]>>
+  >({});
+  const hiddenOf = (f: 'importance' | 'urgency'): readonly string[] =>
+    hiddenValues[f] ?? stored[f].hiddenValues;
   const save = useMutation({
     mutationFn: () =>
       api.saveSettings({
         noteForm: {
           hiddenFields: [...hidden],
-          importance: { display: displayOf('importance') },
-          urgency: { display: displayOf('urgency') },
+          importance: {
+            display: displayOf('importance'),
+            hiddenValues: Importance.options.filter((v) => hiddenOf('importance').includes(v)),
+          },
+          urgency: {
+            display: displayOf('urgency'),
+            hiddenValues: Urgency.options.filter((v) => hiddenOf('urgency').includes(v)),
+          },
         } satisfies NoteForm,
       }),
     onSuccess: (saved) => {
@@ -120,6 +139,34 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
                         if (next) setDisplays({ ...displays, [row]: next });
                       }}
                     />
+                  </div>
+                )}
+                {shown && (row === 'importance' || row === 'urgency') && (
+                  <div className="mt-2 flex w-full flex-wrap items-center gap-2 text-sm text-muted">
+                    <span>{t('notes.formSettings.values')}</span>
+                    {(row === 'importance' ? Importance.options : Urgency.options).map((v) => {
+                      const offered = !hiddenOf(row).includes(v);
+                      const all: readonly string[] =
+                        row === 'importance' ? Importance.options : Urgency.options;
+                      const offeredCount = all.filter((x) => !hiddenOf(row).includes(x)).length;
+                      return (
+                        <Chip
+                          key={v}
+                          label={t(`notes.${row}Values.${v}`)}
+                          selected={offered}
+                          disabled={offered && offeredCount === 1}
+                          onClick={() =>
+                            setHiddenValues({
+                              ...hiddenValues,
+                              [row]: offered
+                                ? [...hiddenOf(row), v]
+                                : hiddenOf(row).filter((x) => x !== v),
+                            })
+                          }
+                        />
+                      );
+                    })}
+                    <p className="w-full">{t('notes.formSettings.lastValue')}</p>
                   </div>
                 )}
               </li>

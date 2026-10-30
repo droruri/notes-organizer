@@ -6,8 +6,8 @@ describe('NoteForm', () => {
     const parsed = NoteForm.parse({ hiddenFields: ['title'] });
     expect(parsed).toEqual({
       hiddenFields: ['title'],
-      importance: { display: 'dropdown' },
-      urgency: { display: 'dropdown' },
+      importance: { display: 'dropdown', hiddenValues: [] },
+      urgency: { display: 'dropdown', hiddenValues: [] },
     });
   });
 
@@ -18,5 +18,19 @@ describe('NoteForm', () => {
     });
     expect(parsed.noteForm.urgency.display).toBe('buttons');
     expect(parsed.noteForm.importance.display).toBe('dropdown');
+  });
+});
+
+describe('NoteForm hiddenValues', () => {
+  it('defaults to none hidden and keeps known values', () => {
+    expect(NoteForm.parse({}).urgency.hiddenValues).toEqual([]);
+    expect(NoteForm.parse({ urgency: { hiddenValues: ['medium'] } }).urgency.hiddenValues).toEqual([
+      'medium',
+    ]);
+  });
+
+  it('rejects an unknown value', () => {
+    expect(NoteForm.safeParse({ urgency: { hiddenValues: ['nope'] } }).success).toBe(false);
+    expect(NoteForm.safeParse({ importance: { hiddenValues: ['medium'] } }).success).toBe(false);
   });
 });

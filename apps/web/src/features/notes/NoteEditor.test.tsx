@@ -340,7 +340,10 @@ describe('NoteEditor choice display', () => {
   });
 
   it('shows buttons with none + every value and submits the pick', async () => {
-    const onSubmit = mount({ ...DEFAULT_NOTE_FORM, urgency: { display: 'buttons' } });
+    const onSubmit = mount({
+      ...DEFAULT_NOTE_FORM,
+      urgency: { display: 'buttons', hiddenValues: [] },
+    });
     const group = await screen.findByRole('radiogroup', { name: 'Urgency' });
     expect(within(group).getAllByRole('radio')).toHaveLength(5);
     expect(screen.getByLabelText('Importance').tagName).toBe('SELECT');
@@ -349,9 +352,67 @@ describe('NoteEditor choice display', () => {
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ urgency: 'critical' });
   });
 
+  it.each(['dropdown', 'buttons'] as const)(
+    'does not offer a hidden value (%s)',
+    async (display) => {
+      mount({ ...DEFAULT_NOTE_FORM, urgency: { display, hiddenValues: ['medium'] } });
+      if (display === 'buttons') {
+        const group = await screen.findByRole('radiogroup', { name: 'Urgency' });
+        expect(within(group).queryByRole('radio', { name: 'Medium' })).toBeNull();
+        expect(within(group).getAllByRole('radio')).toHaveLength(4);
+      } else {
+        await waitFor(() =>
+          expect(within(screen.getByLabelText('Urgency')).queryByText('Medium')).toBeNull(),
+        );
+      }
+    },
+  );
+
+  it('still shows and submits a hidden value the note has; it stays offered after a change', async () => {
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'urgency',
+      noteForm: {
+        ...DEFAULT_NOTE_FORM,
+        urgency: { display: 'dropdown', hiddenValues: ['medium'] },
+      },
+    });
+    const onSubmit = vi.fn();
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={{ ...EMPTY_SUGGESTION, urgency: 'medium' }}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+      />,
+    );
+    const select = screen.getByLabelText<HTMLSelectElement>('Urgency');
+    await waitFor(() => expect(select.value).toBe('medium'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ urgency: 'medium' });
+    fireEvent.change(select, { target: { value: 'urgent' } });
+    expect(within(select).queryByText('Medium')).toBeNull();
+  });
+
+  it('disables the last offered value chip in the sheet', async () => {
+    mount({
+      ...DEFAULT_NOTE_FORM,
+      importance: { display: 'dropdown', hiddenValues: ['not_important'] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Form settings' }));
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole<HTMLButtonElement>('button', { name: 'Important' }).disabled,
+      ).toBe(true),
+    );
+  });
+
   it('keeps the importance hint in buttons mode', async () => {
     mount(
-      { ...DEFAULT_NOTE_FORM, importance: { display: 'buttons' } },
+      { ...DEFAULT_NOTE_FORM, importance: { display: 'buttons', hiddenValues: [] } },
       {
         categories: [
           {
