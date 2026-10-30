@@ -45,6 +45,11 @@ the note was classified from the URL alone. Shown with a "link not read" chip un
 reads it.
 _Avoid_: Broken link, failed link
 
+**Attachment**:
+A file or image the user added to a note, kept with it and visible only to the note's owner. A
+note's voice recording is its audio, not an attachment.
+_Avoid_: Upload, asset, media, file (for the stored thing)
+
 **Importance**:
 Whether a note matters: `important` or `not_important`. Optional.
 _Avoid_: Priority
