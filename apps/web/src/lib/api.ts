@@ -27,6 +27,7 @@ import {
   NoteEdit,
   NoteList,
   Settings,
+  type SettingsPatch,
   Suggestion,
   Tag,
   Taxonomy,
@@ -204,7 +205,7 @@ export const api = {
     request('DELETE', `/users/${encodeURIComponent(email)}`, NoContent),
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
-  saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),
+  saveSettings: (patch: SettingsPatch) => request('PUT', '/settings', Settings, patch),
   taxonomy: () => request('GET', '/taxonomy', Taxonomy),
   applyActions: (input: ActionsBody) =>
     request('POST', '/taxonomy/actions', ActionsResponse, input),

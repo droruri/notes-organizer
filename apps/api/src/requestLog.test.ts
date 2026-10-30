@@ -108,6 +108,45 @@ describe('request logging', () => {
   });
 });
 
+describe('settings logs', () => {
+  const dbWith = (settingsRow: Record<string, unknown>) =>
+    ({
+      query: async (sql: string) => ({
+        rows: sql.includes('from allowed_users')
+          ? [{ is_admin: false }]
+          : sql.includes('from user_settings')
+            ? [settingsRow]
+            : [],
+      }),
+    }) as unknown as Parameters<typeof buildServer>[0]['db'];
+  const headers = { authorization: 'Bearer allowed' };
+
+  it('PUT /settings logs settings saved with the changed keys', async () => {
+    const { app, lines } = capture(dbWith({ note_sort: 'urgency', note_form: null }));
+    await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteForm: { hiddenFields: ['title'] } },
+    });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'settings saved')).toMatchObject({ changed: ['noteForm'] });
+  });
+
+  it('warns on corrupt stored note_form and still returns the defaults', async () => {
+    const { app, lines } = capture(
+      dbWith({ note_sort: 'urgency', note_form: { hiddenFields: 5 } }),
+    );
+    const res = await app.inject({ method: 'GET', url: '/settings', headers });
+    await app.close();
+    expect(res.json()).toEqual({ noteSort: 'urgency', noteForm: { hiddenFields: [] } });
+    expect(lines.find((l) => l.msg === 'stored settings invalid')).toMatchObject({
+      level: 40,
+      field: 'noteForm',
+    });
+  });
+});
+
 describe('log() and timed()', () => {
   it('log() outside a request is silent and usable', () => {
     expect(log().level).toBe('silent');

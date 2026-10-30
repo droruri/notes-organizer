@@ -1,9 +1,27 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { EMPTY_SUGGESTION, type Note, type Suggestion, type Taxonomy } from '@notes/shared';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  EMPTY_SUGGESTION,
+  HideableField,
+  type Note,
+  type Suggestion,
+  type Taxonomy,
+} from '@notes/shared';
+import {
+  cleanup,
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import type { ReactElement } from 'react';
+import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
 import { NoteEditor } from './NoteEditor';
+
+const render = (ui: ReactElement) =>
+  rtlRender(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 
 beforeEach(async () => {
   await i18n.changeLanguage('en');
@@ -242,5 +260,52 @@ describe('NoteEditor category importance', () => {
     expect(select().value).toBe('not_important');
     submit();
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ importance: 'not_important' });
+  });
+});
+
+describe('NoteEditor form settings', () => {
+  const mount = (hiddenFields: HideableField[]) => {
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'urgency',
+      noteForm: { hiddenFields },
+    });
+    const onSubmit = vi.fn();
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={{ ...EMPTY_SUGGESTION, dueDate: '2026-12-01' }}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+      />,
+    );
+    return onSubmit;
+  };
+
+  it('does not render a hidden field but still submits its value', async () => {
+    const onSubmit = mount(['dueDate']);
+    await waitFor(() => expect(screen.queryByLabelText('Due date')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ dueDate: '2026-12-01' }));
+  });
+
+  it('has no switch for the body; Save updates the open editor and keeps the body', async () => {
+    mount([]);
+    const save = vi.spyOn(api, 'saveSettings').mockResolvedValue({
+      noteSort: 'urgency',
+      noteForm: { hiddenFields: ['urgency'] },
+    });
+    fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'typed' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Form settings' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).queryByRole('switch', { name: /Text/ })).toBeNull();
+    expect(within(dialog).getByText('Always shown')).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole('switch', { name: 'Show Urgency' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save settings' }));
+    await waitFor(() => expect(screen.queryByLabelText('Urgency')).toBeNull());
+    expect(save).toHaveBeenCalledWith({ noteForm: { hiddenFields: ['urgency'] } });
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Text').value).toBe('typed');
   });
 });
