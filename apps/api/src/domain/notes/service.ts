@@ -15,6 +15,7 @@ import type { LinkReader } from '../links/preview';
 import { log, timed } from '../../requestLog';
 import { withTransaction } from '../../tx';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
+import * as workspaceRepo from '../workspaces/repository';
 import { ensureDefaultWorkspace, listWorkspaces } from '../workspaces/service';
 import { resolveWorkspace } from '../workspaces/workspaces';
 import { classify } from './classify';
@@ -25,6 +26,7 @@ export type Failure =
   | 'not_found'
   | 'invalid_transition'
   | 'unknown_taxonomy'
+  | 'unknown_workspace'
   | 'transcription_failed'
   | 'empty_transcript';
 export type Result<T> = { ok: true; value: T } | { ok: false; error: Failure };
@@ -68,6 +70,7 @@ export function createDraft(
           tags: draft.suggestion.tagIds.length,
           newCategories: draft.suggestion.newCategories.length,
           newTags: draft.suggestion.newTags.length,
+          workspacePicked: draft.suggestion.workspaceId !== null,
         },
         'draft saved',
       );
@@ -89,16 +92,10 @@ async function createDraftUntimed(
   const existing = await repo.findNoteByClientId(db, userId, input.clientId);
   if (existing) return { created: false, note: existing, suggestion: suggestionOf(existing) };
 
-  const workspace = resolveWorkspace(await listWorkspaces(db, userId), input.workspaceId);
+  const { suggestion, workspaces } = await classifyNote(db, ai, links, userId, input.body, input);
+  // The AI's pick, else the workspace the user was in.
+  const workspace = resolveWorkspace(workspaces, suggestion.workspaceId ?? input.workspaceId);
   if (!workspace) throw new Error('user has no default workspace');
-  const taxonomy = await getTaxonomy(db, userId);
-  const suggestion = await classify(ai, {
-    body: input.body,
-    today: input.today,
-    locale: input.locale,
-    taxonomy,
-    links: await linkContexts(links, input.body),
-  });
   const id = await withTransaction(db, async (tx) => {
     const noteId = await repo.insertDraft(tx, userId, {
       clientId: input.clientId,
@@ -120,6 +117,30 @@ async function createDraftUntimed(
   // null = a concurrent request with the same clientId won the insert.
   const note = rowOrThrow(await repo.findNoteByClientId(db, userId, input.clientId));
   return { created: id !== null, note, suggestion: suggestionOf(note) };
+}
+
+/** Load the user's taxonomy and workspaces and ask the AI about `body`. */
+async function classifyNote(
+  db: Db,
+  ai: Ai,
+  links: LinkReader,
+  userId: string,
+  body: string,
+  when: { today: string; locale: NoteAnalyze['locale'] },
+) {
+  const [taxonomy, workspaces] = await Promise.all([
+    getTaxonomy(db, userId),
+    listWorkspaces(db, userId),
+  ]);
+  const suggestion = await classify(ai, {
+    body,
+    today: when.today,
+    locale: when.locale,
+    taxonomy,
+    workspaces,
+    links: await linkContexts(links, body),
+  });
+  return { suggestion, workspaces };
 }
 
 /** Transcribe a recording, then run the normal draft flow with the transcript as the body. */
@@ -181,7 +202,12 @@ export function updateNote(
     const result = await updateNoteUntimed(db, userId, id, edit);
     if (result.ok) {
       log().info(
-        { noteId: id, from: result.value.from, to: result.value.note.status },
+        {
+          noteId: id,
+          from: result.value.from,
+          to: result.value.note.status,
+          workspaceChanged: result.value.workspaceChanged,
+        },
         'note updated',
       );
       return ok(result.value.note);
@@ -196,7 +222,7 @@ async function updateNoteUntimed(
   userId: string,
   id: string,
   edit: NoteEdit,
-): Promise<Result<{ note: Note; from: Note['status'] }>> {
+): Promise<Result<{ note: Note; from: Note['status']; workspaceChanged: boolean }>> {
   return withTransaction(db, async (tx) => {
     const note = await repo.findNote(tx, userId, id, true);
     if (!note) return fail('not_found');
@@ -205,6 +231,12 @@ async function updateNoteUntimed(
     // A draft cannot create taxonomy; submitting it (or editing a submitted note) can.
     const proposesNew = (edit.newCategories?.length ?? 0) > 0 || (edit.newTags?.length ?? 0) > 0;
     if (proposesNew && status === 'draft') return fail('invalid_transition');
+
+    if (
+      edit.workspaceId !== undefined &&
+      !(await workspaceRepo.listWorkspaces(tx, userId)).some((w) => w.id === edit.workspaceId)
+    )
+      return fail('unknown_workspace');
 
     const taxonomy = await getTaxonomy(tx, userId);
     const plan = planNewTaxonomy(edit.newCategories ?? [], edit.newTags ?? [], taxonomy);
@@ -222,6 +254,9 @@ async function updateNoteUntimed(
     );
     if (!links) return fail('unknown_taxonomy');
 
+    const workspaceChanged =
+      edit.workspaceId !== undefined && edit.workspaceId !== note.workspaceId;
+
     // Every check passed: from here on we only write.
     const made = await createPlanned(tx, userId, plan);
     links.categoryIds.push(...made.categoryIds);
@@ -237,10 +272,17 @@ async function updateNoteUntimed(
       ...(edit.importance !== undefined ? { importance: edit.importance } : {}),
       ...(edit.urgency !== undefined ? { urgency: edit.urgency } : {}),
       ...(edit.unreadLinks !== undefined ? { unreadLinks: edit.unreadLinks } : {}),
+      ...(workspaceChanged && edit.workspaceId !== undefined
+        ? { workspaceId: edit.workspaceId }
+        : {}),
       ...(status !== note.status ? { status } : {}),
       ...(status !== 'draft' ? { proposed: null } : {}),
     });
-    return ok({ note: rowOrThrow(await repo.findNote(tx, userId, id)), from: note.status });
+    return ok({
+      note: rowOrThrow(await repo.findNote(tx, userId, id)),
+      from: note.status,
+      workspaceChanged,
+    });
   });
 }
 
@@ -284,14 +326,5 @@ async function analyzeNoteUntimed(
 ): Promise<Result<Suggestion>> {
   const note = await repo.findNote(db, userId, id);
   if (!note) return fail('not_found');
-  const taxonomy = await getTaxonomy(db, userId);
-  return ok(
-    await classify(ai, {
-      body: note.body,
-      today: input.today,
-      locale: input.locale,
-      taxonomy,
-      links: await linkContexts(links, note.body),
-    }),
-  );
+  return ok((await classifyNote(db, ai, links, userId, note.body, input)).suggestion);
 }

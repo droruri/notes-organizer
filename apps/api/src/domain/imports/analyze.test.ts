@@ -147,3 +147,20 @@ describe('import analyze outcome logs (in a request)', () => {
     expect(lines.find((l) => l.msg === 'import link read failed')).toMatchObject({ level: 40 });
   });
 });
+
+describe('analyzeImport prompt', () => {
+  it('is the shared context, the note limit and the import block, with no workspace block', async () => {
+    const ai = createFakeAi([{ value: { notes: [] } }]);
+    await analyzeImport(ai, reader(), { categories: [] }, input);
+    expect(ai.calls[0]?.prompt).toBe(
+      [
+        'Today: 2026-01-01',
+        'UI language: en',
+        'At most 200 notes.',
+        'Existing taxonomy (category id | category | tags id:name):',
+        '(none yet)',
+        '<import>\nx\n</import>',
+      ].join('\n'),
+    );
+  });
+});

@@ -62,6 +62,8 @@ export const Suggestion = Proposed.extend({
   urgency: Urgency.nullable(),
   /** A short title Claude proposes; null when it gave none. */
   title: z.string().nullable(),
+  /** The workspace Claude picked (one of the user's); null when it picked none. */
+  workspaceId: z.uuid().nullable(),
   /** Links in the body that Claude could not read (set by the service, not by Claude). */
   unreadLinks: z.array(z.string()),
 });
@@ -98,6 +100,7 @@ export const EMPTY_SUGGESTION: Suggestion = {
   importance: null,
   urgency: null,
   title: null,
+  workspaceId: null,
   unreadLinks: [],
 };
 
@@ -112,6 +115,7 @@ export function suggestionOf(note: Note): Suggestion {
     importance: note.importance,
     urgency: note.urgency,
     title: note.title,
+    workspaceId: note.workspaceId,
     unreadLinks: note.unreadLinks,
   };
 }
@@ -143,6 +147,8 @@ export const NoteEdit = z.object({
   importance: Importance.nullable().optional(),
   urgency: Urgency.nullable().optional(),
   status: NoteStatus.optional(),
+  /** Moves the note; must be one of the caller's workspaces. */
+  workspaceId: z.uuid().optional(),
   /** Replaces the stored list; the web sends the suggestion's list on submit / save. */
   unreadLinks: z.array(z.string().max(2000)).max(100).optional(),
 });

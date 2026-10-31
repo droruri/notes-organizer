@@ -78,6 +78,7 @@ export function ImportReview({
             importance: edit.importance ?? null,
             urgency: edit.urgency ?? null,
             title: edit.title ?? null,
+            workspaceId: null,
             unreadLinks: edit.unreadLinks ?? [],
           };
           setRows(

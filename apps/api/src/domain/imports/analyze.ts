@@ -15,6 +15,7 @@ import { errorSummary, log, timed } from '../../requestLog';
 import {
   linkedContent,
   mapSuggestion,
+  promptContext,
   RawSuggestion,
   SYSTEM,
   usableTaxonomy,
@@ -133,15 +134,12 @@ async function analyzeImportUntimed(
   const contexts = await readImportLinks(reader, urls, budgetMs);
   const byUrl = new Map(contexts.map((c) => [c.url, c]));
 
-  const lines = usable.categories.map(
-    (c) => `${c.id} | ${c.name} | ${c.tags.map((t) => `${t.id}:${t.name}`).join(', ')}`,
-  );
+  // Date and language first, then the note limit, then the taxonomy (same order as before the shared context).
+  const context = promptContext({ today: input.today, locale: input.locale, taxonomy: usable });
   const prompt = [
-    `Today: ${input.today}`,
-    `UI language: ${input.locale}`,
+    ...context.slice(0, 2),
     `At most ${MAX_IMPORT_NOTES} notes.`,
-    'Existing taxonomy (category id | category | tags id:name):',
-    lines.length > 0 ? lines.join('\n') : '(none yet)',
+    ...context.slice(2),
     `<import>\n${input.text}\n</import>`,
     ...(contexts.length > 0 ? [linkedContent(contexts)] : []),
   ].join('\n');

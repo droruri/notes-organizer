@@ -432,3 +432,40 @@ describe('NoteEditor choice display', () => {
     expect(screen.getByText('Set by category Work')).toBeTruthy();
   });
 });
+
+describe('NoteEditor workspace', () => {
+  const W1 = '00000000-0000-4000-8000-0000000000f1';
+  const W2 = '00000000-0000-4000-8000-0000000000f2';
+  const workspaces = [
+    { id: W1, name: 'Home', isDefault: true },
+    { id: W2, name: 'Work', isDefault: false },
+  ];
+  const editor = (onSubmit: () => void, ws = workspaces) =>
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={{ ...EMPTY_SUGGESTION, workspaceId: W2 }}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+        workspaces={ws}
+      />,
+    );
+
+  it('shows the suggested workspace and sends the changed id', () => {
+    const onSubmit = vi.fn();
+    editor(onSubmit);
+    const select = screen.getByLabelText<HTMLSelectElement>('Workspace');
+    expect(select.value).toBe(W2);
+    fireEvent.change(select, { target: { value: W1 } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: W1 }));
+  });
+
+  it('hides the select with a single workspace', () => {
+    editor(vi.fn(), workspaces.slice(0, 1));
+    expect(screen.queryByLabelText('Workspace')).toBeNull();
+  });
+});

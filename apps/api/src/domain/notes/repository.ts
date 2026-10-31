@@ -132,6 +132,7 @@ export type NoteChange = {
   /** `null` clears it. */
   proposed?: null;
   unreadLinks?: string[];
+  workspaceId?: string;
 };
 
 const COLUMNS = {
@@ -143,6 +144,7 @@ const COLUMNS = {
   urgency: 'urgency',
   proposed: 'proposed',
   unreadLinks: 'unread_links',
+  workspaceId: 'workspace_id',
 } satisfies Record<keyof NoteChange, string>;
 
 export async function updateNote(db: Queryable, id: string, change: NoteChange): Promise<void> {

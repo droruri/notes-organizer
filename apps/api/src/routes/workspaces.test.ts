@@ -118,6 +118,81 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
     expect(stored.filter((id) => id === owned.id)).toHaveLength(1);
   });
 
+  it('lets the AI pick an owned workspace, ignoring an unknown id', async () => {
+    await clean();
+    const owned = Workspace.parse(
+      (await send(mine, 'POST', '/workspaces', { name: 'ידע' })).json(),
+    );
+    const defaultId = (await list(mine)).find((w) => w.isDefault)?.id;
+    const create = async (workspaceId: string, currentId: string) => {
+      const picking = buildServer({
+        db: pool,
+        ai: createFakeAi([{ value: { workspaceId } }]),
+        verifyToken,
+        allowedEmails,
+      });
+      const res = await picking.inject({
+        method: 'POST',
+        url: '/notes',
+        headers: mine,
+        payload: {
+          body: 'hello',
+          clientId: crypto.randomUUID(),
+          today,
+          locale: 'en',
+          workspaceId: currentId,
+        },
+      });
+      await picking.close();
+      expect(res.statusCode).toBe(201);
+      return NoteCreated.parse(res.json());
+    };
+    const picked = await create(owned.id, defaultId ?? '');
+    expect(picked.note.workspaceId).toBe(owned.id);
+    expect(picked.suggestion.workspaceId).toBe(owned.id);
+    const unknown = await create(crypto.randomUUID(), owned.id);
+    expect(unknown.note.workspaceId).toBe(owned.id);
+  });
+
+  it('moves a note to an owned workspace and rejects another user’s with 422', async () => {
+    await clean();
+    const owned = Workspace.parse(
+      (await send(mine, 'POST', '/workspaces', { name: 'ידע' })).json(),
+    );
+    const foreign = Workspace.parse(
+      (await send(theirs, 'POST', '/workspaces', { name: 'other-ws' })).json(),
+    );
+    const { app: logged, lines } = captureLogs({ db: pool, verifyToken, allowedEmails });
+    const created = await logged.inject({
+      method: 'POST',
+      url: '/notes',
+      headers: mine,
+      payload: { body: 'secret text', clientId: crypto.randomUUID(), today, locale: 'en' },
+    });
+    const id = NoteCreated.parse(created.json()).note.id;
+    const patch = (workspaceId: string) =>
+      logged.inject({
+        method: 'PATCH',
+        url: `/notes/${id}`,
+        headers: mine,
+        payload: { workspaceId },
+      });
+    const moved = await patch(owned.id);
+    expect(moved.statusCode).toBe(200);
+    expect(moved.json().workspaceId).toBe(owned.id);
+    const refused = await patch(foreign.id);
+    expect(refused.statusCode).toBe(422);
+    expect(refused.json()).toEqual({ error: 'unknown_workspace' });
+    await logged.close();
+    expect(lines.find((l) => l.msg === 'draft saved')).toMatchObject({ workspacePicked: false });
+    expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({ workspaceChanged: true });
+    expect(lines.find((l) => l.msg === 'note update failed')).toMatchObject({
+      noteId: id,
+      error: 'unknown_workspace',
+    });
+    expect(JSON.stringify(lines)).not.toContain('secret text');
+  });
+
   it('logs workspaces listed, workspace created and workspace create failed', async () => {
     await clean();
     const { app: logged, lines } = captureLogs({ db: pool, verifyToken, allowedEmails });

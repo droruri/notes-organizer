@@ -38,6 +38,7 @@ describe('TaxonomyPicker', () => {
       color: 'slate' as const,
       urgency: null,
       title: null,
+      workspaceId: null,
       unreadLinks: [],
     };
     const initial = pickedFrom({ ...empty, categoryIds: [C], newCategories: ['הופעות'] });
