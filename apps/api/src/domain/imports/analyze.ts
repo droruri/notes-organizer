@@ -134,9 +134,12 @@ async function analyzeImportUntimed(
   const contexts = await readImportLinks(reader, urls, budgetMs);
   const byUrl = new Map(contexts.map((c) => [c.url, c]));
 
+  // Date and language first, then the note limit, then the taxonomy (same order as before the shared context).
+  const context = promptContext({ today: input.today, locale: input.locale, taxonomy: usable });
   const prompt = [
-    ...promptContext({ today: input.today, locale: input.locale, taxonomy: usable }),
+    ...context.slice(0, 2),
     `At most ${MAX_IMPORT_NOTES} notes.`,
+    ...context.slice(2),
     `<import>\n${input.text}\n</import>`,
     ...(contexts.length > 0 ? [linkedContent(contexts)] : []),
   ].join('\n');

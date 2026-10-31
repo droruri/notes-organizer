@@ -156,9 +156,9 @@ describe('analyzeImport prompt', () => {
       [
         'Today: 2026-01-01',
         'UI language: en',
+        'At most 200 notes.',
         'Existing taxonomy (category id | category | tags id:name):',
         '(none yet)',
-        'At most 200 notes.',
         '<import>\nx\n</import>',
       ].join('\n'),
     );
