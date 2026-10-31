@@ -1,6 +1,6 @@
 import type { Taxonomy } from '@notes/shared';
 import { describe, expect, it } from 'vite-plus/test';
-import { isTodayPlausible, isValidTransition, planLinks, planNewTaxonomy } from './note';
+import { isTodayPlausible, planLinks, planNewTaxonomy } from './note';
 
 const C1 = '11111111-1111-4111-8111-111111111111';
 const C2 = '22222222-2222-4222-8222-222222222222';
@@ -27,20 +27,6 @@ const taxonomy: Taxonomy = {
   ],
 };
 const none = { categoryIds: [], tagIds: [] };
-
-describe('isValidTransition', () => {
-  it('lets a draft only be submitted to todo', () => {
-    expect(isValidTransition('draft', 'todo')).toBe(true);
-    expect(isValidTransition('draft', 'done')).toBe(false);
-    expect(isValidTransition('draft', 'in_progress')).toBe(false);
-  });
-  it('moves one step at a time and never back to draft', () => {
-    expect(isValidTransition('todo', 'in_progress')).toBe(true);
-    expect(isValidTransition('done', 'in_progress')).toBe(true);
-    expect(isValidTransition('todo', 'done')).toBe(false);
-    expect(isValidTransition('todo', 'draft')).toBe(false);
-  });
-});
 
 describe('isTodayPlausible', () => {
   const now = new Date('2026-10-25T12:00:00Z');

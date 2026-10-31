@@ -93,6 +93,7 @@ export type ColorBody = z.infer<typeof ColorBody>;
 export * from './attachments';
 export * from './notes';
 export * from './noteQuery';
+export * from './noteStatus';
 export * from './links';
 export * from './imports';
 export * from './workspaces';

@@ -51,6 +51,7 @@
     "body": "Text",
     "dueDate": "Due date",
     "workspace": "Workspace",
+    "tracksStatus": "Track status",
     "savedIn": "Saved in {{name}}",
     "importance": "Importance",
     "importanceFromCategory": "Set by category {{name}}",

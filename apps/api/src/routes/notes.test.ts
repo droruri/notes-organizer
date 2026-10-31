@@ -329,6 +329,20 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     expect(toDraft.statusCode).toBe(422);
   });
 
+  it('submits a draft with no status, turns it on to todo only, and 422s null → in_progress', async () => {
+    const id = NoteCreated.parse((await draft('just info')).res.json()).note.id;
+    const submit = await send(mine, 'PATCH', `/notes/${id}`, { status: null });
+    expect(submit.statusCode).toBe(200);
+    expect(Note.parse(submit.json()).status).toBeNull();
+    const jump = await send(mine, 'PATCH', `/notes/${id}`, { status: 'in_progress' });
+    expect(jump.statusCode).toBe(422);
+    expect(jump.json()).toEqual({ error: 'invalid_transition' });
+    const on = await send(mine, 'PATCH', `/notes/${id}`, { status: 'todo' });
+    expect(Note.parse(on.json()).status).toBe('todo');
+    const off = await send(mine, 'PATCH', `/notes/${id}`, { status: null });
+    expect(Note.parse(off.json()).status).toBeNull();
+  });
+
   it('soft-deletes, hides from the list, and restores', async () => {
     const id = await submitted('delete me');
     expect((await send(mine, 'DELETE', `/notes/${id}`)).statusCode).toBe(204);
@@ -609,5 +623,34 @@ describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () =
     expect(lines.find((l) => l.msg === 'note deleted')).toMatchObject({ noteId });
     expect(lines.find((l) => l.msg === 'note restored')).toMatchObject({ noteId });
     expect(JSON.stringify(lines)).not.toContain('secret note text');
+  });
+
+  it('logs note updated with to: null when status is turned off', async () => {
+    const { app, lines } = captureLogs({
+      db: pool,
+      turns: [{ value: { body: 'x' } }],
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const created = await app.inject({
+      method: 'POST',
+      url: '/notes',
+      headers,
+      payload: { body: 'secret info', clientId: crypto.randomUUID(), today, locale: 'en' },
+    });
+    const noteId = created.json().note.id;
+    await app.inject({
+      method: 'PATCH',
+      url: `/notes/${noteId}`,
+      headers,
+      payload: { status: null },
+    });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({
+      noteId,
+      from: 'draft',
+      to: null,
+    });
+    expect(JSON.stringify(lines)).not.toContain('secret info');
   });
 });

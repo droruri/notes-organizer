@@ -1,5 +1,6 @@
 import {
   extractLinks,
+  isValidTransition,
   type LinkContext,
   MAX_BODY_LENGTH,
   type Note,
@@ -19,7 +20,7 @@ import * as workspaceRepo from '../workspaces/repository';
 import { ensureDefaultWorkspace, listWorkspaces } from '../workspaces/service';
 import { resolveWorkspace } from '../workspaces/workspaces';
 import { classify } from './classify';
-import { isValidTransition, planLinks, planNewTaxonomy } from './note';
+import { planLinks, planNewTaxonomy } from './note';
 import * as repo from './repository';
 
 export type Failure =
@@ -102,7 +103,11 @@ async function createDraftUntimed(
       workspaceId: workspace.id,
       body: input.body,
       title: input.title || suggestion.title,
-      proposed: { newCategories: suggestion.newCategories, newTags: suggestion.newTags },
+      proposed: {
+        newCategories: suggestion.newCategories,
+        newTags: suggestion.newTags,
+        tracksStatus: suggestion.tracksStatus,
+      },
       dueDate: suggestion.dueDate,
       importance: suggestion.importance,
       urgency: suggestion.urgency,
@@ -226,7 +231,7 @@ async function updateNoteUntimed(
   return withTransaction(db, async (tx) => {
     const note = await repo.findNote(tx, userId, id, true);
     if (!note) return fail('not_found');
-    const status = edit.status ?? note.status;
+    const status = edit.status === undefined ? note.status : edit.status;
     if (!isValidTransition(note.status, status)) return fail('invalid_transition');
     // A draft cannot create taxonomy; submitting it (or editing a submitted note) can.
     const proposesNew = (edit.newCategories?.length ?? 0) > 0 || (edit.newTags?.length ?? 0) > 0;

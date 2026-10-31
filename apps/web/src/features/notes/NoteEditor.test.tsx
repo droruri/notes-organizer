@@ -469,3 +469,50 @@ describe('NoteEditor workspace', () => {
     expect(screen.queryByLabelText('Workspace')).toBeNull();
   });
 });
+
+describe('NoteEditor status switch', () => {
+  const editor = (onSubmit: () => void, suggestion: Suggestion, status: Note['status'] = 'draft') =>
+    render(
+      <NoteEditor
+        note={{ ...note(null), status }}
+        suggestion={suggestion}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+      />,
+    );
+  const sw = () => screen.getByRole<HTMLInputElement>('switch', { name: 'Track status' });
+
+  it('starts from the suggestion and submits todo when on', () => {
+    const onSubmit = vi.fn();
+    editor(onSubmit, EMPTY_SUGGESTION);
+    expect(sw().checked).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ status: 'todo' }));
+  });
+
+  it('submits status null when the suggestion is not actionable, or the switch is turned off', () => {
+    const onSubmit = vi.fn();
+    editor(onSubmit, { ...EMPTY_SUGGESTION, tracksStatus: false });
+    expect(sw().checked).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenLastCalledWith(expect.objectContaining({ status: null }));
+    cleanup();
+    const second = vi.fn();
+    editor(second, EMPTY_SUGGESTION);
+    fireEvent.click(sw());
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(second).toHaveBeenCalledWith(expect.objectContaining({ status: null }));
+  });
+
+  it('edit: off for a note without status, turning on sends todo', () => {
+    const onSubmit = vi.fn();
+    editor(onSubmit, EMPTY_SUGGESTION, null);
+    expect(sw().checked).toBe(false);
+    fireEvent.click(sw());
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ status: 'todo' }));
+  });
+});

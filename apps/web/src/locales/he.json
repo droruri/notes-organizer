@@ -50,6 +50,7 @@
     "noteTitle": "כותרת (לא חובה)",
     "body": "טקסט",
     "workspace": "סביבת עבודה",
+    "tracksStatus": "מעקב סטטוס",
     "savedIn": "נשמר ב‑{{name}}",
     "dueDate": "תאריך יעד",
     "importance": "חשיבות",

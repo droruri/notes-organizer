@@ -125,7 +125,7 @@ export async function insertDraft(
 export type NoteChange = {
   body?: string;
   title?: string | null;
-  status?: NoteStatus;
+  status?: NoteStatus | null;
   dueDate?: string | null;
   importance?: Importance | null;
   urgency?: Urgency | null;
