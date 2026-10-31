@@ -333,6 +333,9 @@
   .status-draft {
     --slip: var(--line-strong);
   }
+  .status-none {
+    --slip: var(--line);
+  }
   .status-todo {
     --slip: var(--accent);
   }

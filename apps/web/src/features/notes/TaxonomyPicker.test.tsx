@@ -39,6 +39,7 @@ describe('TaxonomyPicker', () => {
       urgency: null,
       title: null,
       workspaceId: null,
+      tracksStatus: true,
       unreadLinks: [],
     };
     const initial = pickedFrom({ ...empty, categoryIds: [C], newCategories: ['הופעות'] });

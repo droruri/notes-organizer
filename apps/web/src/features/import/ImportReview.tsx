@@ -79,6 +79,7 @@ export function ImportReview({
             urgency: edit.urgency ?? null,
             title: edit.title ?? null,
             workspaceId: null,
+            tracksStatus: edit.status !== null,
             unreadLinks: edit.unreadLinks ?? [],
           };
           setRows(

@@ -71,7 +71,7 @@ export function NoteEditor({
     (f) => !hidden.has(f),
   ).length;
   // Any field Claude filled in counts; comparing JSON would depend on key order.
-  const { workspaceId: suggestedWorkspace, ...content } = suggestion;
+  const { workspaceId: suggestedWorkspace, tracksStatus: suggestedTracks, ...content } = suggestion;
   const hasSuggestion = Object.values(content).some((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
   );
@@ -84,7 +84,13 @@ export function NoteEditor({
   const [importanceHint, setImportanceHint] = useState<string | null>(null);
   const [urgency, setUrgency] = useState<Urgency | null>(suggestion.urgency);
 
-  const [status, setStatus] = useState<NoteStatus>(note.status === 'draft' ? 'todo' : note.status);
+  const [status, setStatus] = useState<NoteStatus>(
+    note.status === 'draft' || note.status === null ? 'todo' : note.status,
+  );
+  // Review starts from the AI's guess, edit from whether the note has a status.
+  const [tracksStatus, setTracksStatus] = useState(
+    note.status === 'draft' ? suggestedTracks : note.status !== null,
+  );
   const [analyzing, setAnalyzing] = useState(false);
   const slowReanalyze = useSlow(analyzing);
   const [analyzeFailed, setAnalyzeFailed] = useState(false);
@@ -122,6 +128,7 @@ export function NoteEditor({
       setPicked(pickedFrom(next));
       setUnreadLinks(next.unreadLinks);
       if (next.workspaceId) setWorkspaceId(next.workspaceId);
+      if (note.status === 'draft') setTracksStatus(next.tracksStatus);
       setDueDate(next.dueDate ?? '');
       setImportance(next.importance);
       setImportanceHint(null);
@@ -141,7 +148,7 @@ export function NoteEditor({
       dueDate: dueDate || null,
       importance,
       urgency,
-      status,
+      status: tracksStatus ? status : null,
       unreadLinks,
       ...(workspaces.length > 1 ? { workspaceId } : {}),
     });
@@ -276,7 +283,19 @@ export function NoteEditor({
           )}
         </div>
       )}
-      {note.status !== 'draft' && <StatusStepper status={status} onChange={setStatus} />}
+      <label className="flex items-center gap-3">
+        <span>{t('notes.tracksStatus')}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={tracksStatus}
+          onChange={(e) => setTracksStatus(e.target.checked)}
+          className="ms-auto h-5 w-9 accent-[var(--accent)]"
+        />
+      </label>
+      {note.status !== 'draft' && tracksStatus && (
+        <StatusStepper status={status} onChange={setStatus} />
+      )}
       {(failed || analyzeFailed) && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}

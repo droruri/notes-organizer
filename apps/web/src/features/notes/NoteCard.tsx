@@ -1,4 +1,4 @@
-import { isOverdue, noteHeading, type Note, type Taxonomy } from '@notes/shared';
+import { isOverdue, noteHeading, statusClass, type Note, type Taxonomy } from '@notes/shared';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
@@ -22,7 +22,7 @@ export function NoteCard({
   const heading = noteHeading(note);
   const overdue = isOverdue(note, today);
   return (
-    <li className={`card slip status-${note.status} flex flex-col gap-3 p-4 ps-5`}>
+    <li className={`card slip ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5`}>
       <div className="flex items-start gap-1">
         <button
           type="button"
@@ -56,9 +56,11 @@ export function NoteCard({
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-sm">
-        <span className={`pill pill-dot status-${note.status}`}>
-          {t(`notes.status.${note.status}`)}
-        </span>
+        {note.status !== null && (
+          <span className={`pill pill-dot ${statusClass(note.status)}`}>
+            {t(`notes.status.${note.status}`)}
+          </span>
+        )}
         {note.dueDate && (
           <span
             className={`pill ${overdue ? 'bg-danger-soft text-danger' : 'bg-transparent text-muted'}`}

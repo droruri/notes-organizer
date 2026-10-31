@@ -222,3 +222,13 @@ describe('classify workspaces', () => {
     expect((await classify(ai, { ...input, workspaces: two })).workspaceId).toBeNull();
   });
 });
+
+describe('classify actionable', () => {
+  it('maps actionable: false to tracksStatus false; missing or null to true', () => {
+    expect(mapSuggestion(raw({ actionable: false }), taxonomy).tracksStatus).toBe(false);
+    expect(mapSuggestion(raw({ actionable: true }), taxonomy).tracksStatus).toBe(true);
+    expect(mapSuggestion(raw({}), taxonomy).tracksStatus).toBe(true);
+    expect(mapSuggestion(raw({ actionable: null }), taxonomy).tracksStatus).toBe(true);
+    expect(mapSuggestion(raw({ actionable: 'maybe' }), taxonomy).tracksStatus).toBe(true);
+  });
+});

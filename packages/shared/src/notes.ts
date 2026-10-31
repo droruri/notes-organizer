@@ -50,6 +50,8 @@ export type NewTag = z.infer<typeof NewTag>;
 export const Proposed = z.object({
   newCategories: z.array(z.string()),
   newTags: z.array(NewTag),
+  /** The draft's "track status" switch until submit; missing = on. */
+  tracksStatus: z.boolean().optional(),
 });
 export type Proposed = z.infer<typeof Proposed>;
 
@@ -64,6 +66,8 @@ export const Suggestion = Proposed.extend({
   title: z.string().nullable(),
   /** The workspace Claude picked (one of the user's); null when it picked none. */
   workspaceId: z.uuid().nullable(),
+  /** Whether the note is something to do, so it should have a status. */
+  tracksStatus: z.boolean(),
   /** Links in the body that Claude could not read (set by the service, not by Claude). */
   unreadLinks: z.array(z.string()),
 });
@@ -74,7 +78,7 @@ export const Note = z.object({
   clientId: z.uuid(),
   title: z.string().nullable(),
   body: z.string(),
-  status: NoteStatus,
+  status: NoteStatus.nullable(),
   workspaceId: z.uuid(),
   importance: Importance.nullable(),
   urgency: Urgency.nullable(),
@@ -101,6 +105,7 @@ export const EMPTY_SUGGESTION: Suggestion = {
   urgency: null,
   title: null,
   workspaceId: null,
+  tracksStatus: true,
   unreadLinks: [],
 };
 
@@ -116,6 +121,7 @@ export function suggestionOf(note: Note): Suggestion {
     urgency: note.urgency,
     title: note.title,
     workspaceId: note.workspaceId,
+    tracksStatus: note.proposed?.tracksStatus ?? true,
     unreadLinks: note.unreadLinks,
   };
 }
@@ -146,7 +152,8 @@ export const NoteEdit = z.object({
   dueDate: DateString.nullable().optional(),
   importance: Importance.nullable().optional(),
   urgency: Urgency.nullable().optional(),
-  status: NoteStatus.optional(),
+  /** `null` turns status tracking off. */
+  status: NoteStatus.nullable().optional(),
   /** Moves the note; must be one of the caller's workspaces. */
   workspaceId: z.uuid().optional(),
   /** Replaces the stored list; the web sends the suggestion's list on submit / save. */
@@ -170,18 +177,6 @@ export const NoteList = z.array(Note);
 /** Body of `POST /notes/:id/analyze`. */
 export const NoteAnalyze = z.object({ today: DateString, locale: Locale });
 export type NoteAnalyze = z.infer<typeof NoteAnalyze>;
-
-const FLOW: NoteStatus[] = ['todo', 'in_progress', 'done'];
-
-/** The legal one-step moves from a status. A draft has none (submit is not a step). */
-export function statusMoves(status: NoteStatus): {
-  back: NoteStatus | null;
-  forward: NoteStatus | null;
-} {
-  const i = FLOW.indexOf(status);
-  if (i === -1) return { back: null, forward: null };
-  return { back: FLOW[i - 1] ?? null, forward: FLOW[i + 1] ?? null };
-}
 
 /** Chat history sent with `POST /chat`; the server keeps only the last 20. */
 export const ChatMessage = z.object({

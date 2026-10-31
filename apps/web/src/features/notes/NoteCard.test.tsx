@@ -32,12 +32,12 @@ const taxonomy = {
   ],
 };
 
-function renderCard(onOpen = vi.fn()) {
+function renderCard(onOpen = vi.fn(), card: Note = note) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <ul>
-        <NoteCard note={note} taxonomy={taxonomy} today="2026-10-25" onOpen={onOpen} />
+        <NoteCard note={card} taxonomy={taxonomy} today="2026-10-25" onOpen={onOpen} />
       </ul>
     </QueryClientProvider>,
   );
@@ -153,5 +153,13 @@ describe('NoteCard chips', () => {
     const tag = screen.getByText('urgent-fix');
     expect(tag.className).toContain('tag-box');
     expect(tag.textContent).not.toContain('#');
+  });
+});
+
+describe('NoteCard without status', () => {
+  it('shows no status pill and uses the neutral slip', () => {
+    renderCard(vi.fn(), { ...note, status: null });
+    expect(document.querySelector('.pill.pill-dot')).toBeNull();
+    expect(document.querySelector('li.status-none')).not.toBeNull();
   });
 });

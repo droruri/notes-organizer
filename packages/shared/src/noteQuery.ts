@@ -1,3 +1,4 @@
+import { isOpen, sortBand } from './noteStatus';
 import type { Importance, Note, NoteSort, NoteStatus, Urgency } from './index';
 
 // One implementation of "which notes, in what order" for the web list and the agent's tools.
@@ -43,7 +44,7 @@ export function normalizeText(s: string): string {
 
 /** Past its due date and not done. Due today is not overdue. */
 export function isOverdue(note: Pick<Note, 'dueDate' | 'status'>, today: string): boolean {
-  return note.dueDate !== null && note.status !== 'done' && note.dueDate < today;
+  return note.dueDate !== null && isOpen(note.status) && note.dueDate < today;
 }
 
 /** The viewer's local `YYYY-MM-DD` for a timestamp, matching the date the card displays. */
@@ -103,6 +104,7 @@ const bySort: Record<NoteSort, (a: Note, b: Note) => number> = {
 
 /** Drafts first, `done` last, the chosen order in between. Returns a new array. */
 export function sortNotes(notes: Note[], sort: NoteSort, _today: string): Note[] {
-  const band = (n: Note) => (n.status === 'draft' ? 0 : n.status === 'done' ? 2 : 1);
-  return [...notes].sort((a, b) => cmp(band(a), band(b)) || bySort[sort](a, b));
+  return [...notes].sort(
+    (a, b) => cmp(sortBand(a.status), sortBand(b.status)) || bySort[sort](a, b),
+  );
 }
