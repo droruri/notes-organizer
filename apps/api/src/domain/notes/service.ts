@@ -15,7 +15,7 @@ import type { LinkReader } from '../links/preview';
 import { log, timed } from '../../requestLog';
 import { withTransaction } from '../../tx';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
-import { listWorkspaces } from '../workspaces/service';
+import { ensureDefaultWorkspace, listWorkspaces } from '../workspaces/service';
 import { resolveWorkspace } from '../workspaces/workspaces';
 import { classify } from './classify';
 import { isValidTransition, planLinks, planNewTaxonomy } from './note';
@@ -166,7 +166,7 @@ export function getAudio(db: Db, userId: string, id: string): Promise<repo.Audio
 
 export async function listNotes(db: Db, userId: string): Promise<Note[]> {
   // Seeds the default workspace, which notes without one resolve to.
-  await listWorkspaces(db, userId);
+  await ensureDefaultWorkspace(db, userId);
   return repo.listNotes(db, userId);
 }
 

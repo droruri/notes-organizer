@@ -24,6 +24,11 @@ export function listWorkspaces(db: Db, userId: string): Promise<Workspace[]> {
   });
 }
 
+/** Creates the default workspace if missing, without logging: for callers that only need it to exist. */
+export async function ensureDefaultWorkspace(db: Db, userId: string): Promise<void> {
+  await repo.insertDefaultIfMissing(db, userId, DEFAULT_WORKSPACE_NAME);
+}
+
 export function createWorkspace(
   db: Db,
   userId: string,

@@ -52,9 +52,10 @@ export function Screens() {
   return (
     <>
       {menu}
-      {picking && workspaces.data && (
+      {picking && (workspaces.data || workspaces.isError) && (
         <WorkspacesDialog
-          workspaces={workspaces.data}
+          workspaces={workspaces.data ?? []}
+          loadFailed={workspaces.isError}
           currentId={workspace?.id}
           onPick={(id) => {
             setCurrentId(id);

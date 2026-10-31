@@ -1,4 +1,5 @@
 import type { Db } from './db';
+import { log } from './requestLog';
 
 /** Anything that can run a query: the pool, or one client inside a transaction. */
 export type Queryable = Pick<Db, 'query'>;
@@ -12,7 +13,9 @@ export async function withTransaction<T>(db: Db, fn: (tx: Queryable) => Promise<
     await client.query('commit');
     return result;
   } catch (err) {
-    await client.query('rollback').catch(() => undefined);
+    await client
+      .query('rollback')
+      .catch(() => log().warn({ error: 'rollback_failed' }, 'transaction rollback failed'));
     throw err;
   } finally {
     client.release();

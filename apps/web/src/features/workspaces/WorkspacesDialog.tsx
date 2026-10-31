@@ -11,11 +11,13 @@ import { useExit } from '../../ui/useExit';
 export function WorkspacesDialog({
   workspaces,
   currentId,
+  loadFailed = false,
   onPick,
   onClose,
 }: {
   workspaces: Workspace[];
   currentId: string | undefined;
+  loadFailed?: boolean;
   onPick: (id: string) => void;
   onClose: () => void;
 }) {
@@ -93,6 +95,11 @@ export function WorkspacesDialog({
               {w.isDefault && <span className="pill">{t('workspaces.default')}</span>}
             </button>
           ))}
+          {loadFailed && (
+            <p role="alert" className="notice notice-danger">
+              {t('workspaces.loadError')}
+            </p>
+          )}
         </div>
         <form onSubmit={submit} className="flex flex-col gap-2 border-t border-line p-4">
           <div className="flex gap-2">
