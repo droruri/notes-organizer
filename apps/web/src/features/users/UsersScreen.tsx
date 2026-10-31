@@ -82,7 +82,7 @@ export function UsersScreen({
       </div>
 
       <form
-        className="card flex flex-wrap items-center gap-3 p-3"
+        className="card flex flex-col gap-3 p-3 sm:flex-row sm:items-center"
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);
@@ -99,21 +99,23 @@ export function UsersScreen({
           required
           autoComplete="off"
           spellCheck={false}
-          className="field min-w-56 flex-1"
+          className="field w-full min-w-0 sm:flex-1"
         />
-        <label className="flex min-h-10 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={admin}
-            onChange={(e) => setAdmin(e.target.checked)}
-            className="check"
-          />
-          {t('users.adminCheckbox')}
-        </label>
-        <button type="submit" disabled={add.isPending} className="btn btn-primary">
-          <Icon name="plus" size={16} />
-          {t('users.add')}
-        </button>
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex min-h-10 items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={admin}
+              onChange={(e) => setAdmin(e.target.checked)}
+              className="check"
+            />
+            {t('users.adminCheckbox')}
+          </label>
+          <button type="submit" disabled={add.isPending} className="btn btn-primary">
+            <Icon name="plus" size={16} />
+            {t('users.add')}
+          </button>
+        </div>
       </form>
 
       {error && (
@@ -131,15 +133,18 @@ export function UsersScreen({
       {users.data && users.data.length > 0 && (
         <ul className="card flex flex-col divide-y divide-line overflow-hidden">
           {users.data.map((u) => (
-            <li key={u.email} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <li
+              key={u.email}
+              className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+            >
               <span
                 aria-hidden="true"
                 className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-soft font-semibold text-accent uppercase"
               >
                 {u.email.slice(0, 1)}
               </span>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                <span dir="ltr" className="break-all">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span dir="ltr" className="min-w-0 [overflow-wrap:anywhere]">
                   {u.email}
                 </span>
                 {u.isAdmin && (
@@ -147,7 +152,7 @@ export function UsersScreen({
                 )}
               </div>
               {confirming === u.email ? (
-                <div className="notice notice-danger w-full flex-wrap items-center">
+                <div className="notice notice-danger col-span-full flex-wrap items-center">
                   <span className="me-auto">{t('users.confirmRemove', { email: u.email })}</span>
                   <button
                     type="button"
@@ -168,7 +173,8 @@ export function UsersScreen({
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-1">
+                // Under the email on a phone (lined up with it), beside it on wider screens.
+                <div className="col-start-2 -ms-3 flex flex-wrap gap-1 sm:col-start-3 sm:ms-0">
                   <button
                     type="button"
                     onClick={() => {
