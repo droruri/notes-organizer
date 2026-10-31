@@ -42,7 +42,8 @@ export function ImportDialog({
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
-  const [workspaceId, setWorkspaceId] = useState(currentWorkspaceId ?? '');
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const picked = workspaceId ?? currentWorkspaceId ?? '';
   const [proposal, setProposal] = useState<ImportProposal | null>(null);
   const analysis = useMutation({ mutationFn: analyze, onSuccess: setProposal });
   const saving = useMutation({
@@ -79,7 +80,7 @@ export function ImportDialog({
           <label className="label">
             {t('import.workspace')}
             <select
-              value={workspaceId}
+              value={picked}
               onChange={(e) => setWorkspaceId(e.target.value)}
               className="field"
             >
@@ -97,7 +98,7 @@ export function ImportDialog({
             taxonomy={taxonomy}
             busy={saving.isPending}
             failed={saving.isError}
-            onConfirm={(body) => saving.mutate(workspaceId ? { ...body, workspaceId } : body)}
+            onConfirm={(body) => saving.mutate(picked ? { ...body, workspaceId: picked } : body)}
             onCancel={onClose}
           />
         ) : (

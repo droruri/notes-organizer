@@ -161,9 +161,9 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
       `insert into workspaces (user_id, name) values ($1, 'Import target') returning id`,
       [ME.id],
     );
+    await pool.query('delete from workspaces where user_id = $1', [OTHER]);
     const theirs = await pool.query(
-      `insert into workspaces (user_id, name, is_default) values ($1, 'Theirs', true)
-       on conflict do nothing returning id`,
+      `insert into workspaces (user_id, name, is_default) values ($1, 'Theirs', true) returning id`,
       [OTHER],
     );
     const def = await pool.query('select id from workspaces where user_id = $1 and is_default', [
@@ -188,7 +188,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     expect((await confirm(mine.rows[0].id)).statusCode).toBe(200);
     expect(await where()).toEqual([mine.rows[0].id]);
     await clean();
-    expect((await confirm(theirs.rows[0]?.id ?? OTHER)).statusCode).toBe(200);
+    expect((await confirm(theirs.rows[0].id)).statusCode).toBe(200);
     expect(await where()).toEqual([def.rows[0].id]);
     await clean();
     await pool.query('delete from workspaces where id = $1', [mine.rows[0].id]);
@@ -273,11 +273,14 @@ describe.skipIf(!databaseUrl)('imports outcome logs against the local stack', ()
       payload: { categories: [], tags: [], notes: [{ body: 'b', newCategories: ['Nope'] }] },
     });
     await app.close();
+    const def = await pool.query('select id from workspaces where user_id = $1 and is_default', [
+      ME.id,
+    ]);
     expect(lines.find((l) => l.msg === 'import confirmed')).toMatchObject({
       categories: 1,
       tags: 0,
       notes: 1,
-      workspaceId: expect.any(String),
+      workspaceId: def.rows[0].id,
     });
     expect(lines.find((l) => l.msg === 'import rejected')).toMatchObject({
       level: 40,
