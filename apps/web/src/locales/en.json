@@ -312,6 +312,7 @@
     "placeholder": "Paste your old notes here (up to 50,000 characters)…",
     "file": "Choose a .txt file",
     "tooLong": "The text is over 50,000 characters.",
+    "workspace": "Import into workspace",
     "analyze": "Analyze",
     "analyzing": "Claude is splitting and sorting your notes… this can take up to a minute.",
     "error": "Analysis failed. Try again.",

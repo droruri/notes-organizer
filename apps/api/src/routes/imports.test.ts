@@ -147,6 +147,55 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     await app.close();
   });
 
+  it('confirm puts every note in an owned workspace, and a foreign one falls back to the default', async () => {
+    await clean();
+    const OTHER = '99999999-9999-4999-8999-999999999990';
+    await pool.query(
+      `insert into auth.users (id, email, aud, role) values ($1, 'imports-other@example.com', 'authenticated', 'authenticated')
+       on conflict do nothing`,
+      [OTHER],
+    );
+    const app = serverWith([]);
+    await app.inject({ method: 'GET', url: '/workspaces', headers });
+    const mine = await pool.query(
+      `insert into workspaces (user_id, name) values ($1, 'Import target') returning id`,
+      [ME.id],
+    );
+    await pool.query('delete from workspaces where user_id = $1', [OTHER]);
+    const theirs = await pool.query(
+      `insert into workspaces (user_id, name, is_default) values ($1, 'Theirs', true) returning id`,
+      [OTHER],
+    );
+    const def = await pool.query('select id from workspaces where user_id = $1 and is_default', [
+      ME.id,
+    ]);
+    const where = async () =>
+      (
+        await pool.query('select distinct workspace_id from notes where user_id = $1', [ME.id])
+      ).rows.map((r) => r.workspace_id);
+    const confirm = (workspaceId?: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/imports/confirm',
+        headers,
+        payload: {
+          ...(workspaceId ? { workspaceId } : {}),
+          categories: [],
+          tags: [],
+          notes: [{ body: 'a' }, { body: 'b' }],
+        },
+      });
+    expect((await confirm(mine.rows[0].id)).statusCode).toBe(200);
+    expect(await where()).toEqual([mine.rows[0].id]);
+    await clean();
+    expect((await confirm(theirs.rows[0].id)).statusCode).toBe(200);
+    expect(await where()).toEqual([def.rows[0].id]);
+    await clean();
+    await pool.query('delete from workspaces where id = $1', [mine.rows[0].id]);
+    await pool.query('delete from workspaces where user_id = $1', [OTHER]);
+    await app.close();
+  });
+
   it('confirm is all or nothing when one note is invalid', async () => {
     await clean();
     const app = serverWith([]);
@@ -224,10 +273,14 @@ describe.skipIf(!databaseUrl)('imports outcome logs against the local stack', ()
       payload: { categories: [], tags: [], notes: [{ body: 'b', newCategories: ['Nope'] }] },
     });
     await app.close();
+    const def = await pool.query('select id from workspaces where user_id = $1 and is_default', [
+      ME.id,
+    ]);
     expect(lines.find((l) => l.msg === 'import confirmed')).toMatchObject({
       categories: 1,
       tags: 0,
       notes: 1,
+      workspaceId: def.rows[0].id,
     });
     expect(lines.find((l) => l.msg === 'import rejected')).toMatchObject({
       level: 40,

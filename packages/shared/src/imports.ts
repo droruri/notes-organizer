@@ -28,6 +28,7 @@ export type ImportNote = z.infer<typeof ImportNote>;
 
 /** Body of `POST /imports/confirm`: the chosen taxonomy and notes, saved together. */
 export const ImportConfirm = z.object({
+  workspaceId: z.uuid().optional(),
   categories: z.array(z.string()).max(MAX_IMPORT_NOTES * 5),
   tags: z.array(NewTag).max(MAX_IMPORT_NOTES * 5),
   notes: z.array(ImportNote).max(MAX_IMPORT_NOTES),

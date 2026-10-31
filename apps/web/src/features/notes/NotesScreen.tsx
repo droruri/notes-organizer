@@ -411,6 +411,8 @@ export function NotesScreen({
         <Suspense fallback={<Loading label={t('import.loading')} />}>
           <ImportDialog
             taxonomy={taxonomy.data}
+            workspaces={workspaces.data ?? []}
+            currentWorkspaceId={workspace?.id}
             today={today}
             locale={locale}
             onClose={goBack}
