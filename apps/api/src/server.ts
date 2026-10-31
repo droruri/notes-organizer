@@ -25,6 +25,7 @@ import { notesRoutes } from './routes/notes';
 import { settingsRoutes } from './routes/settings';
 import { taxonomyRoutes } from './routes/taxonomy';
 import { usersRoutes } from './routes/users';
+import { workspacesRoutes } from './routes/workspaces';
 
 // Wiring only: build the app, register routes, read env. Domain logic lives in src/domain/<area>/.
 
@@ -86,6 +87,7 @@ export function buildServer({
     usersRoutes(authed, db);
     settingsRoutes(authed, db);
     taxonomyRoutes(authed, db);
+    workspacesRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
     attachmentsRoutes(authed, db);
     importsRoutes(authed, db, ai, links);

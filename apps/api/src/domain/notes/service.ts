@@ -15,6 +15,8 @@ import type { LinkReader } from '../links/preview';
 import { log, timed } from '../../requestLog';
 import { withTransaction } from '../../tx';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
+import { listWorkspaces } from '../workspaces/service';
+import { resolveWorkspace } from '../workspaces/workspaces';
 import { classify } from './classify';
 import { isValidTransition, planLinks, planNewTaxonomy } from './note';
 import * as repo from './repository';
@@ -87,6 +89,8 @@ async function createDraftUntimed(
   const existing = await repo.findNoteByClientId(db, userId, input.clientId);
   if (existing) return { created: false, note: existing, suggestion: suggestionOf(existing) };
 
+  const workspace = resolveWorkspace(await listWorkspaces(db, userId), input.workspaceId);
+  if (!workspace) throw new Error('user has no default workspace');
   const taxonomy = await getTaxonomy(db, userId);
   const suggestion = await classify(ai, {
     body: input.body,
@@ -98,6 +102,7 @@ async function createDraftUntimed(
   const id = await withTransaction(db, async (tx) => {
     const noteId = await repo.insertDraft(tx, userId, {
       clientId: input.clientId,
+      workspaceId: workspace.id,
       body: input.body,
       title: input.title || suggestion.title,
       proposed: { newCategories: suggestion.newCategories, newTags: suggestion.newTags },
@@ -159,7 +164,9 @@ export function getAudio(db: Db, userId: string, id: string): Promise<repo.Audio
   return repo.findAudio(db, userId, id);
 }
 
-export function listNotes(db: Db, userId: string): Promise<Note[]> {
+export async function listNotes(db: Db, userId: string): Promise<Note[]> {
+  // Seeds the default workspace, which notes without one resolve to.
+  await listWorkspaces(db, userId);
   return repo.listNotes(db, userId);
 }
 

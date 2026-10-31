@@ -21,7 +21,9 @@ type NoteRow = Omit<Note, 'proposed' | 'attachments' | 'createdAt' | 'updatedAt'
 };
 
 const NOTE_SELECT = `
-  select n.id, n.client_id as "clientId", n.title, n.body, n.status, n.importance, n.urgency,
+  select n.id, n.client_id as "clientId", n.title, n.body, n.status,
+    coalesce(n.workspace_id, (select w.id from workspaces w where w.user_id = n.user_id and w.is_default)) as "workspaceId",
+    n.importance, n.urgency,
     to_char(n.due_date, 'YYYY-MM-DD') as "dueDate", n.proposed, n.unread_links as "unreadLinks",
     n.created_at as "createdAt", n.updated_at as "updatedAt",
     coalesce((select array_agg(nc.category_id::text) from note_categories nc where nc.note_id = n.id), '{}') as "categoryIds",
@@ -90,6 +92,7 @@ export async function insertDraft(
   userId: string,
   draft: {
     clientId: string;
+    workspaceId: string;
     title: string | null;
     body: string;
     proposed: Proposed;
@@ -100,8 +103,8 @@ export async function insertDraft(
   },
 ): Promise<string | null> {
   const { rows } = await db.query<{ id: string }>(
-    `insert into notes (user_id, client_id, body, proposed, due_date, importance, urgency, unread_links, title)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `insert into notes (user_id, client_id, body, proposed, due_date, importance, urgency, unread_links, title, workspace_id)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      on conflict (user_id, client_id) do nothing returning id`,
     [
       userId,
@@ -113,6 +116,7 @@ export async function insertDraft(
       draft.urgency,
       draft.unreadLinks,
       draft.title,
+      draft.workspaceId,
     ],
   );
   return rows[0]?.id ?? null;
@@ -211,6 +215,7 @@ export async function insertTodo(
   db: Queryable,
   userId: string,
   note: {
+    workspaceId: string;
     body: string;
     title: string | null;
     dueDate: string | null;
@@ -220,9 +225,18 @@ export async function insertTodo(
   },
 ): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
-    `insert into notes (user_id, client_id, body, title, status, due_date, importance, urgency, unread_links)
-     values ($1, gen_random_uuid(), $2, $3, 'todo', $4, $5, $6, $7) returning id`,
-    [userId, note.body, note.title, note.dueDate, note.importance, note.urgency, note.unreadLinks],
+    `insert into notes (user_id, client_id, body, title, status, due_date, importance, urgency, unread_links, workspace_id)
+     values ($1, gen_random_uuid(), $2, $3, 'todo', $4, $5, $6, $7, $8) returning id`,
+    [
+      userId,
+      note.body,
+      note.title,
+      note.dueDate,
+      note.importance,
+      note.urgency,
+      note.unreadLinks,
+      note.workspaceId,
+    ],
   );
   const row = rows[0];
   if (!row) throw new Error('insert returned no row');

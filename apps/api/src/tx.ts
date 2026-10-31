@@ -18,3 +18,19 @@ export async function withTransaction<T>(db: Db, fn: (tx: Queryable) => Promise<
     client.release();
   }
 }
+
+export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E };
+
+const UNIQUE_VIOLATION = '23505';
+
+/** Run a write; a clash with a unique index becomes `{ ok: false, error: 'name_taken' }`. */
+export async function guarded<T>(write: () => Promise<T>): Promise<Result<T, 'name_taken'>> {
+  try {
+    return { ok: true, value: await write() };
+  } catch (err) {
+    if (typeof err === 'object' && err !== null && 'code' in err && err.code === UNIQUE_VIOLATION) {
+      return { ok: false, error: 'name_taken' };
+    }
+    throw err;
+  }
+}

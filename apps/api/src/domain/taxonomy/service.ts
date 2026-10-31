@@ -8,7 +8,7 @@ import type {
 } from '@notes/shared';
 import type { Db } from '../../db';
 import { log, timed } from '../../requestLog';
-import { withTransaction, type Queryable } from '../../tx';
+import { guarded, withTransaction, type Queryable } from '../../tx';
 import * as repo from './repository';
 import type { NewTaxonomyPlan } from '../notes/note';
 import { isUsable, normalizeName } from './taxonomy';
@@ -18,20 +18,6 @@ export type Result<T> = { ok: true; value: T } | { ok: false; error: Failure };
 
 const ok = <T>(value: T): Result<T> => ({ ok: true, value });
 const fail = (error: Failure): Result<never> => ({ ok: false, error });
-
-const UNIQUE_VIOLATION = '23505';
-
-/** Run a write; a clash with an active name (partial unique index) becomes `name_taken`. */
-async function guarded<T>(write: () => Promise<T>): Promise<Result<T>> {
-  try {
-    return ok(await write());
-  } catch (err) {
-    if (typeof err === 'object' && err !== null && 'code' in err && err.code === UNIQUE_VIOLATION) {
-      return fail('name_taken');
-    }
-    throw err;
-  }
-}
 
 export async function getTaxonomy(db: Queryable, userId: string): Promise<Taxonomy> {
   const [categories, tags] = await Promise.all([

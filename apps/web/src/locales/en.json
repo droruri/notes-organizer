@@ -343,5 +343,16 @@
     "send": "Send",
     "later": "Later",
     "dismiss": "Dismiss"
+  },
+  "workspaces": {
+    "menu": "Workspaces",
+    "title": "Workspaces",
+    "close": "Close",
+    "default": "Default",
+    "nameLabel": "New workspace name",
+    "add": "Add",
+    "nameTaken": "A workspace with this name already exists",
+    "error": "Couldn't save the workspace. Try again.",
+    "loadError": "Couldn't load the workspaces."
   }
 }

@@ -6,13 +6,21 @@ type Props = {
   onNotes: () => void;
   onImport: () => void;
   onTaxonomy: () => void;
+  onWorkspaces: () => void;
   onSignOut: () => void;
   /** Set for an admin: shows the "Users" item. */
   onUsers?: () => void;
 };
 
-/** The app menu in the header: Notes, Import notes, Categories & tags, Users (admin only), Sign out. */
-export function AppMenu({ onNotes, onImport, onTaxonomy, onUsers, onSignOut }: Props) {
+/** The app menu in the header: Notes, Import notes, Categories & tags, Workspaces, Users (admin only), Sign out. */
+export function AppMenu({
+  onNotes,
+  onImport,
+  onTaxonomy,
+  onWorkspaces,
+  onUsers,
+  onSignOut,
+}: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -39,6 +47,7 @@ export function AppMenu({ onNotes, onImport, onTaxonomy, onUsers, onSignOut }: P
     { icon: 'note', label: t('notes.title'), onPick: onNotes },
     { icon: 'upload', label: t('import.open'), onPick: onImport },
     { icon: 'filter', label: t('taxonomy.menu'), onPick: onTaxonomy },
+    { icon: 'layers', label: t('workspaces.menu'), onPick: onWorkspaces },
     ...(onUsers ? [{ icon: 'users' as const, label: t('users.menu'), onPick: onUsers }] : []),
     { icon: 'logout', label: t('auth.signOut'), onPick: onSignOut },
   ];

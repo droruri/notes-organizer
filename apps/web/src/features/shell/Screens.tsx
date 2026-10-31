@@ -1,9 +1,13 @@
-import { lazy, Suspense, useContext } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { resolveWorkspace } from '@notes/shared';
+import { lazy, Suspense, useContext, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
+import { api } from '../../lib/api';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
+import { WorkspacesDialog } from '../workspaces/WorkspacesDialog';
 import { Loading } from '../../ui/Loading';
 import { AppMenu } from './AppMenu';
 import { HeaderSlot } from './headerSlot';
@@ -27,12 +31,18 @@ export function Screens() {
   const [params] = useSearchParams();
   // The key remounts the list with the tag filter from `?tag=`.
   const tagId = params.get('tag');
+  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
+  // null = the default workspace.
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const workspace = workspaces.data ? resolveWorkspace(workspaces.data, currentId) : undefined;
   const menu = slot
     ? createPortal(
         <AppMenu
           onNotes={() => void navigate(ROUTES.notes)}
           onTaxonomy={() => void navigate(ROUTES.taxonomy)}
           onImport={() => void navigate(ROUTES.import)}
+          onWorkspaces={() => setPicking(true)}
           onSignOut={() => void signOut()}
           {...(isAdmin ? { onUsers: () => void navigate(ROUTES.users) } : {})}
         />,
@@ -42,11 +52,28 @@ export function Screens() {
   return (
     <>
       {menu}
+      {picking && workspaces.data && (
+        <WorkspacesDialog
+          workspaces={workspaces.data}
+          currentId={workspace?.id}
+          onPick={(id) => {
+            setCurrentId(id);
+            void navigate(ROUTES.notes);
+          }}
+          onClose={() => setPicking(false)}
+        />
+      )}
       <Routes>
         {/* NotesScreen stays mounted across its child routes and reads its mode from the URL. */}
         <Route
           path={ROUTES.notes}
-          element={<NotesScreen key={tagId ?? 'all'} initialTagId={tagId} />}
+          element={
+            <NotesScreen
+              key={tagId ?? 'all'}
+              initialTagId={tagId}
+              {...(workspace ? { workspace } : {})}
+            />
+          }
         >
           <Route path="new" element={null} />
           <Route path="review" element={null} />

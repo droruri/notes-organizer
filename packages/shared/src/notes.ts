@@ -73,6 +73,7 @@ export const Note = z.object({
   title: z.string().nullable(),
   body: z.string(),
   status: NoteStatus,
+  workspaceId: z.uuid(),
   importance: Importance.nullable(),
   urgency: Urgency.nullable(),
   dueDate: DateString.nullable(),
@@ -122,6 +123,8 @@ export const NoteCreate = z.object({
   clientId: z.uuid(),
   today: DateString,
   locale: Locale,
+  /** The current workspace; the API falls back to the default if missing or not the caller's. */
+  workspaceId: z.uuid().optional(),
 });
 export type NoteCreate = z.infer<typeof NoteCreate>;
 

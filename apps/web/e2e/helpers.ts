@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test';
 export async function signIn(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
 }
 
 /** A body that is unique per run, so specs can share the dev user's database. */

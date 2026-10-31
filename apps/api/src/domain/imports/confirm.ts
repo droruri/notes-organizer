@@ -5,6 +5,8 @@ import { withTransaction } from '../../tx';
 import { planLinks, planNewTaxonomy } from '../notes/note';
 import * as notesRepo from '../notes/repository';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
+import { listWorkspaces } from '../workspaces/service';
+import { resolveWorkspace } from '../workspaces/workspaces';
 
 // Import confirm: create the chosen taxonomy and notes in one transaction, all or nothing.
 
@@ -32,6 +34,8 @@ async function confirmImportUntimed(
   userId: string,
   input: ImportConfirm,
 ): Promise<ConfirmResult> {
+  const workspace = resolveWorkspace(await listWorkspaces(db, userId));
+  if (!workspace) throw new Error('user has no default workspace');
   try {
     return await withTransaction(db, async (tx): Promise<ConfirmResult> => {
       const plan = planNewTaxonomy(input.categories, input.tags, await getTaxonomy(tx, userId));
@@ -59,6 +63,7 @@ async function confirmImportUntimed(
         );
         if (!links) throw new Invalid();
         const id = await notesRepo.insertTodo(tx, userId, {
+          workspaceId: workspace.id,
           body: note.body,
           title: note.title ?? null,
           dueDate: note.dueDate ?? null,

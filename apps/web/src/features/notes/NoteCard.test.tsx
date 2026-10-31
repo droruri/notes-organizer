@@ -13,6 +13,7 @@ const note: Note = {
   title: 'Groceries',
   body: 'milk and eggs https://example.com/a',
   status: 'todo',
+  workspaceId: '00000000-0000-4000-8000-0000000000f1',
   importance: null,
   urgency: null,
   dueDate: '2026-10-30',

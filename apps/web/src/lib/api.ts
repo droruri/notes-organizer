@@ -31,6 +31,8 @@ import {
   Suggestion,
   Tag,
   Taxonomy,
+  Workspace,
+  WorkspaceList,
 } from '@notes/shared';
 import { z } from 'zod';
 import { accessToken } from './supabase';
@@ -109,6 +111,7 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
   form.set('today', meta.today);
   form.set('locale', meta.locale);
   if (meta.title) form.set('title', meta.title);
+  if (meta.workspaceId) form.set('workspaceId', meta.workspaceId);
   form.set('audio', audio, 'voice');
   return request('POST', '/notes', NoteCreated, form);
 }
@@ -207,6 +210,8 @@ export const api = {
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (patch: SettingsPatch) => request('PUT', '/settings', Settings, patch),
   taxonomy: () => request('GET', '/taxonomy', Taxonomy),
+  workspaces: () => request('GET', '/workspaces', WorkspaceList),
+  createWorkspace: (name: string) => request('POST', '/workspaces', Workspace, { name }),
   applyActions: (input: ActionsBody) =>
     request('POST', '/taxonomy/actions', ActionsResponse, input),
   createCategory: (name: string) => request('POST', '/categories', Category, { name }),

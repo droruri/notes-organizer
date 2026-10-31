@@ -7,6 +7,7 @@ import {
   sortNotes,
   NoteCreated,
   type NoteFilter,
+  type Workspace,
   MAX_TITLE_LENGTH,
   suggestionOf,
 } from '@notes/shared';
@@ -50,9 +51,12 @@ const localToday = () => new Date().toLocaleDateString('en-CA');
 
 export function NotesScreen({
   initialTagId = null,
+  workspace,
 }: {
   /** Start with the list filtered to this tag. */
   initialTagId?: string | null;
+  /** The current workspace: new notes go there and the list shows only its notes. */
+  workspace?: Workspace;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -83,8 +87,9 @@ export function NotesScreen({
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
   });
 
-  const meta = (clientId: string = crypto.randomUUID()) => ({
+  const meta = (clientId: string = crypto.randomUUID(), workspaceId = workspace?.id) => ({
     clientId,
+    ...(workspaceId ? { workspaceId } : {}),
     today: localToday(),
     locale: i18n.language === 'en' ? ('en' as const) : ('he' as const),
   });
@@ -119,7 +124,15 @@ export function NotesScreen({
     clientId: string = crypto.randomUUID(),
     title: string = '',
   ) => {
-    const ok = await addToOutbox({ clientId, body, ...(title.trim() ? { title } : {}) }, audio);
+    const ok = await addToOutbox(
+      {
+        clientId,
+        body,
+        ...(title.trim() ? { title } : {}),
+        ...(workspace ? { workspaceId: workspace.id } : {}),
+      },
+      audio,
+    );
     setOutbox(readOutbox());
     setOfflineNotice(ok ? 'saved' : 'failed');
     if (ok) {
@@ -157,7 +170,7 @@ export function NotesScreen({
 
   /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
   const sendQueued = async (entry: OutboxEntry, body: string) => {
-    const queued = meta(entry.clientId);
+    const queued = meta(entry.clientId, entry.workspaceId ?? workspace?.id);
     let draft: NoteCreated;
     if (entry.hasAudio) {
       const audio = await readOutboxAudio(entry.clientId);
@@ -372,7 +385,10 @@ export function NotesScreen({
 
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
-  const visible = sortNotes(filterNotes(notes.data, filter, today), sort, today);
+  const inWorkspace = workspace
+    ? notes.data.filter((n) => n.workspaceId === workspace.id)
+    : notes.data;
+  const visible = sortNotes(filterNotes(inWorkspace, filter, today), sort, today);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
     <section className="flex flex-col gap-5">
@@ -403,7 +419,7 @@ export function NotesScreen({
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col">
           <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
-            {t('notes.title')}
+            {workspace?.name ?? t('notes.title')}
           </h2>
           <p className="text-sm text-muted tabular-nums">
             {t('notes.count', { count: visible.length })}
@@ -467,7 +483,7 @@ export function NotesScreen({
       <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
         <NoteList
           notes={visible}
-          filtered={notes.data.length > 0}
+          filtered={inWorkspace.length > 0}
           taxonomy={taxonomy.data}
           today={today}
           onOpen={(note) => open(notePath(note.id))}

@@ -7,7 +7,7 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
 }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
 
   // Cut the API (the dev server still serves the shell), then cold-start the screen.
   const cut = (route: import('@playwright/test').Route) => route.abort('internetdisconnected');
@@ -33,7 +33,7 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
 test('saved notes show offline after a reload, with the waiting section', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   const countText = page.getByText(/^\d+ פתקים$/).first();
   const count = await countText.textContent();
   // Let the persister flush to IndexedDB, then go offline and cold-start.
@@ -44,7 +44,7 @@ test('saved notes show offline after a reload, with the waiting section', async 
     (route) => route.abort('internetdisconnected'),
   );
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   await expect(countText).toHaveText(count ?? '');
 
   await page.getByRole('button', { name: 'פתק חדש' }).click();
