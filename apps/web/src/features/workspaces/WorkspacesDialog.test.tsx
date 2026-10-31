@@ -90,7 +90,7 @@ describe('workspaces dialog', () => {
     const radios = within(dialog).getAllByRole('radio');
     expect(radios.map((r) => r.textContent)).toEqual(['כללי' + 'Default', 'ידע']);
     expect(radios[0]?.getAttribute('aria-checked')).toBe('true');
-    fireEvent.click(radios[1] as HTMLElement);
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'ידע' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await screen.findByText('knowledge note');
@@ -170,15 +170,19 @@ describe('workspaces dialog', () => {
     setup();
     await screen.findByText('general note');
     const dialog = await openDialog();
-    fireEvent.click(within(dialog).getAllByRole('radio')[1] as HTMLElement);
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'ידע' }));
     await screen.findByText('knowledge note');
     const again = await openDialog();
     fireEvent.click(within(again).getByRole('button', { name: 'Actions for ידע' }));
     fireEvent.click(within(again).getByRole('button', { name: 'Delete' }));
     expect(within(again).getByText(/move to “כללי”/)).toBeTruthy();
     expect(del).not.toHaveBeenCalled();
+    const notesFetches = vi.mocked(api.notes).mock.calls.length;
     fireEvent.click(within(again).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(del).toHaveBeenCalledWith(KNOWLEDGE.id));
+    await waitFor(() =>
+      expect(vi.mocked(api.notes).mock.calls.length).toBeGreaterThan(notesFetches),
+    );
     await screen.findByRole('heading', { name: 'כללי' });
   });
 });

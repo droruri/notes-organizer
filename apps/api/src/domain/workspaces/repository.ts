@@ -41,17 +41,17 @@ export async function insertWorkspace(
   return row;
 }
 
-/** The user's workspace, row-locked for the rest of the transaction. */
-export async function lockWorkspace(
-  db: Queryable,
-  userId: string,
-  id: string,
-): Promise<Workspace | undefined> {
+/**
+ * All of the user's workspaces, row-locked for the rest of the transaction. Locking the whole set
+ * (in one fixed order) makes concurrent set-default and delete serialize, so the default read
+ * after this call is current.
+ */
+export async function lockUserWorkspaces(db: Queryable, userId: string): Promise<Workspace[]> {
   const { rows } = await db.query<Workspace>(
-    `select ${COLS} from workspaces where id = $1 and user_id = $2 for update`,
-    [id, userId],
+    `select ${COLS} from workspaces where user_id = $1 order by id for update`,
+    [userId],
   );
-  return rows[0];
+  return rows;
 }
 
 export async function renameWorkspace(db: Queryable, id: string, name: string): Promise<void> {
@@ -64,17 +64,6 @@ export async function makeDefault(db: Queryable, userId: string, id: string): Pr
     userId,
   ]);
   await db.query('update workspaces set is_default = true where id = $1', [id]);
-}
-
-export async function defaultWorkspaceId(
-  db: Queryable,
-  userId: string,
-): Promise<string | undefined> {
-  const { rows } = await db.query<{ id: string }>(
-    'select id from workspaces where user_id = $1 and is_default',
-    [userId],
-  );
-  return rows[0]?.id;
 }
 
 /** Moves every note of `fromId` (soft-deleted too) to `toId`; returns how many. */

@@ -64,7 +64,7 @@ export function updateWorkspace(
     if (name === null) return fail('invalid_name');
     const result = await guarded(() =>
       withTransaction(db, async (tx): Promise<Workspace | undefined> => {
-        const current = await repo.lockWorkspace(tx, userId, id);
+        const current = (await repo.lockUserWorkspaces(tx, userId)).find((w) => w.id === id);
         if (!current) return undefined;
         if (name !== undefined) await repo.renameWorkspace(tx, id, name);
         if (edit.isDefault) await repo.makeDefault(tx, userId, id);
@@ -95,12 +95,13 @@ export function deleteWorkspace(
     const outcome = await withTransaction(
       db,
       async (tx): Promise<Result<{ movedNotes: number }>> => {
-        const current = await repo.lockWorkspace(tx, userId, id);
+        const rows = await repo.lockUserWorkspaces(tx, userId);
+        const current = rows.find((w) => w.id === id);
         if (!current) return { ok: false, error: 'not_found' };
         if (current.isDefault) return { ok: false, error: 'is_default' };
-        const target = await repo.defaultWorkspaceId(tx, userId);
+        const target = rows.find((w) => w.isDefault);
         if (!target) return { ok: false, error: 'not_found' };
-        const movedNotes = await repo.moveNotes(tx, id, target);
+        const movedNotes = await repo.moveNotes(tx, id, target.id);
         await repo.deleteWorkspaceRow(tx, id);
         return { ok: true, value: { movedNotes } };
       },
