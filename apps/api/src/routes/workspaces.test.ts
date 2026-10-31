@@ -185,7 +185,7 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
     expect(refused.statusCode).toBe(422);
     expect(refused.json()).toEqual({ error: 'unknown_workspace' });
     await logged.close();
-    expect(lines.find((l) => l.msg === 'draft saved')).toMatchObject({ workspacePicked: false });
+    expect(lines.find((l) => l.msg === 'draft saved')).toMatchObject({ noteId: id });
     expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({ workspaceChanged: true });
     expect(lines.find((l) => l.msg === 'note update failed')).toMatchObject({
       noteId: id,

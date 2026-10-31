@@ -71,7 +71,6 @@ export function createDraft(
           tags: draft.suggestion.tagIds.length,
           newCategories: draft.suggestion.newCategories.length,
           newTags: draft.suggestion.newTags.length,
-          workspacePicked: draft.suggestion.workspaceId !== null,
         },
         'draft saved',
       );

@@ -143,8 +143,8 @@ describe('settings logs', () => {
       noteSort: 'urgency',
       noteForm: {
         hiddenFields: [],
-        importance: { display: 'dropdown' },
-        urgency: { display: 'dropdown' },
+        importance: { display: 'dropdown', hiddenValues: [] },
+        urgency: { display: 'dropdown', hiddenValues: [] },
       },
     });
     expect(lines.find((l) => l.msg === 'stored settings invalid')).toMatchObject({

@@ -97,8 +97,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       noteSort: 'urgency',
       noteForm: {
         hiddenFields: [],
-        importance: { display: 'dropdown' },
-        urgency: { display: 'dropdown' },
+        importance: { display: 'dropdown', hiddenValues: [] },
+        urgency: { display: 'dropdown', hiddenValues: [] },
       },
     });
 
@@ -112,8 +112,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       noteSort: 'newest',
       noteForm: {
         hiddenFields: [],
-        importance: { display: 'dropdown' },
-        urgency: { display: 'dropdown' },
+        importance: { display: 'dropdown', hiddenValues: [] },
+        urgency: { display: 'dropdown', hiddenValues: [] },
       },
     });
     const again = await app.inject({ method: 'GET', url: '/settings', headers });
@@ -121,8 +121,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       noteSort: 'newest',
       noteForm: {
         hiddenFields: [],
-        importance: { display: 'dropdown' },
-        urgency: { display: 'dropdown' },
+        importance: { display: 'dropdown', hiddenValues: [] },
+        urgency: { display: 'dropdown', hiddenValues: [] },
       },
     });
   });
@@ -130,8 +130,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
   it('keeps noteSort on a noteForm patch and noteForm on a noteSort patch', async () => {
     const form = {
       hiddenFields: ['dueDate'],
-      importance: { display: 'dropdown' },
-      urgency: { display: 'dropdown' },
+      importance: { display: 'dropdown', hiddenValues: [] },
+      urgency: { display: 'dropdown', hiddenValues: [] },
     };
     const a = await app.inject({
       method: 'PUT',
