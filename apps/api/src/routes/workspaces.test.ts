@@ -25,8 +25,12 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
   const mine = { authorization: 'Bearer allowed' };
   const theirs = { authorization: 'Bearer other' };
 
-  const send = (headers: typeof mine, method: 'GET' | 'POST', url: string, payload?: object) =>
-    app.inject({ method, url, headers, ...(payload ? { payload } : {}) });
+  const send = (
+    headers: typeof mine,
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    url: string,
+    payload?: object,
+  ) => app.inject({ method, url, headers, ...(payload ? { payload } : {}) });
 
   const clean = async () => {
     const ids = [ME.id, OTHER.id];
@@ -140,5 +144,97 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
       error: 'name_taken',
     });
     expect(JSON.stringify(lines)).not.toContain('ידע');
+  });
+
+  const makeWs = async (name: string) =>
+    Workspace.parse((await send(mine, 'POST', '/workspaces', { name })).json());
+  const noteIn = async (workspaceId: string, deleted = false) => {
+    await pool.query(
+      `insert into notes (user_id, client_id, body, workspace_id, deleted_at)
+       values ($1, gen_random_uuid(), 'n', $2, ${deleted ? 'now()' : 'null'})`,
+      [ME.id, workspaceId],
+    );
+  };
+
+  it('renames (200), refuses a taken name (409), a blank one (400) and another user’s id (404)', async () => {
+    await clean();
+    const ws = await makeWs('ידע');
+    await makeWs('Work');
+    const ok = await send(mine, 'PATCH', `/workspaces/${ws.id}`, { name: ' Notes ' });
+    expect(ok.statusCode).toBe(200);
+    expect(Workspace.parse(ok.json())).toMatchObject({ id: ws.id, name: 'Notes' });
+    const taken = await send(mine, 'PATCH', `/workspaces/${ws.id}`, { name: 'work' });
+    expect(taken.statusCode).toBe(409);
+    expect(taken.json()).toEqual({ error: 'name_taken' });
+    const blank = await send(mine, 'PATCH', `/workspaces/${ws.id}`, { name: '  ' });
+    expect(blank.statusCode).toBe(400);
+    const foreign = await send(theirs, 'PATCH', `/workspaces/${ws.id}`, { name: 'x' });
+    expect(foreign.statusCode).toBe(404);
+    expect((await send(theirs, 'DELETE', `/workspaces/${ws.id}`)).statusCode).toBe(404);
+  });
+
+  it('set-default leaves exactly one default', async () => {
+    await clean();
+    const ws = await makeWs('ידע');
+    const res = await send(mine, 'PATCH', `/workspaces/${ws.id}`, { isDefault: true });
+    expect(res.statusCode).toBe(200);
+    const all = await list(mine);
+    expect(all.filter((w) => w.isDefault).map((w) => w.id)).toEqual([ws.id]);
+  });
+
+  it('delete moves all notes (soft-deleted too) to the default and refuses the default', async () => {
+    await clean();
+    const ws = await makeWs('ידע');
+    const def = (await list(mine)).find((w) => w.isDefault);
+    await noteIn(ws.id);
+    await noteIn(ws.id, true);
+    const gone = await send(mine, 'DELETE', `/workspaces/${ws.id}`);
+    expect(gone.statusCode).toBe(204);
+    expect((await list(mine)).map((w) => w.id)).toEqual([def?.id]);
+    const { rows } = await pool.query<{ workspace_id: string }>(
+      'select workspace_id from notes where user_id = $1',
+      [ME.id],
+    );
+    expect(rows.map((r) => r.workspace_id)).toEqual([def?.id, def?.id]);
+    const refused = await send(mine, 'DELETE', `/workspaces/${def?.id}`);
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json()).toEqual({ error: 'is_default' });
+  });
+
+  it('logs workspace updated / update failed / deleted / delete failed', async () => {
+    await clean();
+    const ws = await makeWs('ידע');
+    const def = (await list(mine)).find((w) => w.isDefault);
+    await noteIn(ws.id);
+    const { app: logged, lines } = captureLogs({ db: pool, verifyToken, allowedEmails });
+    const call = (method: 'PATCH' | 'DELETE', id: string | undefined, payload?: object) =>
+      logged.inject({
+        method,
+        url: `/workspaces/${id}`,
+        headers: mine,
+        ...(payload ? { payload } : {}),
+      });
+    await call('PATCH', ws.id, { name: 'New', isDefault: true });
+    await call('PATCH', ws.id, { name: '  ' });
+    await call('DELETE', ws.id);
+    await call('DELETE', def?.id);
+    await logged.close();
+    expect(lines.find((l) => l.msg === 'workspace updated')).toMatchObject({
+      workspaceId: ws.id,
+      renamed: true,
+      madeDefault: true,
+    });
+    expect(lines.find((l) => l.msg === 'workspace update failed')).toMatchObject({
+      workspaceId: ws.id,
+      error: 'invalid_name',
+    });
+    expect(lines.find((l) => l.msg === 'workspace delete failed')).toMatchObject({
+      workspaceId: ws.id,
+      error: 'is_default',
+    });
+    expect(lines.find((l) => l.msg === 'workspace deleted')).toMatchObject({
+      workspaceId: def?.id,
+      movedNotes: 0,
+    });
   });
 });

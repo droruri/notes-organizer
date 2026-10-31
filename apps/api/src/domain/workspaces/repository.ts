@@ -40,3 +40,52 @@ export async function insertWorkspace(
   if (!row) throw new Error('workspace insert returned no row');
   return row;
 }
+
+/** The user's workspace, row-locked for the rest of the transaction. */
+export async function lockWorkspace(
+  db: Queryable,
+  userId: string,
+  id: string,
+): Promise<Workspace | undefined> {
+  const { rows } = await db.query<Workspace>(
+    `select ${COLS} from workspaces where id = $1 and user_id = $2 for update`,
+    [id, userId],
+  );
+  return rows[0];
+}
+
+export async function renameWorkspace(db: Queryable, id: string, name: string): Promise<void> {
+  await db.query('update workspaces set name = $2 where id = $1', [id, name]);
+}
+
+/** Moves the default flag to `id`: clears the old one first so the one-default index holds. */
+export async function makeDefault(db: Queryable, userId: string, id: string): Promise<void> {
+  await db.query('update workspaces set is_default = false where user_id = $1 and is_default', [
+    userId,
+  ]);
+  await db.query('update workspaces set is_default = true where id = $1', [id]);
+}
+
+export async function defaultWorkspaceId(
+  db: Queryable,
+  userId: string,
+): Promise<string | undefined> {
+  const { rows } = await db.query<{ id: string }>(
+    'select id from workspaces where user_id = $1 and is_default',
+    [userId],
+  );
+  return rows[0]?.id;
+}
+
+/** Moves every note of `fromId` (soft-deleted too) to `toId`; returns how many. */
+export async function moveNotes(db: Queryable, fromId: string, toId: string): Promise<number> {
+  const { rowCount } = await db.query(
+    'update notes set workspace_id = $2 where workspace_id = $1',
+    [fromId, toId],
+  );
+  return rowCount ?? 0;
+}
+
+export async function deleteWorkspaceRow(db: Queryable, id: string): Promise<void> {
+  await db.query('delete from workspaces where id = $1', [id]);
+}
