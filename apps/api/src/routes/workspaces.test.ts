@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { NoteCreated, Workspace, WorkspaceList } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from '../ai/provider';
@@ -311,5 +312,32 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
       workspaceId: def?.id,
       movedNotes: 0,
     });
+  });
+  it('the contract migration moves a null-workspace note into its user’s default', async () => {
+    await clean();
+    const sql = readFileSync(
+      new URL(
+        '../../../../supabase/migrations/20261031130000_notes_workspace_required.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    await pool.query('alter table notes alter column workspace_id drop not null');
+    try {
+      await pool.query(
+        `insert into notes (user_id, client_id, body) values ($1, gen_random_uuid(), 'legacy')`,
+        [ME.id],
+      );
+      await pool.query(sql);
+      const { rows } = await pool.query<{ is_default: boolean }>(
+        `select w.is_default from notes n join workspaces w on w.id = n.workspace_id
+         where n.user_id = $1 and n.body = 'legacy'`,
+        [ME.id],
+      );
+      expect(rows).toEqual([{ is_default: true }]);
+    } finally {
+      await clean();
+      await pool.query('alter table notes alter column workspace_id set not null');
+    }
   });
 });

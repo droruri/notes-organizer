@@ -40,10 +40,17 @@ describe.skipIf(!databaseUrl)('attachment routes against the local stack', () =>
 
   const clean = async () => {
     await pool.query('delete from notes where user_id = any($1)', [[ME.id, OTHER.id]]);
+    await pool.query('delete from workspaces where user_id = any($1)', [[ME.id, OTHER.id]]);
   };
   async function note(userId = ME.id, deleted = false) {
+    await pool.query(
+      `insert into workspaces (user_id, name, is_default) values ($1, 'כללי', true) on conflict do nothing`,
+      [userId],
+    );
     const { rows } = await pool.query<{ id: string }>(
-      `insert into notes (user_id, client_id, body, deleted_at) values ($1, gen_random_uuid(), 'n', ${deleted ? 'now()' : 'null'}) returning id`,
+      `insert into notes (user_id, client_id, body, deleted_at, workspace_id)
+       select $1, gen_random_uuid(), 'n', ${deleted ? 'now()' : 'null'}, id
+       from workspaces where user_id = $1 and is_default returning id`,
       [userId],
     );
     return rows[0]?.id ?? '';

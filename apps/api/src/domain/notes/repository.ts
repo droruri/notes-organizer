@@ -22,7 +22,7 @@ type NoteRow = Omit<Note, 'proposed' | 'attachments' | 'createdAt' | 'updatedAt'
 
 const NOTE_SELECT = `
   select n.id, n.client_id as "clientId", n.title, n.body, n.status,
-    coalesce(n.workspace_id, (select w.id from workspaces w where w.user_id = n.user_id and w.is_default)) as "workspaceId",
+    n.workspace_id as "workspaceId",
     n.importance, n.urgency,
     to_char(n.due_date, 'YYYY-MM-DD') as "dueDate", n.proposed, n.unread_links as "unreadLinks",
     n.created_at as "createdAt", n.updated_at as "updatedAt",
