@@ -16,7 +16,7 @@ test('a note saved without status has no pill; edit can turn tracking on', async
   const card = page.locator('ul.gap-3 > li', { hasText: body });
   await expect(card).toBeVisible();
   await expect(card.locator('.pill-dot')).toHaveCount(0);
-  expect(await card.getAttribute('class')).toContain("status-none");
+  expect(await card.getAttribute('class')).toContain('status-none');
   await page.screenshot({ path: '/tmp/e2e-shots/card-no-status.png' });
 
   await card.getByText(body).click();
@@ -28,5 +28,4 @@ test('a note saved without status has no pill; edit can turn tracking on', async
   const card2 = page.locator('ul.gap-3 > li', { hasText: body });
   await expect(card2.locator('.pill-dot', { hasText: 'לביצוע' })).toBeVisible();
   await page.screenshot({ path: '/tmp/e2e-shots/card-todo.png' });
-
 });
