@@ -10,6 +10,7 @@ import {
   type NoteStatus,
   type Suggestion,
   type Taxonomy,
+  type Workspace,
 } from '@notes/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -41,6 +42,7 @@ export function NoteEditor({
   onReanalyze,
   onDelete,
   attachable,
+  workspaces = [],
 }: {
   note: Note;
   suggestion: Suggestion;
@@ -54,6 +56,8 @@ export function NoteEditor({
   onDelete?: (() => void) | undefined;
   /** Show the attachments with an "Add file" button; omit for notes that are not stored yet. */
   attachable?: boolean | undefined;
+  /** Offer the workspace select when there is a choice; omit for notes that are not stored yet. */
+  workspaces?: readonly Workspace[] | undefined;
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(note.title ?? '');
@@ -67,9 +71,11 @@ export function NoteEditor({
     (f) => !hidden.has(f),
   ).length;
   // Any field Claude filled in counts; comparing JSON would depend on key order.
-  const hasSuggestion = Object.values(suggestion).some((v) =>
+  const { workspaceId: suggestedWorkspace, ...content } = suggestion;
+  const hasSuggestion = Object.values(content).some((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
   );
+  const [workspaceId, setWorkspaceId] = useState(suggestedWorkspace ?? note.workspaceId);
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
@@ -115,6 +121,7 @@ export function NoteEditor({
       setTitle((cur) => (cur.trim() ? cur : (next.title ?? '')));
       setPicked(pickedFrom(next));
       setUnreadLinks(next.unreadLinks);
+      if (next.workspaceId) setWorkspaceId(next.workspaceId);
       setDueDate(next.dueDate ?? '');
       setImportance(next.importance);
       setImportanceHint(null);
@@ -136,6 +143,7 @@ export function NoteEditor({
       urgency,
       status,
       unreadLinks,
+      ...(workspaces.length > 1 ? { workspaceId } : {}),
     });
 
   return (
@@ -195,6 +203,22 @@ export function NoteEditor({
       <LinkPreviews body={body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
       {attachable && <Attachments noteId={note.id} attachments={note.attachments} editable />}
+      {workspaces.length > 1 && (
+        <label className="label">
+          {t('notes.workspace')}
+          <select
+            value={workspaceId}
+            onChange={(e) => setWorkspaceId(e.target.value)}
+            className={`${field} text-fg`}
+          >
+            {workspaces.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {!hidden.has('categories') && (
         <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={changePicked} />
       )}

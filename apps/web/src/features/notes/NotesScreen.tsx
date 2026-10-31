@@ -77,6 +77,9 @@ export function NotesScreen({
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
+  // Name of the workspace a note was just saved in, when it is not the current one.
+  const [savedIn, setSavedIn] = useState<string | null>(null);
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(
@@ -199,11 +202,14 @@ export function NotesScreen({
   const submit = useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof api.updateNote>[1] }) =>
       api.updateNote(id, edit),
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['notes'] }),
         queryClient.invalidateQueries({ queryKey: ['taxonomy'] }),
       ]);
+      if (workspace && saved.workspaceId !== workspace.id) {
+        setSavedIn(workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null);
+      }
       setText('');
       setTitle('');
       goBack();
@@ -379,6 +385,7 @@ export function NotesScreen({
         onReanalyze={() => reanalyze(note.id)}
         onDelete={() => remove.mutate(note.id)}
         attachable
+        workspaces={workspaces.data}
       />
     );
   }
@@ -543,6 +550,18 @@ export function NotesScreen({
           </Toast>
         )}
         {offlineToast}
+        {savedIn !== null && (
+          <Toast
+            onClose={() => setSavedIn(null)}
+            actions={
+              <button type="button" onClick={() => setSavedIn(null)} className="btn btn-sm">
+                {t('import.dismiss')}
+              </button>
+            }
+          >
+            {t('notes.savedIn', { name: savedIn })}
+          </Toast>
+        )}
         {undoId !== null && (
           <Toast
             actions={

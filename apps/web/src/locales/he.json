@@ -49,6 +49,8 @@
     "error": "משהו השתבש. נסה שוב.",
     "noteTitle": "כותרת (לא חובה)",
     "body": "טקסט",
+    "workspace": "סביבת עבודה",
+    "savedIn": "נשמר ב‑{{name}}",
     "dueDate": "תאריך יעד",
     "importance": "חשיבות",
     "importanceFromCategory": "נקבע לפי הקטגוריה {{name}}",

@@ -50,6 +50,8 @@
     "noteTitle": "Title (optional)",
     "body": "Text",
     "dueDate": "Due date",
+    "workspace": "Workspace",
+    "savedIn": "Saved in {{name}}",
     "importance": "Importance",
     "importanceFromCategory": "Set by category {{name}}",
     "urgency": "Urgency",
