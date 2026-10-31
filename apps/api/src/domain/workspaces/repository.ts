@@ -40,3 +40,41 @@ export async function insertWorkspace(
   if (!row) throw new Error('workspace insert returned no row');
   return row;
 }
+
+/**
+ * All of the user's workspaces, row-locked for the rest of the transaction. Locking the whole set
+ * (in one fixed order) makes concurrent set-default and delete serialize, so the default read
+ * after this call is current.
+ */
+export async function lockUserWorkspaces(db: Queryable, userId: string): Promise<Workspace[]> {
+  const { rows } = await db.query<Workspace>(
+    `select ${COLS} from workspaces where user_id = $1 order by id for update`,
+    [userId],
+  );
+  return rows;
+}
+
+export async function renameWorkspace(db: Queryable, id: string, name: string): Promise<void> {
+  await db.query('update workspaces set name = $2 where id = $1', [id, name]);
+}
+
+/** Moves the default flag to `id`: clears the old one first so the one-default index holds. */
+export async function makeDefault(db: Queryable, userId: string, id: string): Promise<void> {
+  await db.query('update workspaces set is_default = false where user_id = $1 and is_default', [
+    userId,
+  ]);
+  await db.query('update workspaces set is_default = true where id = $1', [id]);
+}
+
+/** Moves every note of `fromId` (soft-deleted too) to `toId`; returns how many. */
+export async function moveNotes(db: Queryable, fromId: string, toId: string): Promise<number> {
+  const { rowCount } = await db.query(
+    'update notes set workspace_id = $2 where workspace_id = $1',
+    [fromId, toId],
+  );
+  return rowCount ?? 0;
+}
+
+export async function deleteWorkspaceRow(db: Queryable, id: string): Promise<void> {
+  await db.query('delete from workspaces where id = $1', [id]);
+}

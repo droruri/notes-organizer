@@ -32,6 +32,7 @@ import {
   Tag,
   Taxonomy,
   Workspace,
+  type WorkspaceEdit,
   WorkspaceList,
 } from '@notes/shared';
 import { z } from 'zod';
@@ -212,6 +213,9 @@ export const api = {
   taxonomy: () => request('GET', '/taxonomy', Taxonomy),
   workspaces: () => request('GET', '/workspaces', WorkspaceList),
   createWorkspace: (name: string) => request('POST', '/workspaces', Workspace, { name }),
+  editWorkspace: (id: string, edit: WorkspaceEdit) =>
+    request('PATCH', `/workspaces/${id}`, Workspace, edit),
+  deleteWorkspace: (id: string) => request('DELETE', `/workspaces/${id}`, NoContent),
   applyActions: (input: ActionsBody) =>
     request('POST', '/taxonomy/actions', ActionsResponse, input),
   createCategory: (name: string) => request('POST', '/categories', Category, { name }),

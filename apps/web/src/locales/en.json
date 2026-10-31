@@ -353,6 +353,17 @@
     "add": "Add",
     "nameTaken": "A workspace with this name already exists",
     "error": "Couldn't save the workspace. Try again.",
-    "loadError": "Couldn't load the workspaces."
+    "loadError": "Couldn't load the workspaces.",
+    "actions": "Actions for {{name}}",
+    "rename": "Rename",
+    "renameLabel": "Workspace name",
+    "makeDefault": "Make default",
+    "delete": "Delete",
+    "confirmDelete": "Delete “{{name}}”? Its notes move to “{{target}}”.",
+    "confirm": "Delete",
+    "cancel": "Cancel",
+    "invalidName": "The name can't be empty",
+    "isDefault": "The default workspace can't be deleted",
+    "notFound": "This workspace no longer exists"
   }
 }
