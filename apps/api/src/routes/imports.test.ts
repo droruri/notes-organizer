@@ -185,7 +185,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
           notes: [{ body: 'a' }, { body: 'b' }],
         },
       });
-    expect((await confirm(mine.rows[0].id)).statusCode).toBe(200);
+    expect((await confirm(mine.rows[0].id)).statusCode).toBe(201);
     expect(await where()).toEqual([mine.rows[0].id]);
     await clean();
     expect((await confirm(theirs.rows[0].id)).statusCode).toBe(200);
