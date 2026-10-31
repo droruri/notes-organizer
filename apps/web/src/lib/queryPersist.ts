@@ -1,6 +1,6 @@
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client';
 import type { Query } from '@tanstack/react-query';
-import { NoteList, Settings, Taxonomy } from '@notes/shared';
+import { NoteList, Settings, Taxonomy, WorkspaceList } from '@notes/shared';
 import { del, get, set } from 'idb-keyval';
 import { z, type ZodType } from 'zod';
 
@@ -14,6 +14,7 @@ const SCHEMAS: Record<string, ZodType> = {
   notes: NoteList,
   taxonomy: Taxonomy,
   settings: Settings,
+  workspaces: WorkspaceList,
 };
 
 function schemaFor(queryKey: readonly unknown[]): ZodType | undefined {

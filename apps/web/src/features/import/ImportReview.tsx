@@ -13,6 +13,7 @@ const asNote = (row: Row): Note => ({
   title: row.suggestion.title,
   body: row.body,
   status: 'draft',
+  workspaceId: PLACEHOLDER_ID,
   importance: row.suggestion.importance,
   urgency: row.suggestion.urgency,
   dueDate: row.suggestion.dueDate,

@@ -14,7 +14,7 @@ test('menu → Taxonomy → back returns to the notes list', async ({ page }) =>
   await openTaxonomy(page);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
 });
 
 test('a tag opens the filtered list, and back returns to Taxonomy', async ({ page }) => {
@@ -46,7 +46,7 @@ test('list → add → suggest → review → back returns to the list', async (
   await expect(page).toHaveURL(/\/review$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
 });
 
 test('open a note → back returns to the list; save → back does not reopen the editor', async ({
@@ -56,7 +56,7 @@ test('open a note → back returns to the list; save → back does not reopen th
   const body = unique('פתיחה');
   await composeNote(page, body);
   await page.getByRole('button', { name: 'שמירה' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   await page.getByText(body).first().click();
   await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
   await page.goBack();
@@ -83,7 +83,7 @@ test('chat → open a note → back returns to the list', async ({ page }) => {
   const body = unique('צאט');
   await composeNote(page, body);
   await page.getByRole('button', { name: 'שמירה' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   await page.getByText(body).first().click();
   await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
   const id = page.url().match(/\/notes\/([0-9a-f-]+)$/)?.[1];

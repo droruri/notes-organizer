@@ -11,6 +11,7 @@ const handlers = () => ({
   onNotes: vi.fn(),
   onImport: vi.fn(),
   onTaxonomy: vi.fn(),
+  onWorkspaces: vi.fn(),
   onSignOut: vi.fn(),
 });
 const open = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
@@ -39,7 +40,7 @@ describe('AppMenu', () => {
     const h = handlers();
     render(<AppMenu {...h} />);
     open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(4);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(5);
     expect(screen.queryByRole('menuitem', { name: 'users.menu' })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: 'import.open' }));
     expect(h.onImport).toHaveBeenCalledTimes(1);
@@ -57,7 +58,7 @@ describe('AppMenu', () => {
     const onUsers = vi.fn();
     render(<AppMenu {...handlers()} onUsers={onUsers} />);
     open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(5);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(6);
     fireEvent.click(screen.getByRole('menuitem', { name: 'users.menu' }));
     expect(onUsers).toHaveBeenCalledTimes(1);
   });

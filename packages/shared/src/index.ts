@@ -95,6 +95,7 @@ export * from './notes';
 export * from './noteQuery';
 export * from './links';
 export * from './imports';
+export * from './workspaces';
 
 /** `GET /me`: who the caller is, so the web knows whether to show the admin screen. */
 export const Me = z.object({ email: z.string(), isAdmin: z.boolean() });
