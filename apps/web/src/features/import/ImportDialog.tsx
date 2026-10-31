@@ -5,6 +5,7 @@ import {
   type ImportCreated,
   type ImportProposal,
   type Taxonomy,
+  type Workspace,
 } from '@notes/shared';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -19,6 +20,8 @@ export type ImportResult = { created: ImportCreated['created']; unreadNotes: num
 /** Full-screen import flow: paste or pick a .txt → analyze → review → confirm. */
 export function ImportDialog({
   taxonomy,
+  workspaces = [],
+  currentWorkspaceId,
   today,
   locale,
   onClose,
@@ -27,6 +30,9 @@ export function ImportDialog({
   confirm = api.confirmImport,
 }: {
   taxonomy: Taxonomy;
+  /** Offered in a picker when there is a choice; the batch is imported into the picked one. */
+  workspaces?: readonly Workspace[];
+  currentWorkspaceId?: string | undefined;
   today: string;
   locale: 'he' | 'en';
   onClose: () => void;
@@ -36,6 +42,7 @@ export function ImportDialog({
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
+  const [workspaceId, setWorkspaceId] = useState(currentWorkspaceId ?? '');
   const [proposal, setProposal] = useState<ImportProposal | null>(null);
   const analysis = useMutation({ mutationFn: analyze, onSuccess: setProposal });
   const saving = useMutation({
@@ -68,13 +75,29 @@ export function ImportDialog({
             <Icon name="close" size={20} />
           </button>
         </div>
+        {workspaces.length > 1 && (
+          <label className="label">
+            {t('import.workspace')}
+            <select
+              value={workspaceId}
+              onChange={(e) => setWorkspaceId(e.target.value)}
+              className="field"
+            >
+              {workspaces.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {proposal ? (
           <ImportReview
             proposal={proposal}
             taxonomy={taxonomy}
             busy={saving.isPending}
             failed={saving.isError}
-            onConfirm={(body) => saving.mutate(body)}
+            onConfirm={(body) => saving.mutate(workspaceId ? { ...body, workspaceId } : body)}
             onCancel={onClose}
           />
         ) : (
