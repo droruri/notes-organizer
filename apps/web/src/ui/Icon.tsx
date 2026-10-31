@@ -36,6 +36,7 @@ const PATHS = {
       <circle cx="12" cy="19" r="1" />
     </>
   ),
+  hamburger: <path d="M4 7h16M4 12h16M4 17h10" />,
   back: <path d="M15 18l-6-6 6-6" />,
   chevron: <path d="m6 9 6 6 6-6" />,
   send: <path d="M5 12h14M13 6l6 6-6 6" />,

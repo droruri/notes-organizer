@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import { i18n } from '../../lib/i18n';
 import { AppMenu } from './AppMenu';
 
 beforeEach(() => {
@@ -31,7 +32,7 @@ describe('AppMenu', () => {
     const h = handlers();
     render(<AppMenu {...h} />);
     open();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'auth.signOut' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('auth.signOut') }));
     expect(h.onSignOut).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
   });
@@ -41,8 +42,8 @@ describe('AppMenu', () => {
     render(<AppMenu {...h} />);
     open();
     expect(screen.getAllByRole('menuitem')).toHaveLength(5);
-    expect(screen.queryByRole('menuitem', { name: 'users.menu' })).toBeNull();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'import.open' }));
+    expect(screen.queryByRole('menuitem', { name: i18n.t('users.menu') })).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('import.open') }));
     expect(h.onImport).toHaveBeenCalledTimes(1);
   });
 
@@ -50,7 +51,7 @@ describe('AppMenu', () => {
     const h = handlers();
     render(<AppMenu {...h} />);
     open();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'taxonomy.menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('taxonomy.menu') }));
     expect(h.onTaxonomy).toHaveBeenCalledTimes(1);
   });
 
@@ -59,7 +60,22 @@ describe('AppMenu', () => {
     render(<AppMenu {...handlers()} onUsers={onUsers} />);
     open();
     expect(screen.getAllByRole('menuitem')).toHaveLength(6);
-    fireEvent.click(screen.getByRole('menuitem', { name: 'users.menu' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('users.menu') }));
     expect(onUsers).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches the language from inside the menu and stays open', async () => {
+    await i18n.changeLanguage('he');
+    render(<AppMenu {...handlers()} />);
+    open();
+    const english = screen.getByRole('menuitemradio', { name: 'English' });
+    expect(english.getAttribute('aria-checked')).toBe('false');
+    fireEvent.click(english);
+    expect(document.documentElement.lang).toBe('en');
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(
+      screen.getByRole('menuitemradio', { name: 'English' }).getAttribute('aria-checked'),
+    ).toBe('true');
+    await i18n.changeLanguage('he');
   });
 });
