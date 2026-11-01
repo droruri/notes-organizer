@@ -3,6 +3,15 @@
 Conventions for working in this repo. The design — scope, schema, API contract, test plan — is
 in `docs/plan.md`; read the relevant section before starting a ticket.
 
+## Intent: Planning vs Implementing
+
+- If I ask for a plan, a ticket/issue, an explanation, or say "just questions", do NOT edit any
+  files. Deliver the plan, issue, or answer, then stop.
+- Only write code when I explicitly ask you to implement, build, or fix something, or when a Ralph
+  build/review phase prompt tells you to.
+- After opening a GitHub issue, report the issue number and URL and stop. Do not announce that you
+  will resume coding.
+
 ## Layout
 
 pnpm workspaces monorepo on [Vite+](https://viteplus.dev/) (`vp`); lint and format config live
@@ -30,6 +39,17 @@ pnpm db:new <name>
 DB-backed tests (`describe.skipIf(!databaseUrl)`) run only with the stack up and
 `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`. CI always runs them.
 Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralph builds run `scripts/ralph-checks.sh` instead — related tests only; CI runs the full suite.)
+
+## Local Test Environment
+
+- Before running DB-backed API tests, check that the local Supabase stack is up
+  (`supabase status`) and that `DATABASE_URL` points to THIS project's DB and port, not another
+  project's or a shared DB.
+- If the stack is down, either start it or clearly mark the API tests as "unverified locally,
+  pending CI". Never mark them as passing.
+- Never push with failing lint or typecheck. Fix the failure first.
+- This is macOS. Avoid GNU-style `sed -i`; use `sed -i ''` or a small Python/Node script for edits.
+- Don't include gitignored paths (e.g. `logs/`) in git pathspecs.
 
 ## File placement
 
@@ -110,6 +130,16 @@ and follow it instead of calling the Skill tool.
 - Outside a ticket, "commit and push" means commit to the **current** branch and push it — don't
   create a new branch unless asked.
 - Outside those two cases, don't commit unless asked.
+
+## GitHub Issues
+
+- Issues must be self-contained. Embed the full plan (context, approach, files to touch,
+  acceptance criteria as `- [ ]` checkboxes). Do not just summarize it or link to a local plan
+  file.
+- If a design doc is referenced (e.g. `docs/*-plan.md`), commit it or inline it in the issue.
+- For a simple "open an issue" request, skip plan mode and extra clarifying rounds. Investigate,
+  then create the issue directly.
+- `gh` can't attach images, so describe screenshots in text.
 
 ## Scope
 
