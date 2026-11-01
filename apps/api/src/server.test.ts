@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from 'vite-plus/test';
 import { createFakeAi } from './ai/provider';
 import { createPool } from './db';
 import { buildServer } from './server';
+import { captureLogs } from './test-logs';
 import { allowedEmails, ALLOWED_USER, emptyAllowListDb, fakeVerifyToken } from './test-auth';
 
 const auth = { verifyToken: fakeVerifyToken, allowedEmails, ai: createFakeAi() };
@@ -100,6 +101,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
       },
+      quickActions: ['record'],
     });
 
     const put = await app.inject({
@@ -115,6 +117,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
       },
+      quickActions: ['record'],
     });
     const again = await app.inject({ method: 'GET', url: '/settings', headers });
     expect(again.json()).toEqual({
@@ -124,6 +127,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
       },
+      quickActions: ['record'],
     });
   });
 
@@ -139,14 +143,14 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       headers,
       payload: { noteForm: form },
     });
-    expect(a.json()).toEqual({ noteSort: 'newest', noteForm: form });
+    expect(a.json()).toEqual({ noteSort: 'newest', noteForm: form, quickActions: ['record'] });
     const b = await app.inject({
       method: 'PUT',
       url: '/settings',
       headers,
       payload: { noteSort: 'oldest' },
     });
-    expect(b.json()).toEqual({ noteSort: 'oldest', noteForm: form });
+    expect(b.json()).toEqual({ noteSort: 'oldest', noteForm: form, quickActions: ['record'] });
     const bad = await app.inject({
       method: 'PUT',
       url: '/settings',
@@ -154,6 +158,60 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       payload: { noteForm: { hiddenFields: ['body'] } },
     });
     expect(bad.statusCode).toBe(400);
+  });
+
+  it('saves quickActions without touching the rest, and noteForm keeps quickActions', async () => {
+    const before = await app.inject({ method: 'GET', url: '/settings', headers });
+    const { noteSort, noteForm } = before.json();
+    const a = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { quickActions: ['import'] },
+    });
+    expect(a.json()).toEqual({ noteSort, noteForm, quickActions: ['import'] });
+    const b = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { noteForm: { ...noteForm, hiddenFields: ['urgency'] } },
+    });
+    expect(b.json().quickActions).toEqual(['import']);
+    const bad = await app.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { quickActions: ['bogus'] },
+    });
+    expect(bad.statusCode).toBe(400);
+  });
+
+  it('logs "settings saved" with quickActions, and warns on an invalid stored value', async () => {
+    const { app: logged, lines } = captureLogs({ db: pool });
+    await logged.inject({
+      method: 'PUT',
+      url: '/settings',
+      headers,
+      payload: { quickActions: ['workspaces', 'record'] },
+    });
+    expect(lines.find((l) => l.msg === 'settings saved')).toMatchObject({
+      level: 30,
+      changed: ['quickActions'],
+    });
+    await pool.query(
+      `update user_settings set quick_actions = '"nope"'::jsonb where user_id = $1`,
+      [ALLOWED_USER.id],
+    );
+    const res = await logged.inject({ method: 'GET', url: '/settings', headers });
+    expect(res.json().quickActions).toEqual(['record']);
+    expect(lines.find((l) => l.msg === 'stored settings invalid')).toMatchObject({
+      level: 40,
+      field: 'quickActions',
+    });
+    await pool.query('update user_settings set quick_actions = null where user_id = $1', [
+      ALLOWED_USER.id,
+    ]);
+    await logged.close();
   });
 
   it('rejects an invalid body with 400', async () => {

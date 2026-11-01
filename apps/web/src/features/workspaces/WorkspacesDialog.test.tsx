@@ -47,7 +47,11 @@ beforeEach(async () => {
     note(2, 'knowledge note', KNOWLEDGE.id),
   ]);
   vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
-  vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'newest', noteForm: DEFAULT_NOTE_FORM });
+  vi.spyOn(api, 'settings').mockResolvedValue({
+    noteSort: 'newest',
+    noteForm: DEFAULT_NOTE_FORM,
+    quickActions: ['record'],
+  });
 });
 afterEach(() => {
   cleanup();
