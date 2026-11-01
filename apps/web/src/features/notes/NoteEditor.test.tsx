@@ -271,6 +271,7 @@ describe('NoteEditor form settings', () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'urgency',
       noteForm: { ...DEFAULT_NOTE_FORM, hiddenFields },
+      quickActions: ['record'],
     });
     const onSubmit = vi.fn();
     render(
@@ -294,31 +295,21 @@ describe('NoteEditor form settings', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ dueDate: '2026-12-01' }));
   });
 
-  it('has no switch for the body; Save updates the open editor and keeps the body', async () => {
+  it('has no settings button any more', async () => {
     mount([]);
-    const save = vi.spyOn(api, 'saveSettings').mockResolvedValue({
-      noteSort: 'urgency',
-      noteForm: { ...DEFAULT_NOTE_FORM, hiddenFields: ['urgency'] },
-    });
-    fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'typed' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Form settings' }));
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).queryByRole('switch', { name: /Text/ })).toBeNull();
-    expect(within(dialog).getByText('Always shown')).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole('switch', { name: 'Show Urgency' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Save settings' }));
-    await waitFor(() => expect(screen.queryByLabelText('Urgency')).toBeNull());
-    expect(save).toHaveBeenCalledWith({
-      noteForm: { ...DEFAULT_NOTE_FORM, hiddenFields: ['urgency'] },
-    });
-    expect(screen.getByLabelText<HTMLTextAreaElement>('Text').value).toBe('typed');
+    await waitFor(() => expect(screen.getByLabelText('Text')).toBeTruthy());
+    expect(screen.queryByRole('button', { name: /settings/i })).toBeNull();
   });
 });
 
 describe('NoteEditor choice display', () => {
   const HI = '11111111-1111-4111-8111-111111111111';
   const mount = (noteForm: NoteForm, taxonomy: Taxonomy = { categories: [] }) => {
-    vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'urgency', noteForm });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'urgency',
+      noteForm,
+      quickActions: ['record'],
+    });
     const onSubmit = vi.fn();
     render(
       <NoteEditor
@@ -376,6 +367,7 @@ describe('NoteEditor choice display', () => {
         ...DEFAULT_NOTE_FORM,
         urgency: { display: 'dropdown', hiddenValues: ['medium'] },
       },
+      quickActions: ['record'],
     });
     const onSubmit = vi.fn();
     render(
@@ -395,20 +387,6 @@ describe('NoteEditor choice display', () => {
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ urgency: 'medium' });
     fireEvent.change(select, { target: { value: 'urgent' } });
     expect(within(select).queryByText('Medium')).not.toBeNull();
-  });
-
-  it('disables the last offered value chip in the sheet', async () => {
-    mount({
-      ...DEFAULT_NOTE_FORM,
-      importance: { display: 'dropdown', hiddenValues: ['not_important'] },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Form settings' }));
-    const dialog = await screen.findByRole('dialog');
-    await waitFor(() =>
-      expect(
-        within(dialog).getByRole<HTMLButtonElement>('button', { name: 'Important' }).disabled,
-      ).toBe(true),
-    );
   });
 
   it('keeps the importance hint in buttons mode', async () => {

@@ -7,6 +7,7 @@ import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-rou
 import { api } from '../../lib/api';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
+import { NoteFormSettings } from '../notes/NoteFormSettings';
 import { WorkspacesDialog } from '../workspaces/WorkspacesDialog';
 import { Loading } from '../../ui/Loading';
 import { AppMenu } from './AppMenu';
@@ -35,6 +36,7 @@ export function Screens() {
   // null = the default workspace.
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const workspace = workspaces.data ? resolveWorkspace(workspaces.data, currentId) : undefined;
   const menu = slot
     ? createPortal(
@@ -43,6 +45,7 @@ export function Screens() {
           onTaxonomy={() => void navigate(ROUTES.taxonomy)}
           onImport={() => void navigate(ROUTES.import)}
           onWorkspaces={() => setPicking(true)}
+          onSettings={() => setSettingsOpen(true)}
           onSignOut={() => void signOut()}
           {...(isAdmin ? { onUsers: () => void navigate(ROUTES.users) } : {})}
         />,
@@ -52,6 +55,7 @@ export function Screens() {
   return (
     <>
       {menu}
+      {settingsOpen && <NoteFormSettings onClose={() => setSettingsOpen(false)} />}
       {picking && (workspaces.data || workspaces.isError) && (
         <WorkspacesDialog
           workspaces={workspaces.data ?? []}
