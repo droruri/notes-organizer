@@ -22,6 +22,7 @@ const PATHS = {
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   trash: <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />,
+  check: <path d="M20 6 9 17l-5-5" />,
   close: <path d="M18 6 6 18M6 6l12 12" />,
   calendar: (
     <>

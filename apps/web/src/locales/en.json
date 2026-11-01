@@ -367,6 +367,7 @@
     "error": "Couldn't save the workspace. Try again.",
     "loadError": "Couldn't load the workspaces.",
     "actions": "Actions for {{name}}",
+    "save": "Save",
     "rename": "Rename",
     "renameLabel": "Workspace name",
     "makeDefault": "Make default",
