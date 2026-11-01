@@ -24,7 +24,7 @@ import { ChoiceField } from './ChoiceField';
 import { NoteFormSettings } from './NoteFormSettings';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
-import { StatusStepper } from './StatusStepper';
+import { StatusSelect } from './StatusSelect';
 import { pickedFrom } from './picked';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
@@ -294,7 +294,12 @@ export function NoteEditor({
         />
       </label>
       {note.status !== 'draft' && tracksStatus && (
-        <StatusStepper status={status} onChange={setStatus} />
+        <StatusSelect
+          status={status}
+          onChange={(next) => {
+            if (next) setStatus(next);
+          }}
+        />
       )}
       {(failed || analyzeFailed) && (
         <p role="alert" className="notice notice-danger">

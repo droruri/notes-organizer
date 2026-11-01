@@ -6,7 +6,9 @@ import {
   filterNotes,
   sortNotes,
   NoteCreated,
+  type Note,
   type NoteFilter,
+  type NoteStatus,
   type Workspace,
   MAX_TITLE_LENGTH,
   suggestionOf,
@@ -99,6 +101,7 @@ export function NotesScreen({
   /** The draft is ready: review it. From compose it replaces the page, so back returns to the list. */
   const onDraft = async (draft: NoteCreated, fromCompose = true) => {
     await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+    clearErrors();
     open(ROUTES.review, fromCompose, draft);
   };
   const online = useOnline();
@@ -215,6 +218,21 @@ export function NotesScreen({
       goBack();
     },
   });
+
+  const changeStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: NoteStatus | null }) =>
+      api.updateNote(id, { status }),
+    onSuccess: async (saved) => {
+      queryClient.setQueryData<Note[]>(['notes'], (old) =>
+        old?.map((n) => (n.id === saved.id ? saved : n)),
+      );
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
+  });
+  const clearErrors = () => {
+    submit.reset();
+    remove.reset();
+  };
 
   const remove = useMutation({
     mutationFn: api.deleteNote,
@@ -495,10 +513,20 @@ export function NotesScreen({
           filtered={inWorkspace.length > 0}
           taxonomy={taxonomy.data}
           today={today}
-          onOpen={(note) => open(notePath(note.id))}
+          onOpen={(note) => {
+            clearErrors();
+            open(notePath(note.id));
+          }}
+          onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+          statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
           onAdd={() => open(ROUTES.compose)}
         />
       </div>
+      {changeStatus.isError && (
+        <p role="alert" className="notice notice-danger">
+          {t('notes.error')}
+        </p>
+      )}
       {undo.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}

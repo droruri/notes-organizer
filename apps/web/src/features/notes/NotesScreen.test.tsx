@@ -187,3 +187,44 @@ describe('NotesScreen modes from the URL', () => {
     await screen.findByRole('dialog', { name: /import/i });
   });
 });
+
+describe('NotesScreen status from the list', () => {
+  it('saves a picked status, keeps the list open and shows the saved note', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const done: Note = { ...note(1, 'first note', []), status: 'done' };
+    let saved = false;
+    vi.spyOn(api, 'notes').mockImplementation(async () => [
+      saved ? done : note(1, 'first note', []),
+    ]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+    });
+    const update = vi.spyOn(api, 'updateNote').mockImplementation(async () => {
+      saved = true;
+      return done;
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByText('first note');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+      target: { value: 'done' },
+    });
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', {
+        status: 'done',
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Status' })).toHaveProperty('value', 'done'),
+    );
+    screen.getByText('first note');
+  });
+});
