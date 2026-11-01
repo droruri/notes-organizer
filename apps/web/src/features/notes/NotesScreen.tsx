@@ -503,7 +503,7 @@ export function NotesScreen({
             <button
               type="button"
               onClick={() => open(ROUTES.compose)}
-              className={`btn btn-primary sm:min-h-11 sm:px-5 max-sm:h-16 max-sm:rounded-2xl ${quickActions.length > 1 ? 'max-sm:px-4' : 'max-sm:px-8'} max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]`}
+              className={`btn btn-primary sm:min-h-11 sm:px-5 max-sm:h-16 max-sm:rounded-2xl ${quickActions.length > 1 ? 'max-sm:px-4 max-[359px]:px-3' : 'max-sm:px-8'} max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]`}
             >
               <Icon name="plus" size={22} />
               {t('notes.add')}
@@ -518,7 +518,7 @@ export function NotesScreen({
                   data-quick-action={a}
                   aria-label={iconOnly ? label : undefined}
                   onClick={quickHandlers[a]}
-                  className={`btn h-16 rounded-2xl sm:hidden ${iconOnly ? 'size-16 p-0' : 'px-5 text-lg'}`}
+                  className={`btn h-16 rounded-2xl sm:hidden ${iconOnly ? 'size-16 p-0 max-[359px]:size-14' : 'px-5 text-lg'}`}
                 >
                   <Icon name={icon} size={22} />
                   {!iconOnly && label}
