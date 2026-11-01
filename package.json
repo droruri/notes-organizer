@@ -20,7 +20,8 @@
     "test": "pnpm -r test",
     "deploy:hosted": "scripts/deploy-hosted.sh",
     "build:android": "scripts/build-android.sh",
-    "setup:hosted": "scripts/setup-hosted.sh"
+    "setup:hosted": "scripts/setup-hosted.sh",
+    "ralph:run": "./run-ralph.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

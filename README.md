@@ -19,7 +19,8 @@ pnpm dev:hosted   # API on :3000 (debugger on :9229) + web on :5173, no local Su
 
 Env layers: `.env.example`, then `.env`, then the git-ignored root `.env.hosted` (overrides only).
 The API fails at start if `.env.hosted` is missing. The API keys (`GOOGLE_GENERATIVE_AI_API_KEY`,
-`GROQ_API_KEY`, `JINA_API_KEY`) stay in `.env`; `WEB_ORIGIN`, `PORT` and `VITE_API_URL` stay local.
+`GROQ_API_KEY`, `JINA_API_KEY`) stay in `.env`. `PORT` and `VITE_API_URL` stay local; set
+`WEB_ORIGIN` here too, because `.env` may point it at the deployed web app.
 
 ```sh
 # .env.hosted
@@ -29,13 +30,14 @@ VITE_SUPABASE_URL=https://<ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<hosted publishable key>
 ALLOWED_EMAILS=<same value as the hosted API>
 AI_FAKE=
+WEB_ORIGIN=http://localhost:5173
 ```
 
 > **Warning:** writes hit the real database, and AI calls (Gemini with Groq as fallback, Groq Whisper) are real calls on free tiers.
 
-The Node debugger listens on port 9229 (attach from WebStorm or `chrome://inspect`). One manual
-step: in the Supabase dashboard, open Authentication → URL Configuration and add
-`http://localhost:5173` as a redirect URL.
+The Node debugger listens on port 9229 (attach from WebStorm or `chrome://inspect`).
+`scripts/deploy-hosted.sh` adds `http://localhost:5173` to the Supabase redirect URLs; without it,
+add it in the dashboard under Authentication → URL Configuration.
 
 ## Deploying
 

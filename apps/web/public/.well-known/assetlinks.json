@@ -1,10 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "app.notes.organizer",
-      "sha256_cert_fingerprints": []
+      "sha256_cert_fingerprints": [
+        "DE:D4:6C:3C:87:22:F9:05:3D:A1:33:6F:EA:03:4C:A9:4D:71:30:D5:AA:5B:E6:4C:0E:CA:CF:50:64:84:5F:1E"
+      ]
     }
   }
 ]
