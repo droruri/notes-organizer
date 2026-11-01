@@ -24,6 +24,7 @@ import { ChoiceField } from './ChoiceField';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusSelect } from './StatusSelect';
+import { updatedDate } from './formatDate';
 import { pickedFrom } from './picked';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
@@ -58,7 +59,8 @@ export function NoteEditor({
   /** Offer the workspace select when there is a choice; omit for notes that are not stored yet. */
   workspaces?: readonly Workspace[] | undefined;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const updated = updatedDate(note.createdAt, note.updatedAt, i18n.language);
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const slow = useSlow(busy);
@@ -323,6 +325,11 @@ export function NoteEditor({
           </button>
         )}
       </div>
+      {updated && (
+        <p className="text-xs text-muted tabular-nums">
+          {t('notes.updated')} {updated}
+        </p>
+      )}
     </form>
   );
 }

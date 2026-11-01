@@ -215,3 +215,26 @@ describe('NoteCard without status', () => {
     expect(document.querySelector('li.status-none')).not.toBeNull();
   });
 });
+
+describe('NoteCard updated date', () => {
+  const expand = () => fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+
+  it('shows Updated when updated on a later day than created', () => {
+    renderCard(vi.fn(), { ...note, updatedAt: '2026-11-01T10:00:00Z' });
+    expand();
+    screen.getByText('Updated Nov 1, 2026');
+  });
+
+  it('shows only the created date when updated the same day', () => {
+    renderCard(vi.fn(), { ...note, updatedAt: '2026-10-20T10:30:00Z' });
+    expand();
+    expect(screen.queryByText(/^Updated/)).toBeNull();
+  });
+
+  it('renders the Hebrew label', async () => {
+    await i18n.changeLanguage('he');
+    renderCard(vi.fn(), { ...note, updatedAt: '2026-11-01T10:00:00Z' });
+    fireEvent.click(screen.getByRole('button', { name: 'הרחבה' }));
+    screen.getByText(/^עודכן /);
+  });
+});

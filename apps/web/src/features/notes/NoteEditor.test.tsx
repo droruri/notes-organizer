@@ -504,3 +504,44 @@ describe('NoteEditor status switch', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ status: 'todo' }));
   });
 });
+
+describe('updated date', () => {
+  const open = (n: Note) =>
+    render(
+      <NoteEditor
+        note={n}
+        suggestion={EMPTY_SUGGESTION}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={vi.fn()}
+        onCancel={() => undefined}
+        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+      />,
+    );
+
+  it('shows Updated for a note updated on a later day', () => {
+    open({
+      ...note('x'),
+      status: 'todo',
+      createdAt: '2026-10-20T10:00:00Z',
+      updatedAt: '2026-11-01T10:00:00Z',
+    });
+    screen.getByText('Updated Nov 1, 2026');
+  });
+
+  it('hides it when updated the same day as created', () => {
+    open({
+      ...note('x'),
+      createdAt: '2026-10-20T10:00:00Z',
+      updatedAt: '2026-10-20T10:30:00Z',
+    });
+    expect(screen.queryByText(/^Updated/)).toBeNull();
+  });
+
+  it('renders the Hebrew label', async () => {
+    await i18n.changeLanguage('he');
+    open({ ...note('x'), createdAt: '2026-10-20T10:00:00Z', updatedAt: '2026-11-01T10:00:00Z' });
+    screen.getByText(/^עודכן /);
+  });
+});
