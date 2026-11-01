@@ -254,10 +254,7 @@ describe('NotesScreen across workspaces', () => {
     );
   };
   const home = { id: W1, name: 'Home', isDefault: true };
-  const two = [
-    home,
-    { id: W2, name: 'Garden', isDefault: false },
-  ];
+  const two = [home, { id: W2, name: 'Garden', isDefault: false }];
 
   it('finds a note from another workspace with the toggle on, and names its workspace', async () => {
     setup(two);
