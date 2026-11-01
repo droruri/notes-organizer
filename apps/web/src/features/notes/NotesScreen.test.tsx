@@ -202,6 +202,7 @@ describe('NotesScreen status from the list', () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
     });
     const update = vi.spyOn(api, 'updateNote').mockImplementation(async () => {
       saved = true;
