@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.command' | grep -q 'git push' && { pnpm -s lint && pnpm -s typecheck || { echo 'lint/typecheck failing - fix before push' >&2; exit 2; }; } || exit 0"
+            "command": "jq -r '.tool_input.command' | grep -q 'git push' && { pnpm lint && pnpm typecheck || { echo 'lint/typecheck failing - fix before push' >&2; exit 2; }; } || exit 0"
           }
         ]
       }
