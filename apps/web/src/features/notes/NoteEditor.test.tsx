@@ -507,6 +507,16 @@ describe('NoteEditor status switch', () => {
     expect(second).toHaveBeenCalledWith(expect.objectContaining({ status: null }));
   });
 
+  it('edit: picking any tracked status saves it in one save', () => {
+    const onSubmit = vi.fn();
+    editor(onSubmit, EMPTY_SUGGESTION, 'todo');
+    fireEvent.change(screen.getByRole('combobox', { name: i18n.t('notes.status.label') }), {
+      target: { value: 'done' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ status: 'done' }));
+  });
+
   it('edit: off for a note without status, turning on sends todo', () => {
     const onSubmit = vi.fn();
     editor(onSubmit, EMPTY_SUGGESTION, null);

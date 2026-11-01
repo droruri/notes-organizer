@@ -232,6 +232,7 @@ export function NotesScreen({
   const clearErrors = () => {
     submit.reset();
     remove.reset();
+    changeStatus.reset();
   };
 
   const remove = useMutation({
