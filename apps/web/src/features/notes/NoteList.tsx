@@ -1,4 +1,4 @@
-import type { Note, Taxonomy } from '@notes/shared';
+import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCard } from './NoteCard';
@@ -9,6 +9,8 @@ export function NoteList({
   taxonomy,
   today,
   onOpen,
+  onStatus,
+  statusPendingId,
   onAdd,
 }: {
   notes: Note[];
@@ -17,6 +19,9 @@ export function NoteList({
   taxonomy: Taxonomy;
   today: string;
   onOpen: (note: Note) => void;
+  onStatus: (note: Note, status: NoteStatus | null) => void;
+  /** Id of the note whose status save is pending. */
+  statusPendingId?: string | undefined;
   /** Shown as the empty state's action when there are no notes at all. */
   onAdd?: () => void;
 }) {
@@ -41,7 +46,15 @@ export function NoteList({
   return (
     <ul className="flex flex-col gap-3">
       {notes.map((n) => (
-        <NoteCard key={n.id} note={n} taxonomy={taxonomy} today={today} onOpen={onOpen} />
+        <NoteCard
+          key={n.id}
+          note={n}
+          taxonomy={taxonomy}
+          today={today}
+          onOpen={onOpen}
+          onStatus={onStatus}
+          statusPending={statusPendingId === n.id}
+        />
       ))}
     </ul>
   );

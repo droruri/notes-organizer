@@ -1,8 +1,16 @@
-import { isOverdue, noteHeading, statusClass, type Note, type Taxonomy } from '@notes/shared';
+import {
+  isOverdue,
+  noteHeading,
+  statusClass,
+  type Note,
+  type NoteStatus,
+  type Taxonomy,
+} from '@notes/shared';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCardDetails } from './NoteCardDetails';
+import { StatusSelect } from './StatusSelect';
 import { formatDate } from './formatDate';
 
 export function NoteCard({
@@ -10,11 +18,16 @@ export function NoteCard({
   taxonomy,
   today,
   onOpen,
+  onStatus,
+  statusPending = false,
 }: {
   note: Note;
   taxonomy: Taxonomy;
   today: string;
   onOpen: (note: Note) => void;
+  onStatus: (note: Note, status: NoteStatus | null) => void;
+  /** This note's status save is in flight. */
+  statusPending?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -56,7 +69,15 @@ export function NoteCard({
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-sm">
-        {note.status !== null && (
+        {note.status !== null && note.status !== 'draft' && (
+          <StatusSelect
+            status={note.status}
+            allowNone
+            disabled={statusPending}
+            onChange={(next) => onStatus(note, next)}
+          />
+        )}
+        {note.status === 'draft' && (
           <span className={`pill pill-dot ${statusClass(note.status)}`}>
             {t(`notes.status.${note.status}`)}
           </span>

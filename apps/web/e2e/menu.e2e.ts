@@ -27,8 +27,8 @@ for (const dir of ['rtl', 'ltr'] as const) {
   test(`the menu popover stays inside a 320px viewport (${dir})`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await page.goto('/');
-    await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
     if (dir === 'ltr') await page.getByRole('button', { name: 'English' }).click();
+    await page.getByRole('button', { name: dir === 'rtl' ? 'כניסת פיתוח' : 'Dev sign-in' }).click();
     await expect(page.locator('html')).toHaveAttribute('dir', dir);
     await page.getByRole('button', { name: dir === 'rtl' ? 'תפריט' : 'Menu' }).click();
     const box = await page.getByRole('menu').boundingBox();
