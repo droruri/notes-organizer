@@ -62,39 +62,33 @@ else is derived from it. Read only the `docs/plan.md` sections the body names (e
 
 ## Env preflight (`build` and `review`, before step 0)
 
-DB-backed API tests skip themselves without a reachable DB (`describe.skipIf`), so a green
-step 6 proves nothing about them unless `DATABASE_URL` points at **this** project's local stack.
-Run this once, in one Bash call, from the worktree root:
+Every worktree has its own test database. Run this once, from the worktree root, before step 0:
 
 ```sh
-hp() { sed -E 's#^[^@]*@([^/?]+).*#\1#; s#^localhost:#127.0.0.1:#' <<<"$1"; }
-db=$(hp "${DATABASE_URL:-unset}")
-echo "DATABASE_URL host:port: $db"
-if out=$(pnpm exec supabase status -o env 2>&1); then
-  stack=$(sed -n 's/^DB_URL="\(.*\)"$/\1/p' <<<"$out")
-else
-  echo "supabase status: stack down, starting it"
-  # Reuses or starts the notes stack (553xx ports if another project holds 543xx).
-  stack=$(scripts/e2e-setup.sh | sed -n "s/^export DATABASE_URL='\(.*\)'$/\1/p")
-fi
-sh=$(hp "${stack:-none}")
-echo "this project's stack host:port: $sh"
-if [ -z "$stack" ]; then echo "ENV: UNVERIFIED"
-elif [ "$db" = "$sh" ]; then echo "ENV: OK"
-else echo "ENV: MISMATCH, use DATABASE_URL='$stack'"; fi
+scripts/test-env.sh up
 ```
 
-Record the result in the progress file as `env: <OK|MISMATCH|UNVERIFIED> <host:port or reason>`.
+It starts (or reuses) this worktree's own Supabase Postgres on ports derived from the worktree
+path, applies every migration, checks the seed fixtures, and writes `.env.test`. The API's Vitest
+config loads `.env.test`, so the DB-backed API tests always run, against this worktree's database
+only — never another project's, the shared default stack, or another worktree's. Don't set or
+export `DATABASE_URL` yourself.
 
-- `ENV: OK` → carry on.
-- `ENV: MISMATCH` → `DATABASE_URL` points at another project's or a shared DB. Never run tests
-  against it. Prefix every test command (step 6) with the `DATABASE_URL='…'` the check printed.
-- `ENV: UNVERIFIED` (the stack can't start; the `e2e-setup` line above says why, usually Docker)
-  → carry on, but never report API tests as passing. The PR body must contain the line
-  `API tests: UNVERIFIED - pending CI (<reason>)`. In `build`, put it in the body at step 7. In
-  `review`, if the body lacks it, fetch the body (`gh api R/pulls/N --jq .body > logs/pr.body.md`),
-  append the line, and save it (`gh api -X PATCH R/pulls/N -F body=@logs/pr.body.md`). CI runs
-  these tests before the merge, so this is not a reason for "If blocked" or a split.
+Record the result in the progress file as `env: OK <project id>` or `env: FAILED <the test-env line>`.
+
+- Exit 0 → carry on.
+- Non-zero → **an environment failure is a blocker, not a known issue.** Don't skip the DB-backed
+  tests, don't mark them unverified or "pending CI", and don't push around it (the pre-push hook
+  refuses anyway). Fix it first:
+  - stale or missing migrations / seed → `scripts/test-env.sh up --fresh`;
+  - a half-started stack or a port clash → `scripts/test-env.sh down`, then `up` again;
+  - a migration from this branch fails → that is a bug in this issue's work; fix the migration.
+  If it still fails because of something outside the repo (Docker not running, no disk space),
+  go to "If blocked" with the exact `test-env:` line.
+
+The `pre-push` git hook (`.githooks/pre-push`) runs lint, typecheck, `scripts/test-env.sh up` and
+the full test suite (unit + DB-backed API) and refuses the push if any fails. Never bypass it
+(`--no-verify`); fix what it reports.
 
 0. **Resume Check** (always; first after the env preflight):
    - If `logs/issue-<ISSUE_NUMBER>.progress.md` exists, read it (the script pulled it from the
@@ -195,7 +189,8 @@ If creating the issue fails, fall back to "If blocked" below instead of dropping
 ## If blocked
 
 If the **whole issue** is blocked and cannot be split (a decision only the user can make, a result
-that contradicts `docs/plan.md`, CI failing for reasons outside this issue and not also red on
+that contradicts `docs/plan.md`, a test environment `scripts/test-env.sh up` can't bring up for a
+reason outside the repo, CI failing for reasons outside this issue and not also red on
 `main`, a reviewer mismatch twice), do **not** merge. A PR red only on checks also red on `main`
 is merged by `scripts/ralph-merge.sh` instead, so it is not blocked. Add the label `needs-human` to the issue, post a comment (on the PR if
 there is one, else on the issue) with what is done and the exact next step, and end your turn.

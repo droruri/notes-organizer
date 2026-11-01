@@ -155,6 +155,8 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
        on conflict do nothing`,
       [OTHER],
     );
+    // A failed earlier run can leave 'Import target' behind.
+    await pool.query('delete from workspaces where user_id = $1 and not is_default', [ME.id]);
     const app = serverWith([]);
     await app.inject({ method: 'GET', url: '/workspaces', headers });
     const mine = await pool.query(
@@ -188,7 +190,7 @@ describe.skipIf(!databaseUrl)('imports routes against the local stack', () => {
     expect((await confirm(mine.rows[0].id)).statusCode).toBe(201);
     expect(await where()).toEqual([mine.rows[0].id]);
     await clean();
-    expect((await confirm(theirs.rows[0].id)).statusCode).toBe(200);
+    expect((await confirm(theirs.rows[0].id)).statusCode).toBe(201);
     expect(await where()).toEqual([def.rows[0].id]);
     await clean();
     await pool.query('delete from workspaces where id = $1', [mine.rows[0].id]);

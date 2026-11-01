@@ -2,9 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import { createPool } from '../../db';
 import { captureLogs } from '../../test-logs';
-import { ALLOWED_USER } from '../../test-auth';
+import type { VerifyToken } from '../../auth';
 
 const databaseUrl = process.env.DATABASE_URL;
+// Own user: server.test.ts runs in parallel against the same DB and deletes the shared test user.
+const ME = { id: 'aaaaaaaa-0000-4000-8000-0000000000a1', email: 'actions-me@example.com' };
+const verifyToken: VerifyToken = async (token) => {
+  if (token === 'allowed') return ME;
+  throw new Error('invalid token');
+};
+const allowedEmails = new Set([ME.email]);
 
 describe.skipIf(!databaseUrl)('applyActions logs', () => {
   const pool = createPool(databaseUrl ?? '');
@@ -12,17 +19,17 @@ describe.skipIf(!databaseUrl)('applyActions logs', () => {
     await pool.query(
       `insert into auth.users (id, email, aud, role) values ($1, $2, 'authenticated', 'authenticated')
        on conflict do nothing`,
-      [ALLOWED_USER.id, ALLOWED_USER.email],
+      [ME.id, ME.email],
     );
   });
   afterAll(async () => {
-    await pool.query('delete from categories where user_id = $1', [ALLOWED_USER.id]);
-    await pool.query('delete from auth.users where id = $1', [ALLOWED_USER.id]);
+    await pool.query('delete from categories where user_id = $1', [ME.id]);
+    await pool.query('delete from auth.users where id = $1', [ME.id]);
     await pool.end();
   });
 
   it('logs the outcome and each rejection without names', async () => {
-    const { app, lines } = captureLogs({ db: pool });
+    const { app, lines } = captureLogs({ db: pool, verifyToken, allowedEmails });
     const name = `secret-${randomUUID()}`;
     const other = `other-${randomUUID()}`;
     const headers = { authorization: 'Bearer allowed' };
@@ -66,7 +73,7 @@ describe.skipIf(!databaseUrl)('applyActions logs', () => {
   });
 
   it('applies several recolors and logs "actions applied"', async () => {
-    const { app, lines } = captureLogs({ db: pool });
+    const { app, lines } = captureLogs({ db: pool, verifyToken, allowedEmails });
     const headers = { authorization: 'Bearer allowed' };
     const ids: string[] = [];
     for (const n of ['recolor-a', 'recolor-b']) {

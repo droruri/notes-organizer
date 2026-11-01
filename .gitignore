@@ -158,3 +158,6 @@ vite.config.ts.timestamp-*
 apps/web/android/
 *.keystore
 *.jks
+
+# scripts/test-env.sh: per-worktree test stack config (.env.test is covered by .env.*)
+.test-env/

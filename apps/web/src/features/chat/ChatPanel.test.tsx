@@ -64,7 +64,9 @@ describe('ChatPanel', () => {
       render(<ChatPanel notes={[]} onOpenNote={vi.fn()} onClose={onClose} />);
       fireEvent.keyDown(document, { key: 'Escape' });
       expect(onClose).not.toHaveBeenCalled();
-      act(() => vi.advanceTimersByTime(300));
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
       expect(onClose).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();

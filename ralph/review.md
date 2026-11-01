@@ -1,7 +1,7 @@
 **Review scope (the `review` phase, run on the cheap model).** The phase relays reviewer
 findings and fixes them. Nothing else. The `build` session, when it runs steps 8-9 itself, is
 not bound by this block.
-   - Allowed: run the env preflight (and its PR-body edit), spawn the reviewers, fix their
+   - Allowed: run the env preflight (and fix any environment failure it reports), spawn the reviewers, fix their
      findings, run step 6, push, flip the checklist, and
      spawn the `e2e` agent for browser checks (the only ad-hoc verification allowed).
    - Not allowed: running Playwright yourself or any other ad-hoc script (shell, node, python)

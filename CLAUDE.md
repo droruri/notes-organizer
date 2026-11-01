@@ -34,19 +34,22 @@ pnpm test         # vp test (Vitest) in every package
 pnpm --filter @notes/api test   # one package
 pnpm db:reset     # fresh local DB, all migrations re-applied
 pnpm db:new <name>
+scripts/test-env.sh up      # this worktree's own test DB + .env.test (down / status / up --fresh)
 ```
 
-DB-backed tests (`describe.skipIf(!databaseUrl)`) run only with the stack up and
-`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`. CI always runs them.
-Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralph builds run `scripts/ralph-checks.sh` instead — related tests only; CI runs the full suite.)
+DB-backed tests (`describe.skipIf(!databaseUrl)`) run against this worktree's own database:
+`scripts/test-env.sh up` starts it (ports and Docker project derived from the worktree path) and
+writes `.env.test`, which `apps/api/vite.config.ts` loads over any shell `DATABASE_URL`. CI has no
+`.env.test` and uses its own `DATABASE_URL`. The `pre-push` git hook (`.githooks/pre-push`,
+installed by `pnpm install`) runs lint, typecheck and the full suite and refuses a failing push.
+Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralph builds run `scripts/ralph-checks.sh` instead — related tests only; the pre-push hook runs the full suite.)
 
 ## Local Test Environment
 
-- Before running DB-backed API tests, check that the local Supabase stack is up
-  (`supabase status`) and that `DATABASE_URL` points to THIS project's DB and port, not another
-  project's or a shared DB.
-- If the stack is down, either start it or clearly mark the API tests as "unverified locally,
-  pending CI". Never mark them as passing.
+- Before running DB-backed API tests, run `scripts/test-env.sh up`. Never point tests at another
+  project's DB or the shared default stack.
+- If it fails, fix the environment (`up --fresh`, or `down` then `up`). Never skip the DB-backed
+  tests or mark them as passing or "pending CI".
 - Never push with failing lint or typecheck. Fix the failure first.
 - This is macOS. Avoid GNU-style `sed -i`; use `sed -i ''` or a small Python/Node script for edits.
 - Don't include gitignored paths (e.g. `logs/`) in git pathspecs.

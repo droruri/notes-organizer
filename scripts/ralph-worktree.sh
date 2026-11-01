@@ -2,7 +2,7 @@
 # One git worktree per ralph issue, so a run never switches branches in the main checkout.
 #
 #   scripts/ralph-worktree.sh create <issue>   prints the worktree path (reuses an existing one)
-#   scripts/ralph-worktree.sh remove <issue>   removes the worktree and the local branch
+#   scripts/ralph-worktree.sh remove <issue>   removes the worktree, its test DB and the local branch
 #
 # The worktree lives at <main checkout>/.ralph/wt/issue-<issue> on branch feature/issue-<issue>:
 # the existing local or remote branch if there is one, else a new branch from origin/main.
@@ -43,6 +43,8 @@ case "$cmd" in
     ;;
   remove)
     if [ -d "$wt" ]; then
+      # Its own test database (scripts/test-env.sh) goes with it.
+      (cd "$wt" && scripts/test-env.sh down) >&2 || true
       git -C "$root" worktree remove --force "$wt"
     fi
     git -C "$root" worktree prune
