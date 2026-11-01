@@ -534,7 +534,7 @@ describe('updated date', () => {
     open({
       ...note('x'),
       createdAt: '2026-10-20T10:00:00Z',
-      updatedAt: '2026-10-20T11:00:00Z',
+      updatedAt: '2026-10-20T10:30:00Z',
     });
     expect(screen.queryByText(/^Updated/)).toBeNull();
   });

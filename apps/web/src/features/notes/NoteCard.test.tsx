@@ -226,7 +226,7 @@ describe('NoteCard updated date', () => {
   });
 
   it('shows only the created date when updated the same day', () => {
-    renderCard(vi.fn(), { ...note, updatedAt: '2026-10-20T15:00:00Z' });
+    renderCard(vi.fn(), { ...note, updatedAt: '2026-10-20T10:30:00Z' });
     expand();
     expect(screen.queryByText(/^Updated/)).toBeNull();
   });

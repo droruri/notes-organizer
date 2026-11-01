@@ -5,7 +5,7 @@ export const formatDate = (iso: string, lang: string) =>
 
 /** The "updated" date, or null when unknown or on the same day as creation. */
 export const updatedDate = (createdAt: string, updatedAt: string, lang: string) => {
-  if (!createdAt || !updatedAt) return null;
+  if (Number.isNaN(Date.parse(createdAt)) || Number.isNaN(Date.parse(updatedAt))) return null;
   const updated = formatDate(updatedAt, lang);
   return updated === formatDate(createdAt, lang) ? null : updated;
 };
