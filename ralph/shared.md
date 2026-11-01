@@ -39,8 +39,9 @@ mirrored to a GitHub issue comment so a run on another machine can resume, so ke
 The script merges green PRs itself (`scripts/ralph-merge.sh`). A `merge` session starts only when
 that failed: CI is red, there is no open PR, or the merge was refused.
 
-- Always start with step 0. If the progress file shows an **earlier** step unfinished (e.g. the
-  previous phase died mid-way), finish it first, then do this phase's steps.
+- `build` and `review` start with the env preflight (below), then step 0. `merge` starts with
+  step 0. If the progress file shows an **earlier** step unfinished (e.g. the previous phase died
+  mid-way), finish it first, then do this phase's steps.
 - **Run everything in the foreground, then end the phase.** Run tests, reviewers (sub-agents) and
   `git push` in the foreground and wait for them; never in the background (an ended turn restarts
   the session and reloads the whole context). Never poll or wait for CI (`gh pr checks --watch`,
@@ -59,7 +60,43 @@ that failed: CI is red, there is no open PR, or the merge was refused.
 else is derived from it. Read only the `docs/plan.md` sections the body names (e.g. *Auth*,
 *Row Level Security*) and only the files/symbols its criteria point to. Don't explore beyond that.
 
-0. **Resume Check** (always first):
+## Env preflight (`build` and `review`, before step 0)
+
+DB-backed API tests skip themselves without a reachable DB (`describe.skipIf`), so a green
+step 6 proves nothing about them unless `DATABASE_URL` points at **this** project's local stack.
+Run this once, in one Bash call, from the worktree root:
+
+```sh
+hp() { sed -E 's#^[^@]*@([^/?]+).*#\1#; s#^localhost:#127.0.0.1:#' <<<"$1"; }
+db=$(hp "${DATABASE_URL:-unset}")
+echo "DATABASE_URL host:port: $db"
+if out=$(pnpm exec supabase status -o env 2>&1); then
+  stack=$(sed -n 's/^DB_URL="\(.*\)"$/\1/p' <<<"$out")
+else
+  echo "supabase status: stack down, starting it"
+  # Reuses or starts the notes stack (553xx ports if another project holds 543xx).
+  stack=$(scripts/e2e-setup.sh | sed -n "s/^export DATABASE_URL='\(.*\)'$/\1/p")
+fi
+sh=$(hp "${stack:-none}")
+echo "this project's stack host:port: $sh"
+if [ -z "$stack" ]; then echo "ENV: UNVERIFIED"
+elif [ "$db" = "$sh" ]; then echo "ENV: OK"
+else echo "ENV: MISMATCH, use DATABASE_URL='$stack'"; fi
+```
+
+Record the result in the progress file as `env: <OK|MISMATCH|UNVERIFIED> <host:port or reason>`.
+
+- `ENV: OK` → carry on.
+- `ENV: MISMATCH` → `DATABASE_URL` points at another project's or a shared DB. Never run tests
+  against it. Prefix every test command (step 6) with the `DATABASE_URL='…'` the check printed.
+- `ENV: UNVERIFIED` (the stack can't start; the `e2e-setup` line above says why, usually Docker)
+  → carry on, but never report API tests as passing. The PR body must contain the line
+  `API tests: UNVERIFIED - pending CI (<reason>)`. In `build`, put it in the body at step 7. In
+  `review`, if the body lacks it, fetch the body (`gh api R/pulls/N --jq .body > logs/pr.body.md`),
+  append the line, and save it (`gh api -X PATCH R/pulls/N -F body=@logs/pr.body.md`). CI runs
+  these tests before the merge, so this is not a reason for "If blocked" or a split.
+
+0. **Resume Check** (always; first after the env preflight):
    - If `logs/issue-<ISSUE_NUMBER>.progress.md` exists, read it (the script pulled it from the
      issue comment) — it says which step you stopped at, what's done, what's next, and decisions
      already made. Trust it over re-deriving.

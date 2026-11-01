@@ -65,4 +65,5 @@
      the worktree path before opening the PR; its verdict lines and screenshot paths go in the PR body.
      On `fail`, fix the product bug and re-run it (at most 2 re-runs, then record the open failure in the progress file and go on); only `E2E_RESULT: setup-failed` splits the check.
    - Set the PR body to include `Closes #<ISSUE_NUMBER>`. If you split out human-only work, the
-     body also names each follow-up issue (`Human-only items moved to #M`).
+     body also names each follow-up issue (`Human-only items moved to #M`). If the env preflight
+     said `ENV: UNVERIFIED`, the body also has `API tests: UNVERIFIED - pending CI (<reason>)`.
