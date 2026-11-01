@@ -76,6 +76,7 @@ export function Screens() {
             <NotesScreen
               key={tagId ?? 'all'}
               initialTagId={tagId}
+              onWorkspaces={() => setPicking(true)}
               {...(workspace ? { workspace } : {})}
             />
           }
