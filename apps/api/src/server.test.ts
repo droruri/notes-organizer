@@ -208,6 +208,9 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       level: 40,
       field: 'quickActions',
     });
+    await pool.query('update user_settings set quick_actions = null where user_id = $1', [
+      ALLOWED_USER.id,
+    ]);
     await logged.close();
   });
 
