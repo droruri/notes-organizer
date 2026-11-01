@@ -89,8 +89,10 @@ export function NotesScreen({
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
   // Mobile quick actions next to "New Note", in canonical order; the default while settings load.
-  const quickActions = QuickAction.options.filter((a) =>
-    (settings.data?.quickActions ?? DEFAULT_QUICK_ACTIONS).includes(a),
+  const quickActions = QuickAction.options.filter(
+    (a) =>
+      (settings.data?.quickActions ?? DEFAULT_QUICK_ACTIONS).includes(a) &&
+      (a !== 'workspaces' || onWorkspaces),
   );
   const quickHandlers: Record<QuickAction, () => void> = {
     workspaces: () => onWorkspaces?.(),

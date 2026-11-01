@@ -245,7 +245,14 @@ describe('NotesScreen mobile quick actions', () => {
     const onWorkspaces = vi.fn();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     // oxlint-disable-next-line react/no-multi-comp -- tiny test probe
-    const Where = () => <p data-testid="where">{useLocation().pathname}</p>;
+    const Where = () => {
+      const loc = useLocation();
+      return (
+        <p data-testid="where" data-record={String(JSON.stringify(loc.state))}>
+          {loc.pathname}
+        </p>
+      );
+    };
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
@@ -258,6 +265,11 @@ describe('NotesScreen mobile quick actions', () => {
     return onWorkspaces;
   };
   const quick = (a: string) => document.querySelector<HTMLElement>(`[data-quick-action="${a}"]`);
+  const need = (a: string): HTMLElement => {
+    const el = quick(a);
+    if (!el) throw new Error(`missing quick action ${a}`);
+    return el;
+  };
 
   it('keeps the label with one extra', async () => {
     await renderWith(['record']);
@@ -285,11 +297,33 @@ describe('NotesScreen mobile quick actions', () => {
   it('runs each action', async () => {
     const onWorkspaces = await renderWith(['workspaces', 'record', 'import']);
     await waitFor(() => expect(quick('workspaces')).not.toBeNull());
-    fireEvent.click(quick('workspaces') as HTMLElement);
+    fireEvent.click(need('workspaces'));
     expect(onWorkspaces).toHaveBeenCalled();
-    fireEvent.click(quick('import') as HTMLElement);
+    fireEvent.click(need('import'));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/import'));
-    fireEvent.click(quick('record') as HTMLElement);
+    fireEvent.click(need('record'));
     await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/new'));
+    expect(screen.getByTestId('where').getAttribute('data-record')).toBe('{"record":true}');
+  });
+
+  it('hides the Workspaces action when no handler is wired', async () => {
+    vi.spyOn(api, 'notes').mockResolvedValue([]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['workspaces'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findAllByRole('button', { name: 'New note' });
+    await waitFor(() => expect(api.settings).toHaveBeenCalled());
+    expect(quick('workspaces')).toBeNull();
   });
 });
