@@ -195,13 +195,14 @@ while true; do
     echo "=== Fetching next unblocked issue ==="
     echo "=========================================="
 
-    # Fetch the oldest open issue that isn't labeled blocked/needs-human/ralph:running and whose
+    # Fetch the oldest open issue that isn't labeled blocked/needs-human/ralph:running/ralph:epic
+    # (an epic's status issue, scripts/ralph-epic.sh) and whose
     # "## Blocked by" section lists no issue that is still open.
     ISSUE_JSON=$(gh api "repos/$REPO/issues?state=open&per_page=100" | jq --arg lock "$LOCK_LABEL" '
       map(select(has("pull_request") | not)) as $issues |
       ($issues | map(.number)) as $open |
       $issues | map(select(
-        (any(.labels[]; .name == "blocked" or .name == "needs-human" or .name == $lock) | not) and
+        (any(.labels[]; .name == "blocked" or .name == "needs-human" or .name == $lock or .name == "ralph:epic") | not) and
         ([(.body // "") | capture("## Blocked by(?<b>[\\s\\S]*?)(\\n## |\\n---|$)").b // "" |
           scan("#([0-9]+)")[0] | tonumber] | any(. as $n | $open | index($n)) | not)
       )) | sort_by(.number) | .[0]')

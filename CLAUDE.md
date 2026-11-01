@@ -117,7 +117,8 @@ Once the user approves the plan, the next action is publishing those tickets wit
 (step 5). Plan approval is breakdown approval, so its quiz step is already done. Tracker: GitHub
 issues in this repo, label `ready-for-agent`, blockers listed as `#N` under `## Blocked by` — the
 format `run-ralph.sh` parses. Create blockers first, so issue number order is work order.
-Implementation then runs through the ralph loop.
+A breakdown of 2+ tickets is published as an epic (see "Epics"). Implementation then runs
+through the ralph loop (`/ralph-epic epic:<slug>` for an epic).
 
 Every plan that adds or changes an API route, domain function or port says, per ticket, which log
 lines it adds (outcome, warnings) — following `docs/logging.md` — and the ticket's acceptance
@@ -143,6 +144,29 @@ and follow it instead of calling the Skill tool.
 - For a simple "open an issue" request, skip plan mode and extra clarifying rounds. Investigate,
   then create the issue directly.
 - `gh` can't attach images, so describe screenshots in text.
+
+## Epics
+
+An epic is a parent issue plus its sub-tickets, run with `/ralph-epic epic:<slug>`
+(`scripts/ralph-epic.sh`). Publish one for every breakdown of 2+ tickets, or when I ask for an
+epic. Use `gh api` REST throughout:
+
+1. Label: `gh label create "epic:<slug>" --color 0E8A16 --force` (`<slug>`: short kebab-case).
+2. Parent first: title `[epic] epic:<slug>` (exactly this: `/ralph-epic` finds its status issue
+   by that title), label `ralph:epic` only (the ralph loop skips it). Body: the goal, the plan
+   summary, and the DAG in words.
+3. Sub-tickets, blockers first: label `ready-for-agent` + `epic:<slug>`; body starts with
+   `Part of #<parent>`, then the usual self-contained ticket with `## Blocked by` (`- #N` lines,
+   or `None (can start immediately)`). Blockers name only issues that exist, never the parent.
+4. Link each as a GitHub sub-issue: `gh api repos/{owner}/{repo}/issues/<parent>/sub_issues -F sub_issue_id=<child .id>`
+   (the numeric `.id` from the create response, not the issue number).
+5. Edit the parent body: add `## Tickets` with one `- [ ] #N <title>` per sub-ticket, in order.
+6. Check the DAG: `scripts/ralph-epic.sh plan epic:<slug>`. Fix any cycle or "outside the epic"
+   warning. Report the parent URL and the plan, then stop.
+
+`/ralph-epic` posts its live status table on the parent and closes the parent when every
+sub-ticket is closed. To add a ticket to a running epic, follow step 3 and step 4; the next tick
+picks it up.
 
 ## Scope
 
