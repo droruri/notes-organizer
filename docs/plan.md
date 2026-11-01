@@ -29,7 +29,7 @@ Decisions taken with the user:
 | Voice | Browser records → API transcribes with Groq Whisper (via the AI port) → text goes to Claude. Audio kept for replay. |
 | Models | Classification and import: `claude-haiku-5-5`. Chat: `claude-sonnet-5-5`. Both set by env. |
 | New taxonomy from Claude | Allowed, shown with a "new" badge, created only when the note is submitted. |
-| Status | `draft → todo → in_progress → done`; one step forward or back; no skipping; `draft` leaves only by submit. |
+| Status | `draft`, `todo`, `in_progress`, `done` or none; any move among `todo`/`in_progress`/`done`/none is valid; `draft` leaves only by submit (`todo` or none); nothing goes back to `draft`. |
 | Category importance | A category has an optional default importance (none / important / not important), set with one tap on the categories screen and clearable. Deleted categories show it as a muted pill. |
 | Category color | Every category has one of 8 palette colors (`blue, green, purple, amber, teal, pink, red, slate`), assigned on creation as the least-used among the user's active categories (ties → palette order). Notes show their categories as colored tabs on the collapsed card. |
 | Deleting a category/tag | Soft delete: not offered for new choices, shown disabled on notes that have it, restorable. A deleted category makes its tags unavailable too. |
@@ -335,7 +335,7 @@ and Re-analyze are the safety net.
   "link not read" chip per entry in `unreadLinks`.
 - **NoteEditor** — one component with four callers: new draft review, edit, outbox item, import
   row. Body, `TaxonomyPicker` (existing chips, alphabetical (Hebrew-aware), Claude's new names with a "new" badge, inline
-  create; below `sm` only suggested + selected categories show inline, the rest via a "more categories" bottom-sheet dialog), due date, importance, urgency, status stepper (one step forward/back), link previews,
+  create; below `sm` only suggested + selected categories show inline, the rest via a "more categories" bottom-sheet dialog), due date, importance, urgency, status select (any tracked status), link previews,
   audio player, Re-analyze, Submit/Save.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.
 - **Chat:** recolor cards show a `.cat-pill` preview in the new color. Side panel on desktop, full-screen sheet on phone; streaming answers; action cards with

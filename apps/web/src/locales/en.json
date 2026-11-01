@@ -46,7 +46,6 @@
     "delete": "Delete",
     "deleted": "Note deleted",
     "undo": "Undo",
-    "moveTo": "Move to {{status}}",
     "error": "Something went wrong. Try again.",
     "noteTitle": "Title (optional)",
     "body": "Text",
@@ -72,7 +71,9 @@
       "draft": "Draft",
       "todo": "To do",
       "in_progress": "In progress",
-      "done": "Done"
+      "done": "Done",
+      "none": "No status",
+      "label": "Status"
     },
     "picker": {
       "categories": "Categories",

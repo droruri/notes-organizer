@@ -300,7 +300,7 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     return id;
   }
 
-  it('edits a submitted note, including new names, and steps status one at a time', async () => {
+  it('edits a submitted note, including new names, and moves status freely', async () => {
     const id = await submitted('edit me');
     const edit = await send(mine, 'PATCH', `/notes/${id}`, {
       body: 'edited',
@@ -323,24 +323,46 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     const back = await send(mine, 'PATCH', `/notes/${id}`, { status: 'todo' });
     expect(Note.parse(back.json()).status).toBe('todo');
     const jump = await send(mine, 'PATCH', `/notes/${id}`, { status: 'done' });
-    expect(jump.statusCode).toBe(422);
-    expect(jump.json()).toEqual({ error: 'invalid_transition' });
+    expect(jump.statusCode).toBe(200);
+    expect(Note.parse(jump.json()).status).toBe('done');
     const toDraft = await send(mine, 'PATCH', `/notes/${id}`, { status: 'draft' });
     expect(toDraft.statusCode).toBe(422);
   });
 
-  it('submits a draft with no status, turns it on to todo only, and 422s null → in_progress', async () => {
+  it('submits a draft with no status, and turns it on straight to in_progress', async () => {
     const id = NoteCreated.parse((await draft('just info')).res.json()).note.id;
     const submit = await send(mine, 'PATCH', `/notes/${id}`, { status: null });
     expect(submit.statusCode).toBe(200);
     expect(Note.parse(submit.json()).status).toBeNull();
     const jump = await send(mine, 'PATCH', `/notes/${id}`, { status: 'in_progress' });
-    expect(jump.statusCode).toBe(422);
-    expect(jump.json()).toEqual({ error: 'invalid_transition' });
+    expect(jump.statusCode).toBe(200);
+    expect(Note.parse(jump.json()).status).toBe('in_progress');
     const on = await send(mine, 'PATCH', `/notes/${id}`, { status: 'todo' });
     expect(Note.parse(on.json()).status).toBe('todo');
     const off = await send(mine, 'PATCH', `/notes/${id}`, { status: null });
     expect(Note.parse(off.json()).status).toBeNull();
+  });
+
+  it('logs a todo → done move without the note text', async () => {
+    const id = await submitted('very secret text');
+    const logged = captureLogs({
+      db: pool,
+      verifyToken,
+      allowedEmails: new Set([ME.email, OTHER.email]),
+    });
+    const res = await logged.app.inject({
+      method: 'PATCH',
+      url: `/notes/${id}`,
+      headers: mine,
+      payload: { status: 'done' },
+    });
+    await logged.app.close();
+    expect(res.statusCode).toBe(200);
+    expect(logged.lines.find((l) => l.msg === 'note updated')).toMatchObject({
+      from: 'todo',
+      to: 'done',
+    });
+    expect(JSON.stringify(logged.lines)).not.toContain('very secret text');
   });
 
   it('soft-deletes, hides from the list, and restores', async () => {

@@ -37,7 +37,13 @@ function renderCard(onOpen = vi.fn(), card: Note = note) {
   render(
     <QueryClientProvider client={client}>
       <ul>
-        <NoteCard note={card} taxonomy={taxonomy} today="2026-10-25" onOpen={onOpen} />
+        <NoteCard
+          note={card}
+          taxonomy={taxonomy}
+          today="2026-10-25"
+          onOpen={onOpen}
+          onStatus={vi.fn()}
+        />
       </ul>
     </QueryClientProvider>,
   );
@@ -97,6 +103,7 @@ describe('NoteCard collapse', () => {
             }}
             today="2026-10-25"
             onOpen={vi.fn()}
+            onStatus={vi.fn()}
           />
         </ul>
       </QueryClientProvider>,
@@ -111,6 +118,50 @@ describe('NoteCard collapse', () => {
     const onOpen = renderCard();
     fireEvent.click(screen.getByText('Groceries'));
     expect(onOpen).toHaveBeenCalledWith(note);
+  });
+
+  it('picks a status on the card and reports it', () => {
+    const onStatus = vi.fn();
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <NoteCard
+            note={note}
+            taxonomy={taxonomy}
+            today="2026-10-25"
+            onOpen={vi.fn()}
+            onStatus={onStatus}
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+      target: { value: 'done' },
+    });
+    expect(onStatus).toHaveBeenCalledWith(note, 'done');
+  });
+
+  it('shows a plain pill for a draft and a disabled select while saving', () => {
+    renderCard(vi.fn(), { ...note, status: 'draft' });
+    expect(screen.queryByRole('combobox')).toBeNull();
+    cleanup();
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <NoteCard
+            note={note}
+            taxonomy={taxonomy}
+            today="2026-10-25"
+            onOpen={vi.fn()}
+            onStatus={vi.fn()}
+            statusPending
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole('combobox')).toHaveProperty('disabled', true);
   });
 
   it('makes no link-preview request while collapsed', () => {
@@ -144,6 +195,7 @@ describe('NoteCard chips', () => {
             }}
             today="2026-10-25"
             onOpen={vi.fn()}
+            onStatus={vi.fn()}
           />
         </ul>
       </QueryClientProvider>,

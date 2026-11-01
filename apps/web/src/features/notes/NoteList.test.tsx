@@ -8,7 +8,13 @@ beforeEach(async () => {
 });
 afterEach(cleanup);
 
-const props = { notes: [], taxonomy: { categories: [] }, today: '2026-10-25', onOpen: () => {} };
+const props = {
+  notes: [],
+  taxonomy: { categories: [] },
+  today: '2026-10-25',
+  onOpen: () => {},
+  onStatus: () => {},
+};
 
 describe('NoteList', () => {
   it('says there are no notes yet when there are none', () => {
