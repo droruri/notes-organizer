@@ -147,6 +147,8 @@
   "filters": {
     "title": "סינון",
     "search": "חיפוש בפתקים",
+    "allWorkspaces": "בכל סביבות העבודה",
+    "workspace": "סביבת עבודה",
     "tags": "תגיות",
     "status": "סטטוס",
     "from": "מתאריך",

@@ -146,6 +146,8 @@
   "filters": {
     "title": "Filter",
     "search": "Search notes",
+    "allWorkspaces": "All workspaces",
+    "workspace": "Workspace",
     "tags": "Tags",
     "status": "Status",
     "from": "from",
