@@ -4,7 +4,7 @@ import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
-import { formatDate } from './formatDate';
+import { formatDate, updatedDate } from './formatDate';
 
 export function NoteCardDetails({
   note,
@@ -22,6 +22,7 @@ export function NoteCardDetails({
   const tags = taxonomy.categories
     .flatMap((c) => c.tags)
     .filter((tag) => note.tagIds.includes(tag.id));
+  const updated = updatedDate(note.createdAt, note.updatedAt, i18n.language);
   return (
     <div id={id} className="flex flex-col gap-3">
       {showBody && (
@@ -56,6 +57,11 @@ export function NoteCardDetails({
           <span className="sr-only">{t('notes.created')}: </span>
           {formatDate(note.createdAt, i18n.language)}
         </span>
+        {updated && (
+          <span className="text-xs text-muted tabular-nums">
+            {t('notes.updated')} {updated}
+          </span>
+        )}
       </div>
     </div>
   );
