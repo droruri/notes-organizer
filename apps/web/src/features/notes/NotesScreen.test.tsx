@@ -231,3 +231,65 @@ describe('NotesScreen status from the list', () => {
     screen.getByText('first note');
   });
 });
+
+describe('NotesScreen mobile quick actions', () => {
+  const renderWith = async (quickActions: ('workspaces' | 'record' | 'import')[]) => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockResolvedValue([]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions,
+    });
+    const onWorkspaces = vi.fn();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // oxlint-disable-next-line react/no-multi-comp -- tiny test probe
+    const Where = () => <p data-testid="where">{useLocation().pathname}</p>;
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen onWorkspaces={onWorkspaces} />
+          <Where />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(api.settings).toHaveBeenCalled());
+    return onWorkspaces;
+  };
+  const quick = (a: string) => document.querySelector<HTMLElement>(`[data-quick-action="${a}"]`);
+
+  it('keeps the label with one extra', async () => {
+    await renderWith(['record']);
+    await waitFor(() => expect(quick('record')?.textContent).toBe('Record'));
+    expect(quick('record')?.getAttribute('aria-label')).toBeNull();
+  });
+
+  it('shows only icons, with accessible names, with three extras', async () => {
+    await renderWith(['import', 'workspaces', 'record']);
+    await waitFor(() => expect(quick('import')).not.toBeNull());
+    for (const a of ['workspaces', 'record', 'import']) expect(quick(a)?.textContent).toBe('');
+    expect(quick('workspaces')?.getAttribute('aria-label')).toBe('Workspaces');
+    expect(quick('record')?.getAttribute('aria-label')).toBe('Record');
+    expect(quick('import')?.getAttribute('aria-label')).toBe('Import notes');
+    expect(screen.getAllByRole('button', { name: 'New note' }).length).toBeGreaterThan(0);
+  });
+
+  it('shows no extras when none are chosen', async () => {
+    await renderWith([]);
+    await waitFor(() => expect(api.settings).toHaveBeenCalled());
+    await screen.findAllByRole('button', { name: 'New note' });
+    expect(document.querySelectorAll('[data-quick-action]')).toHaveLength(0);
+  });
+
+  it('runs each action', async () => {
+    const onWorkspaces = await renderWith(['workspaces', 'record', 'import']);
+    await waitFor(() => expect(quick('workspaces')).not.toBeNull());
+    fireEvent.click(quick('workspaces') as HTMLElement);
+    expect(onWorkspaces).toHaveBeenCalled();
+    fireEvent.click(quick('import') as HTMLElement);
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/import'));
+    fireEvent.click(quick('record') as HTMLElement);
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/new'));
+  });
+});

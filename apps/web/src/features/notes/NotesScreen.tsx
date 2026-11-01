@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_NOTE_SORT,
+  DEFAULT_QUICK_ACTIONS,
+  QuickAction,
   EMPTY_FILTER,
   NoteSort,
   filterNotes,
@@ -55,11 +57,14 @@ const localToday = () => new Date().toLocaleDateString('en-CA');
 export function NotesScreen({
   initialTagId = null,
   workspace,
+  onWorkspaces,
 }: {
   /** Start with the list filtered to this tag. */
   initialTagId?: string | null;
   /** The current workspace: new notes go there and the list shows only its notes. */
   workspace?: Workspace;
+  /** Opens the workspaces sheet (the Workspaces quick action). */
+  onWorkspaces?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -83,6 +88,20 @@ export function NotesScreen({
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
+  // Mobile quick actions next to "New Note", in canonical order; the default while settings load.
+  const quickActions = QuickAction.options.filter((a) =>
+    (settings.data?.quickActions ?? DEFAULT_QUICK_ACTIONS).includes(a),
+  );
+  const quickHandlers: Record<QuickAction, () => void> = {
+    workspaces: () => onWorkspaces?.(),
+    record: () => open(ROUTES.compose, false, { record: true }),
+    import: () => open(ROUTES.import),
+  };
+  const quickMeta: Record<QuickAction, { icon: 'layers' | 'mic' | 'upload'; label: string }> = {
+    workspaces: { icon: 'layers', label: t('workspaces.menu') },
+    record: { icon: 'mic', label: t('voice.record') },
+    import: { icon: 'upload', label: t('import.open') },
+  };
   // Name of the workspace a note was just saved in, when it is not the current one.
   const [savedIn, setSavedIn] = useState<string | null>(null);
   const [imported, setImported] = useState<ImportResult | null>(null);
@@ -480,14 +499,33 @@ export function NotesScreen({
             aria-hidden="true"
             className="bg-bg fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
           />
-          <button
-            type="button"
-            onClick={() => open(ROUTES.compose)}
-            className="btn btn-primary sm:min-h-11 sm:px-5 max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-16 max-sm:-translate-x-1/2 max-sm:rounded-2xl max-sm:px-8 max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
-          >
-            <Icon name="plus" size={22} />
-            {t('notes.add')}
-          </button>
+          <div className="max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:flex max-sm:-translate-x-1/2 max-sm:gap-2 sm:contents">
+            <button
+              type="button"
+              onClick={() => open(ROUTES.compose)}
+              className="btn btn-primary sm:min-h-11 sm:px-5 max-sm:h-16 max-sm:rounded-2xl max-sm:px-8 max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
+            >
+              <Icon name="plus" size={22} />
+              {t('notes.add')}
+            </button>
+            {quickActions.map((a) => {
+              const { icon, label } = quickMeta[a];
+              const iconOnly = quickActions.length > 1;
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  data-quick-action={a}
+                  aria-label={iconOnly ? label : undefined}
+                  onClick={quickHandlers[a]}
+                  className={`btn h-16 rounded-2xl sm:hidden ${iconOnly ? 'size-16 p-0' : 'px-5 text-lg'}`}
+                >
+                  <Icon name={icon} size={22} />
+                  {!iconOnly && label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
       <NoteFilters
