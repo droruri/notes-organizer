@@ -7,6 +7,7 @@ type Props = {
   onImport: () => void;
   onTaxonomy: () => void;
   onWorkspaces: () => void;
+  onSettings: () => void;
   onSignOut: () => void;
   /** Set for an admin: shows the "Users" item. */
   onUsers?: () => void;
@@ -24,6 +25,7 @@ export function AppMenu({
   onImport,
   onTaxonomy,
   onWorkspaces,
+  onSettings,
   onUsers,
   onSignOut,
 }: Props) {
@@ -76,6 +78,7 @@ export function AppMenu({
     { icon: 'upload', label: t('import.open'), onPick: onImport },
     { icon: 'filter', label: t('taxonomy.menu'), onPick: onTaxonomy },
     { icon: 'layers', label: t('workspaces.menu'), onPick: onWorkspaces },
+    { icon: 'sliders', label: t('notes.formSettings.title'), onPick: onSettings },
     ...(onUsers ? [{ icon: 'users' as const, label: t('users.menu'), onPick: onUsers }] : []),
   ];
   const pick = (onPick: () => void) => () => {

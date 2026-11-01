@@ -112,12 +112,18 @@
     "editTitle": "עריכת פתק",
     "suggested": "הצעה של Claude",
     "formSettings": {
-      "open": "הגדרות טופס",
-      "title": "הגדרות טופס",
+      "open": "הגדרות",
+      "title": "הגדרות",
       "save": "שמירת הגדרות",
       "cancel": "ביטול",
       "saving": "שומר…",
       "error": "לא הצלחנו לשמור את ההגדרות. נסו שוב.",
+      "quickActionsTitle": "כפתורים במסך הראשי (נייד)",
+      "quickAction": {
+        "workspaces": "סביבות עבודה",
+        "record": "הקלטה",
+        "import": "ייבוא"
+      },
       "always": "תמיד מוצג",
       "hidden": "מוסתר",
       "show": "הצגת {{field}}",
@@ -368,6 +374,7 @@
     "error": "לא הצלחנו לשמור את המרחב. נסו שוב.",
     "loadError": "לא הצלחנו לטעון את המרחבים.",
     "actions": "פעולות עבור {{name}}",
+    "save": "שמירה",
     "rename": "שינוי שם",
     "renameLabel": "שם המרחב",
     "makeDefault": "קבע כברירת מחדל",

@@ -146,6 +146,7 @@ describe('settings logs', () => {
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
       },
+      quickActions: ['record'],
     });
     expect(lines.find((l) => l.msg === 'stored settings invalid')).toMatchObject({
       level: 40,

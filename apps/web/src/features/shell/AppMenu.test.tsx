@@ -13,6 +13,7 @@ const handlers = () => ({
   onImport: vi.fn(),
   onTaxonomy: vi.fn(),
   onWorkspaces: vi.fn(),
+  onSettings: vi.fn(),
   onSignOut: vi.fn(),
 });
 const open = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
@@ -41,10 +42,18 @@ describe('AppMenu', () => {
     const h = handlers();
     render(<AppMenu {...h} />);
     open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(5);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(6);
     expect(screen.queryByRole('menuitem', { name: i18n.t('users.menu') })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('import.open') }));
     expect(h.onImport).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens Settings', () => {
+    const h = handlers();
+    render(<AppMenu {...h} />);
+    open();
+    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('notes.formSettings.title') }));
+    expect(h.onSettings).toHaveBeenCalledTimes(1);
   });
 
   it('opens Categories & tags', () => {
@@ -59,7 +68,7 @@ describe('AppMenu', () => {
     const onUsers = vi.fn();
     render(<AppMenu {...handlers()} onUsers={onUsers} />);
     open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(6);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(7);
     fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('users.menu') }));
     expect(onUsers).toHaveBeenCalledTimes(1);
   });

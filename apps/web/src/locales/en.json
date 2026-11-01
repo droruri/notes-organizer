@@ -111,12 +111,18 @@
     "editTitle": "Edit note",
     "suggested": "Suggested by Claude",
     "formSettings": {
-      "open": "Form settings",
-      "title": "Form settings",
+      "open": "Settings",
+      "title": "Settings",
       "save": "Save settings",
       "cancel": "Cancel",
       "saving": "Saving…",
       "error": "Could not save the settings. Try again.",
+      "quickActionsTitle": "Home screen buttons (mobile)",
+      "quickAction": {
+        "workspaces": "Workspaces",
+        "record": "Record",
+        "import": "Import"
+      },
       "always": "Always shown",
       "hidden": "Hidden",
       "show": "Show {{field}}",
@@ -363,6 +369,7 @@
     "error": "Couldn't save the workspace. Try again.",
     "loadError": "Couldn't load the workspaces.",
     "actions": "Actions for {{name}}",
+    "save": "Save",
     "rename": "Rename",
     "renameLabel": "Workspace name",
     "makeDefault": "Make default",

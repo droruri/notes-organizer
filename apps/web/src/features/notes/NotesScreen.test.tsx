@@ -84,6 +84,7 @@ describe('NotesScreen opened from a tag', () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -106,6 +107,7 @@ describe('NotesScreen modes from the URL', () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const Where = () => <p data-testid="where">{useLocation().pathname}</p>;
@@ -200,6 +202,7 @@ describe('NotesScreen status from the list', () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
     });
     const update = vi.spyOn(api, 'updateNote').mockImplementation(async () => {
       saved = true;
@@ -243,6 +246,7 @@ describe('NotesScreen across workspaces', () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
     });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(

@@ -15,6 +15,7 @@ import {
 } from '@notes/shared';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
 import { api, ApiNetworkError } from '../../lib/api';
 import type { ImportResult } from '../import/ImportDialog';
@@ -72,8 +73,10 @@ export function NotesScreen({
   const importing = pathname === ROUTES.import;
   const editId = useMatch('/notes/:id')?.params.id;
   // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
-  const open = (to: string, replace = false, draft?: NoteCreated) =>
-    void navigate({ pathname: to, search }, { replace, state: draft });
+  const open = (to: string, replace = false, routeState?: NoteCreated | { record: true }) =>
+    void navigate({ pathname: to, search }, { replace, state: routeState });
+  // History state is untrusted: only a well-formed `{ record: true }` auto-starts the recorder.
+  const autoRecord = z.object({ record: z.literal(true) }).safeParse(state).success;
   const [text, setText] = useState(shared ?? '');
   const [title, setTitle] = useState('');
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
@@ -305,6 +308,7 @@ export function NotesScreen({
               }
               pending={createVoice.isPending}
               failed={createVoice.isError}
+              autoStart={autoRecord}
             />
           </div>
           <input
@@ -470,6 +474,14 @@ export function NotesScreen({
           >
             <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
+          </button>
+          <button
+            type="button"
+            onClick={() => open(ROUTES.compose, false, { record: true })}
+            className="btn max-sm:hidden"
+          >
+            <Icon name="mic" size={16} />
+            {t('voice.record')}
           </button>
           <div
             aria-hidden="true"

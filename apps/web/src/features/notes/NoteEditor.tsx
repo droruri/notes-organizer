@@ -21,7 +21,6 @@ import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
 import { ChoiceField } from './ChoiceField';
-import { NoteFormSettings } from './NoteFormSettings';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusSelect } from './StatusSelect';
@@ -66,7 +65,6 @@ export function NoteEditor({
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const noteForm = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
   const hidden = new Set<HideableField>(noteForm.hiddenFields);
-  const [formSettingsOpen, setFormSettingsOpen] = useState(false);
   const gridCols = (['dueDate', 'importance', 'urgency'] satisfies HideableField[]).filter(
     (f) => !hidden.has(f),
   ).length;
@@ -171,14 +169,6 @@ export function NoteEditor({
             {t('notes.suggested')}
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => setFormSettingsOpen(true)}
-          aria-label={t('notes.formSettings.open')}
-          className="btn btn-ghost btn-icon btn-sm ms-auto"
-        >
-          <Icon name="sliders" size={18} />
-        </button>
       </div>
       {!hidden.has('title') && (
         <label className="label">
@@ -333,7 +323,6 @@ export function NoteEditor({
           </button>
         )}
       </div>
-      {formSettingsOpen && <NoteFormSettings onClose={() => setFormSettingsOpen(false)} />}
     </form>
   );
 }

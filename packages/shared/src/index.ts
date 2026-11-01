@@ -36,9 +36,15 @@ export const NoteForm = z.object({
 export type NoteForm = z.infer<typeof NoteForm>;
 export const DEFAULT_NOTE_FORM: NoteForm = NoteForm.parse({});
 
+/** Mobile quick-action buttons that can sit next to "New Note". */
+export const QuickAction = z.enum(['workspaces', 'record', 'import']);
+export type QuickAction = z.infer<typeof QuickAction>;
+export const DEFAULT_QUICK_ACTIONS: QuickAction[] = ['record'];
+
 export const Settings = z.object({
   noteSort: NoteSort,
   noteForm: NoteForm.default(DEFAULT_NOTE_FORM),
+  quickActions: z.array(QuickAction).default(DEFAULT_QUICK_ACTIONS),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -46,6 +52,7 @@ export type Settings = z.infer<typeof Settings>;
 export const SettingsPatch = z.object({
   noteSort: NoteSort.optional(),
   noteForm: NoteForm.optional(),
+  quickActions: z.array(QuickAction).optional(),
 });
 export type SettingsPatch = z.infer<typeof SettingsPatch>;
 

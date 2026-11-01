@@ -23,10 +23,13 @@ export function VoiceRecorder({
   onSend,
   pending,
   failed,
+  autoStart = false,
 }: {
   onSend: (audio: Blob) => void;
   pending: boolean;
   failed: boolean;
+  /** Start recording once on mount; if the browser refuses, the idle button stays. */
+  autoStart?: boolean;
 }) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>('idle');
@@ -104,13 +107,28 @@ export function VoiceRecorder({
     setPhase('idle');
   };
 
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoStarted.current) return;
+    autoStarted.current = true;
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on mount
+  }, []);
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       {phase === 'idle' && (
-        <button type="button" onClick={start} className="btn btn-ghost text-muted">
-          <Icon name="mic" size={16} />
-          {t('voice.record')}
-        </button>
+        <div className="flex w-full flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={start}
+            aria-label={t('voice.record')}
+            className="flex size-16 items-center justify-center rounded-full bg-accent-soft text-accent transition-[scale,background-color] duration-150 ease-out motion-safe:active:scale-[0.96]"
+          >
+            <Icon name="mic" size={28} />
+          </button>
+          <span className="text-sm text-muted">{t('voice.record')}</span>
+        </div>
       )}
       {phase !== 'idle' && (
         <span className="flex items-center gap-2 px-1 font-medium">

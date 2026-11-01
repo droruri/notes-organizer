@@ -78,11 +78,8 @@ export function WorkspacesDialog({
     if (next === '' || next === w.name) return setActive(null);
     if (!edit.isPending) edit.mutate({ id: w.id, patch: { name: next } });
   };
-  const onRenameKey = (e: KeyboardEvent<HTMLInputElement>, w: Workspace) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      saveRename(w);
-    } else if (e.key === 'Escape') {
+  const onRenameKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
       e.stopPropagation();
       setActive(null);
     }
@@ -126,15 +123,32 @@ export function WorkspacesDialog({
             return (
               <div key={w.id} className="flex flex-col">
                 {mode === 'rename' ? (
-                  <input
-                    autoFocus
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => onRenameKey(e, w)}
-                    dir="auto"
-                    aria-label={t('workspaces.renameLabel')}
-                    className="field"
-                  />
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveRename(w);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={onRenameKey}
+                      enterKeyHint="done"
+                      dir="auto"
+                      aria-label={t('workspaces.renameLabel')}
+                      className="field min-w-0 flex-1"
+                    />
+                    <button
+                      type="submit"
+                      disabled={edit.isPending}
+                      aria-label={t('workspaces.save')}
+                      className="btn btn-ghost btn-icon min-h-11 min-w-11"
+                    >
+                      <Icon name="check" size={18} />
+                    </button>
+                  </form>
                 ) : (
                   <div className="flex items-center gap-1">
                     <button

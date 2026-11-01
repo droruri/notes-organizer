@@ -47,7 +47,11 @@ beforeEach(async () => {
     note(2, 'knowledge note', KNOWLEDGE.id),
   ]);
   vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
-  vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'newest', noteForm: DEFAULT_NOTE_FORM });
+  vi.spyOn(api, 'settings').mockResolvedValue({
+    noteSort: 'newest',
+    noteForm: DEFAULT_NOTE_FORM,
+    quickActions: ['record'],
+  });
 });
 afterEach(() => {
   cleanup();
@@ -116,7 +120,7 @@ describe('workspaces dialog', () => {
     expect(create).toHaveBeenCalledWith('ידע');
   });
 
-  it('renames inline: Enter saves, Escape cancels without closing the dialog', async () => {
+  it('renames inline: ✓ button and form submit save, Escape cancels without closing the dialog', async () => {
     vi.spyOn(api, 'workspaces').mockResolvedValue([GENERAL, KNOWLEDGE]);
     const edit = vi.spyOn(api, 'editWorkspace').mockResolvedValue({ ...KNOWLEDGE, name: 'ידע2' });
     setup();
@@ -131,8 +135,16 @@ describe('workspaces dialog', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
     const input = within(dialog).getByLabelText('Workspace name');
     fireEvent.change(input, { target: { value: 'ידע2' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.getAttribute('enterkeyhint')).toBe('done');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(edit).toHaveBeenCalledWith(KNOWLEDGE.id, { name: 'ידע2' }));
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Actions for ידע' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
+    const input2 = within(dialog).getByLabelText('Workspace name');
+    fireEvent.change(input2, { target: { value: 'ידע3' } });
+    fireEvent.submit(input2);
+    await waitFor(() => expect(edit).toHaveBeenCalledWith(KNOWLEDGE.id, { name: 'ידע3' }));
   });
 
   it('shows a Hebrew-keyed error from the API code on a taken name', async () => {
@@ -146,7 +158,7 @@ describe('workspaces dialog', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
     const input = within(dialog).getByLabelText('Workspace name');
     fireEvent.change(input, { target: { value: 'כללי' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.submit(input);
     expect((await within(dialog).findByRole('alert')).textContent).toContain('already exists');
   });
 
