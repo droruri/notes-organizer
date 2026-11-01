@@ -16,6 +16,7 @@ const note = {
   title: null,
   body: 'hello',
   status: 'todo',
+  workspaceId: '00000000-0000-4000-8000-0000000000f1',
   importance: null,
   urgency: null,
   dueDate: null,
@@ -61,6 +62,8 @@ describe('query cache persistence', () => {
     expect(keys).not.toContain('taxonomy');
     expect(keys).not.toContain('users');
     expect(keys).toContain('notes');
+    // A settings cache saved before noteForm existed still restores.
+    expect(keys).toContain('settings');
   });
 
   it('returns nothing for garbage', async () => {

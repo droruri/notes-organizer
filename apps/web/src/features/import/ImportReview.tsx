@@ -13,6 +13,7 @@ const asNote = (row: Row): Note => ({
   title: row.suggestion.title,
   body: row.body,
   status: 'draft',
+  workspaceId: PLACEHOLDER_ID,
   importance: row.suggestion.importance,
   urgency: row.suggestion.urgency,
   dueDate: row.suggestion.dueDate,
@@ -77,6 +78,8 @@ export function ImportReview({
             importance: edit.importance ?? null,
             urgency: edit.urgency ?? null,
             title: edit.title ?? null,
+            workspaceId: null,
+            tracksStatus: edit.status !== null,
             unreadLinks: edit.unreadLinks ?? [],
           };
           setRows(

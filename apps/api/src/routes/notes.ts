@@ -14,6 +14,7 @@ const STATUS: Record<service.Failure, number> = {
   not_found: 404,
   invalid_transition: 422,
   unknown_taxonomy: 422,
+  unknown_workspace: 422,
   transcription_failed: 502,
   empty_transcript: 422,
 };

@@ -4,6 +4,7 @@
     "menu": "Menu"
   },
   "language": {
+    "label": "Language",
     "switchTo": "עברית"
   },
   "status": {
@@ -50,7 +51,11 @@
     "noteTitle": "Title (optional)",
     "body": "Text",
     "dueDate": "Due date",
+    "workspace": "Workspace",
+    "tracksStatus": "Track status",
+    "savedIn": "Saved in {{name}}",
     "importance": "Importance",
+    "importanceFromCategory": "Set by category {{name}}",
     "urgency": "Urgency",
     "none": "—",
     "importanceValues": {
@@ -76,7 +81,15 @@
       "createIn": "Add to",
       "newCategory": "New category",
       "add": "Add",
-      "tags": "Tags"
+      "tags": "Tags",
+      "more": "More categories",
+      "dialogTitle": "Choose categories",
+      "filter": "Search categories",
+      "confirm": "OK",
+      "cancel": "Cancel",
+      "close": "Close",
+      "noMatch": "No category by that name. You can create it in the form.",
+      "suggested": "Suggested"
     },
     "expand": "Expand",
     "collapse": "Collapse",
@@ -95,7 +108,33 @@
     "suggestHint": "Claude suggests a category, tags and a due date. You can change anything before saving.",
     "reviewTitle": "Review note",
     "editTitle": "Edit note",
-    "suggested": "Suggested by Claude"
+    "suggested": "Suggested by Claude",
+    "formSettings": {
+      "open": "Form settings",
+      "title": "Form settings",
+      "save": "Save settings",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "error": "Could not save the settings. Try again.",
+      "always": "Always shown",
+      "hidden": "Hidden",
+      "show": "Show {{field}}",
+      "values": "Values",
+      "lastValue": "At least one value stays offered.",
+      "displayAs": "Show as",
+      "display": {
+        "dropdown": "Dropdown",
+        "buttons": "Buttons"
+      },
+      "fields": {
+        "title": "Title",
+        "body": "Text",
+        "categories": "Categories & tags",
+        "dueDate": "Due date",
+        "importance": "Importance",
+        "urgency": "Urgency"
+      }
+    }
   },
   "filters": {
     "title": "Filter",
@@ -187,6 +226,9 @@
         "category": "Delete category \"{{name}}\"",
         "tag": "Delete tag \"{{name}}\""
       },
+      "recolor": {
+        "category": "Color category \"{{name}}\" {{color}}"
+      },
       "restore": {
         "category": "Restore category \"{{name}}\"",
         "tag": "Restore tag \"{{name}}\""
@@ -210,6 +252,19 @@
     "deleteItem": "Delete {{name}}",
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
+    "color": {
+      "labelFor": "Color of {{name}}",
+      "names": {
+        "blue": "Blue",
+        "green": "Green",
+        "purple": "Purple",
+        "amber": "Amber",
+        "teal": "Teal",
+        "pink": "Pink",
+        "red": "Red",
+        "slate": "Slate"
+      }
+    },
     "importance": {
       "labelFor": "Default importance for {{name}}",
       "label": "Default importance",
@@ -258,6 +313,7 @@
     "placeholder": "Paste your old notes here (up to 50,000 characters)…",
     "file": "Choose a .txt file",
     "tooLong": "The text is over 50,000 characters.",
+    "workspace": "Import into workspace",
     "analyze": "Analyze",
     "analyzing": "Claude is splitting and sorting your notes… this can take up to a minute.",
     "error": "Analysis failed. Try again.",
@@ -292,5 +348,27 @@
     "send": "Send",
     "later": "Later",
     "dismiss": "Dismiss"
+  },
+  "workspaces": {
+    "menu": "Workspaces",
+    "title": "Workspaces",
+    "close": "Close",
+    "default": "Default",
+    "nameLabel": "New workspace name",
+    "add": "Add",
+    "nameTaken": "A workspace with this name already exists",
+    "error": "Couldn't save the workspace. Try again.",
+    "loadError": "Couldn't load the workspaces.",
+    "actions": "Actions for {{name}}",
+    "rename": "Rename",
+    "renameLabel": "Workspace name",
+    "makeDefault": "Make default",
+    "delete": "Delete",
+    "confirmDelete": "Delete “{{name}}”? Its notes move to “{{target}}”.",
+    "confirm": "Delete",
+    "cancel": "Cancel",
+    "invalidName": "The name can't be empty",
+    "isDefault": "The default workspace can't be deleted",
+    "notFound": "This workspace no longer exists"
   }
 }

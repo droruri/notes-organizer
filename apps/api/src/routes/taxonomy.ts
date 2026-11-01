@@ -1,4 +1,4 @@
-import { ActionsBody, ImportanceBody, NameBody } from '@notes/shared';
+import { ActionsBody, ColorBody, ImportanceBody, NameBody } from '@notes/shared';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { currentUser } from '../auth';
@@ -77,6 +77,17 @@ export function taxonomyRoutes(app: FastifyInstance, db: Db): void {
     return send(
       reply,
       await service.setCategoryImportance(db, currentUser(req).id, p.id, body.data.importance),
+    );
+  });
+
+  app.put('/categories/:id/color', async (req, reply) => {
+    const p = parse(req, reply, false);
+    if (!p) return reply;
+    const body = ColorBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
+    return send(
+      reply,
+      await service.setCategoryColor(db, currentUser(req).id, p.id, body.data.color),
     );
   });
 

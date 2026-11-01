@@ -14,6 +14,7 @@ const note: Note = {
   clientId: NOTE_ID,
   body: 'Pay the electricity bill',
   status: 'todo',
+  workspaceId: '00000000-0000-4000-8000-0000000000f1',
   importance: null,
   urgency: null,
   dueDate: null,

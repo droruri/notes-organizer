@@ -7,6 +7,7 @@ import {
   sortNotes,
   NoteCreated,
   type NoteFilter,
+  type Workspace,
   MAX_TITLE_LENGTH,
   suggestionOf,
 } from '@notes/shared';
@@ -43,15 +44,19 @@ const ImportDialog = lazy(() =>
 );
 
 const UNDO_MS = 5000;
+const inputDir = (value: string) => (value.trim() ? 'auto' : 'rtl');
 
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
 
 export function NotesScreen({
   initialTagId = null,
+  workspace,
 }: {
   /** Start with the list filtered to this tag. */
   initialTagId?: string | null;
+  /** The current workspace: new notes go there and the list shows only its notes. */
+  workspace?: Workspace;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -72,6 +77,9 @@ export function NotesScreen({
   const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
+  // Name of the workspace a note was just saved in, when it is not the current one.
+  const [savedIn, setSavedIn] = useState<string | null>(null);
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(
@@ -82,8 +90,9 @@ export function NotesScreen({
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
   });
 
-  const meta = (clientId: string = crypto.randomUUID()) => ({
+  const meta = (clientId: string = crypto.randomUUID(), workspaceId = workspace?.id) => ({
     clientId,
+    ...(workspaceId ? { workspaceId } : {}),
     today: localToday(),
     locale: i18n.language === 'en' ? ('en' as const) : ('he' as const),
   });
@@ -118,7 +127,15 @@ export function NotesScreen({
     clientId: string = crypto.randomUUID(),
     title: string = '',
   ) => {
-    const ok = await addToOutbox({ clientId, body, ...(title.trim() ? { title } : {}) }, audio);
+    const ok = await addToOutbox(
+      {
+        clientId,
+        body,
+        ...(title.trim() ? { title } : {}),
+        ...(workspace ? { workspaceId: workspace.id } : {}),
+      },
+      audio,
+    );
     setOutbox(readOutbox());
     setOfflineNotice(ok ? 'saved' : 'failed');
     if (ok) {
@@ -156,7 +173,7 @@ export function NotesScreen({
 
   /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
   const sendQueued = async (entry: OutboxEntry, body: string) => {
-    const queued = meta(entry.clientId);
+    const queued = meta(entry.clientId, entry.workspaceId ?? workspace?.id);
     let draft: NoteCreated;
     if (entry.hasAudio) {
       const audio = await readOutboxAudio(entry.clientId);
@@ -185,11 +202,14 @@ export function NotesScreen({
   const submit = useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof api.updateNote>[1] }) =>
       api.updateNote(id, edit),
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['notes'] }),
         queryClient.invalidateQueries({ queryKey: ['taxonomy'] }),
       ]);
+      if (workspace && saved.workspaceId !== workspace.id) {
+        setSavedIn(workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null);
+      }
       setText('');
       setTitle('');
       goBack();
@@ -256,26 +276,7 @@ export function NotesScreen({
           </p>
         )}
         <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={MAX_TITLE_LENGTH}
-            dir="auto"
-            aria-label={t('notes.noteTitle')}
-            placeholder={t('notes.noteTitle')}
-            className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
-          />
-          <textarea
-            autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={6}
-            dir="auto"
-            aria-label={t('notes.body')}
-            placeholder={t('notes.placeholder')}
-            className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
-          />
-          <div className="border-t border-line pt-3">
+          <div className="border-b border-line pb-3">
             <VoiceRecorder
               onSend={(audio) =>
                 online
@@ -286,6 +287,25 @@ export function NotesScreen({
               failed={createVoice.isError}
             />
           </div>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={MAX_TITLE_LENGTH}
+            dir={inputDir(title)}
+            aria-label={t('notes.noteTitle')}
+            placeholder={t('notes.noteTitle')}
+            className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
+          />
+          <textarea
+            autoFocus
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={6}
+            dir={inputDir(text)}
+            aria-label={t('notes.body')}
+            placeholder={t('notes.placeholder')}
+            className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
+          />
         </div>
         {offlineNotice === 'failed' && (
           <p role="alert" className="notice notice-danger">
@@ -365,13 +385,17 @@ export function NotesScreen({
         onReanalyze={() => reanalyze(note.id)}
         onDelete={() => remove.mutate(note.id)}
         attachable
+        workspaces={workspaces.data}
       />
     );
   }
 
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
-  const visible = sortNotes(filterNotes(notes.data, filter, today), sort, today);
+  const inWorkspace = workspace
+    ? notes.data.filter((n) => n.workspaceId === workspace.id)
+    : notes.data;
+  const visible = sortNotes(filterNotes(inWorkspace, filter, today), sort, today);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
     <section className="flex flex-col gap-5">
@@ -387,6 +411,8 @@ export function NotesScreen({
         <Suspense fallback={<Loading label={t('import.loading')} />}>
           <ImportDialog
             taxonomy={taxonomy.data}
+            workspaces={workspaces.data ?? []}
+            currentWorkspaceId={workspace?.id}
             today={today}
             locale={locale}
             onClose={goBack}
@@ -402,7 +428,7 @@ export function NotesScreen({
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col">
           <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
-            {t('notes.title')}
+            {workspace?.name ?? t('notes.title')}
           </h2>
           <p className="text-sm text-muted tabular-nums">
             {t('notes.count', { count: visible.length })}
@@ -419,12 +445,16 @@ export function NotesScreen({
             <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
           </button>
+          <div
+            aria-hidden="true"
+            className="bg-bg fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
+          />
           <button
             type="button"
             onClick={() => open(ROUTES.compose)}
-            className="btn btn-primary max-sm:fixed max-sm:end-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-14 max-sm:rounded-2xl max-sm:px-5 max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
+            className="btn btn-primary sm:min-h-11 sm:px-5 max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:h-16 max-sm:-translate-x-1/2 max-sm:rounded-2xl max-sm:px-8 max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]"
           >
-            <Icon name="plus" size={18} />
+            <Icon name="plus" size={22} />
             {t('notes.add')}
           </button>
         </div>
@@ -459,14 +489,16 @@ export function NotesScreen({
         </p>
       )}
       {waiting}
-      <NoteList
-        notes={visible}
-        filtered={notes.data.length > 0}
-        taxonomy={taxonomy.data}
-        today={today}
-        onOpen={(note) => open(notePath(note.id))}
-        onAdd={() => open(ROUTES.compose)}
-      />
+      <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <NoteList
+          notes={visible}
+          filtered={inWorkspace.length > 0}
+          taxonomy={taxonomy.data}
+          today={today}
+          onOpen={(note) => open(notePath(note.id))}
+          onAdd={() => open(ROUTES.compose)}
+        />
+      </div>
       {undo.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
@@ -520,6 +552,18 @@ export function NotesScreen({
           </Toast>
         )}
         {offlineToast}
+        {savedIn !== null && (
+          <Toast
+            onClose={() => setSavedIn(null)}
+            actions={
+              <button type="button" onClick={() => setSavedIn(null)} className="btn btn-sm">
+                {t('import.dismiss')}
+              </button>
+            }
+          >
+            {t('notes.savedIn', { name: savedIn })}
+          </Toast>
+        )}
         {undoId !== null && (
           <Toast
             actions={

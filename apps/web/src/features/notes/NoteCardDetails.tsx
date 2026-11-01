@@ -6,8 +6,6 @@ import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { formatDate } from './formatDate';
 
-type Chip = { id: string; name: string; deleted: boolean; category: boolean };
-
 export function NoteCardDetails({
   note,
   taxonomy,
@@ -21,15 +19,9 @@ export function NoteCardDetails({
 }) {
   const { t, i18n } = useTranslation();
   const urgent = note.urgency === 'urgent' || note.urgency === 'critical';
-  const chips: Chip[] = [
-    ...taxonomy.categories
-      .filter((c) => note.categoryIds.includes(c.id))
-      .map((c) => ({ id: c.id, name: c.name, deleted: c.deleted, category: true })),
-    ...taxonomy.categories
-      .flatMap((c) => c.tags)
-      .filter((tag) => note.tagIds.includes(tag.id))
-      .map((tag) => ({ id: tag.id, name: tag.name, deleted: tag.deleted, category: false })),
-  ];
+  const tags = taxonomy.categories
+    .flatMap((c) => c.tags)
+    .filter((tag) => note.tagIds.includes(tag.id));
   return (
     <div id={id} className="flex flex-col gap-3">
       {showBody && (
@@ -55,14 +47,9 @@ export function NoteCardDetails({
           <span className="pill">{t(`notes.importanceValues.${note.importance}`)}</span>
         )}
         <UnreadLinkChips links={note.unreadLinks} />
-        {chips.map((c) => (
-          <span
-            key={c.id}
-            className={`${c.category ? 'cat-pill' : 'tag-box'} ${
-              c.deleted ? 'line-through opacity-60' : ''
-            }`}
-          >
-            {c.name}
+        {tags.map((tag) => (
+          <span key={tag.id} className={`tag-box ${tag.deleted ? 'line-through opacity-60' : ''}`}>
+            {tag.name}
           </span>
         ))}
         <span className="ms-auto text-xs text-muted tabular-nums">

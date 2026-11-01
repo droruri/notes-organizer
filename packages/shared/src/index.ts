@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Importance } from './notes';
+import { CategoryColor, Importance, Urgency } from './notes';
 
 // Schemas and types used by both web and api, defined once.
 
@@ -13,8 +13,41 @@ export const NoteSort = z.enum(['urgency', 'due_date', 'newest', 'oldest']);
 export type NoteSort = z.infer<typeof NoteSort>;
 export const DEFAULT_NOTE_SORT: NoteSort = 'urgency';
 
-export const Settings = z.object({ noteSort: NoteSort });
+/** Optional note-form fields the user can hide. Body and status are required, so not listed. */
+export const HideableField = z.enum(['title', 'categories', 'dueDate', 'importance', 'urgency']);
+export type HideableField = z.infer<typeof HideableField>;
+
+/** How a choice field (importance, urgency) shows in the note form. */
+export const ChoiceDisplay = z.enum(['dropdown', 'buttons']);
+export type ChoiceDisplay = z.infer<typeof ChoiceDisplay>;
+
+const choiceSettings = <T extends z.ZodEnum>(values: T) =>
+  z.object({
+    display: ChoiceDisplay.default('dropdown'),
+    /** Values the form does not offer; a note that already has one still shows it. */
+    hiddenValues: z.array(values).default([]),
+  });
+
+export const NoteForm = z.object({
+  hiddenFields: z.array(HideableField).default([]),
+  importance: choiceSettings(Importance).default({ display: 'dropdown', hiddenValues: [] }),
+  urgency: choiceSettings(Urgency).default({ display: 'dropdown', hiddenValues: [] }),
+});
+export type NoteForm = z.infer<typeof NoteForm>;
+export const DEFAULT_NOTE_FORM: NoteForm = NoteForm.parse({});
+
+export const Settings = z.object({
+  noteSort: NoteSort,
+  noteForm: NoteForm.default(DEFAULT_NOTE_FORM),
+});
 export type Settings = z.infer<typeof Settings>;
+
+/** Written out by hand: `Settings.partial()` would let the Zod default wipe the stored form. */
+export const SettingsPatch = z.object({
+  noteSort: NoteSort.optional(),
+  noteForm: NoteForm.optional(),
+});
+export type SettingsPatch = z.infer<typeof SettingsPatch>;
 
 /** Error body the API returns for auth failures: `401 unauthorized`, `403 not_allowed`. */
 export const ApiError = z.object({ error: z.string() });
@@ -35,6 +68,7 @@ export const Category = z.object({
   deleted: z.boolean(),
   /** Optional default importance for notes in this category. */
   importance: Importance.nullable(),
+  color: CategoryColor,
 });
 export type Category = z.infer<typeof Category>;
 
@@ -52,11 +86,17 @@ export type NameBody = z.infer<typeof NameBody>;
 export const ImportanceBody = z.object({ importance: Importance.nullable() });
 export type ImportanceBody = z.infer<typeof ImportanceBody>;
 
+/** Body of `PUT /categories/:id/color`. */
+export const ColorBody = z.object({ color: CategoryColor });
+export type ColorBody = z.infer<typeof ColorBody>;
+
 export * from './attachments';
 export * from './notes';
 export * from './noteQuery';
+export * from './noteStatus';
 export * from './links';
 export * from './imports';
+export * from './workspaces';
 
 /** `GET /me`: who the caller is, so the web knows whether to show the admin screen. */
 export const Me = z.object({ email: z.string(), isAdmin: z.boolean() });

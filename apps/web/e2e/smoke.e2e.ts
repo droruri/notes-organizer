@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('dev sign-in opens the notes screen, loaded from the API', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
 });
 
 test('the language toggle switches to English LTR and survives a reload', async ({ page }) => {
@@ -26,10 +26,10 @@ test('a share launch opens the add-note editor prefilled and clears the URL', as
 test('reloading offline with a stored session opens the app, not sign-in', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   // The page shell loads from the dev server; cut only the API, as offline does for /me.
   await page.route('**/me', (route) => route.abort('internetdisconnected'));
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'כניסת פיתוח' })).toHaveCount(0);
 });

@@ -4,6 +4,7 @@
     "menu": "תפריט"
   },
   "language": {
+    "label": "שפה",
     "switchTo": "English"
   },
   "status": {
@@ -49,8 +50,12 @@
     "error": "משהו השתבש. נסה שוב.",
     "noteTitle": "כותרת (לא חובה)",
     "body": "טקסט",
+    "workspace": "סביבת עבודה",
+    "tracksStatus": "מעקב סטטוס",
+    "savedIn": "נשמר ב‑{{name}}",
     "dueDate": "תאריך יעד",
     "importance": "חשיבות",
+    "importanceFromCategory": "נקבע לפי הקטגוריה {{name}}",
     "urgency": "דחיפות",
     "none": "—",
     "importanceValues": {
@@ -76,7 +81,15 @@
       "createIn": "הוסף אל",
       "newCategory": "קטגוריה חדשה",
       "add": "הוספה",
-      "tags": "תגיות"
+      "tags": "תגיות",
+      "more": "קטגוריות נוספות",
+      "dialogTitle": "בחירת קטגוריות",
+      "filter": "חיפוש קטגוריה",
+      "confirm": "אישור",
+      "cancel": "ביטול",
+      "close": "סגירה",
+      "noMatch": "אין קטגוריה בשם הזה. אפשר ליצור אותה בטופס.",
+      "suggested": "הוצע"
     },
     "expand": "הרחבה",
     "collapse": "כיווץ",
@@ -96,7 +109,33 @@
     "suggestHint": "Claude יציע קטגוריה, תגיות ותאריך יעד. אפשר לשנות הכל לפני השמירה.",
     "reviewTitle": "בדיקת הפתק",
     "editTitle": "עריכת פתק",
-    "suggested": "הצעה של Claude"
+    "suggested": "הצעה של Claude",
+    "formSettings": {
+      "open": "הגדרות טופס",
+      "title": "הגדרות טופס",
+      "save": "שמירת הגדרות",
+      "cancel": "ביטול",
+      "saving": "שומר…",
+      "error": "לא הצלחנו לשמור את ההגדרות. נסו שוב.",
+      "always": "תמיד מוצג",
+      "hidden": "מוסתר",
+      "show": "הצגת {{field}}",
+      "values": "ערכים",
+      "lastValue": "לפחות ערך אחד נשאר זמין.",
+      "displayAs": "הצגה כ־",
+      "display": {
+        "dropdown": "רשימה נפתחת",
+        "buttons": "כפתורים"
+      },
+      "fields": {
+        "title": "כותרת",
+        "body": "טקסט",
+        "categories": "קטגוריות ותגיות",
+        "dueDate": "תאריך יעד",
+        "importance": "חשיבות",
+        "urgency": "דחיפות"
+      }
+    }
   },
   "filters": {
     "title": "סינון",
@@ -188,6 +227,9 @@
         "category": "למחוק את הקטגוריה \"{{name}}\"",
         "tag": "למחוק את התגית \"{{name}}\""
       },
+      "recolor": {
+        "category": "לצבוע את הקטגוריה \"{{name}}\" ב{{color}}"
+      },
       "restore": {
         "category": "לשחזר את הקטגוריה \"{{name}}\"",
         "tag": "לשחזר את התגית \"{{name}}\""
@@ -211,6 +253,19 @@
     "deleteItem": "מחיקת {{name}}",
     "restore": "שחזור",
     "restoreItem": "שחזור {{name}}",
+    "color": {
+      "labelFor": "צבע של {{name}}",
+      "names": {
+        "blue": "כחול",
+        "green": "ירוק",
+        "purple": "סגול",
+        "amber": "כתום",
+        "teal": "טורקיז",
+        "pink": "ורוד",
+        "red": "אדום",
+        "slate": "אפור"
+      }
+    },
     "importance": {
       "labelFor": "חשיבות ברירת מחדל ל{{name}}",
       "label": "חשיבות ברירת מחדל",
@@ -259,6 +314,7 @@
     "placeholder": "הדביקו כאן פתקים ישנים (עד 50,000 תווים)…",
     "file": "בחירת קובץ txt.",
     "tooLong": "הטקסט ארוך מ-50,000 תווים.",
+    "workspace": "ייבוא למרחב עבודה",
     "analyze": "ניתוח",
     "analyzing": "Claude מפצל וממיין את הפתקים… זה יכול לקחת עד דקה.",
     "error": "הניתוח נכשל. נסו שוב.",
@@ -297,5 +353,27 @@
     "send": "שלח",
     "later": "אחר כך",
     "dismiss": "סגור"
+  },
+  "workspaces": {
+    "menu": "מרחבי עבודה",
+    "title": "מרחבי עבודה",
+    "close": "סגירה",
+    "default": "ברירת מחדל",
+    "nameLabel": "שם מרחב חדש",
+    "add": "הוספה",
+    "nameTaken": "כבר יש מרחב בשם הזה",
+    "error": "לא הצלחנו לשמור את המרחב. נסו שוב.",
+    "loadError": "לא הצלחנו לטעון את המרחבים.",
+    "actions": "פעולות עבור {{name}}",
+    "rename": "שינוי שם",
+    "renameLabel": "שם המרחב",
+    "makeDefault": "קבע כברירת מחדל",
+    "delete": "מחיקה",
+    "confirmDelete": "למחוק את “{{name}}”? הפתקים שלו יעברו אל “{{target}}”.",
+    "confirm": "מחיקה",
+    "cancel": "ביטול",
+    "invalidName": "השם לא יכול להיות ריק",
+    "isDefault": "אי אפשר למחוק את מרחב ברירת המחדל",
+    "notFound": "המרחב כבר לא קיים"
   }
 }

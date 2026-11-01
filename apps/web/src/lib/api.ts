@@ -1,4 +1,5 @@
 import {
+  type CategoryColor,
   type ActionsBody,
   ActionsResponse,
   AddUserBody,
@@ -26,9 +27,13 @@ import {
   NoteEdit,
   NoteList,
   Settings,
+  type SettingsPatch,
   Suggestion,
   Tag,
   Taxonomy,
+  Workspace,
+  type WorkspaceEdit,
+  WorkspaceList,
 } from '@notes/shared';
 import { z } from 'zod';
 import { accessToken } from './supabase';
@@ -107,6 +112,7 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
   form.set('today', meta.today);
   form.set('locale', meta.locale);
   if (meta.title) form.set('title', meta.title);
+  if (meta.workspaceId) form.set('workspaceId', meta.workspaceId);
   form.set('audio', audio, 'voice');
   return request('POST', '/notes', NoteCreated, form);
 }
@@ -203,13 +209,20 @@ export const api = {
     request('DELETE', `/users/${encodeURIComponent(email)}`, NoContent),
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
-  saveSettings: (settings: Settings) => request('PUT', '/settings', Settings, settings),
+  saveSettings: (patch: SettingsPatch) => request('PUT', '/settings', Settings, patch),
   taxonomy: () => request('GET', '/taxonomy', Taxonomy),
+  workspaces: () => request('GET', '/workspaces', WorkspaceList),
+  createWorkspace: (name: string) => request('POST', '/workspaces', Workspace, { name }),
+  editWorkspace: (id: string, edit: WorkspaceEdit) =>
+    request('PATCH', `/workspaces/${id}`, Workspace, edit),
+  deleteWorkspace: (id: string) => request('DELETE', `/workspaces/${id}`, NoContent),
   applyActions: (input: ActionsBody) =>
     request('POST', '/taxonomy/actions', ActionsResponse, input),
   createCategory: (name: string) => request('POST', '/categories', Category, { name }),
   renameCategory: (id: string, name: string) =>
     request('PATCH', `/categories/${id}`, Category, { name }),
+  setCategoryColor: (id: string, color: CategoryColor) =>
+    request('PUT', `/categories/${id}/color`, Category, { color }),
   setCategoryImportance: (id: string, importance: Importance | null) =>
     request('PUT', `/categories/${id}/importance`, Category, { importance }),
   deleteCategory: (id: string) => request('DELETE', `/categories/${id}`, NoContent),

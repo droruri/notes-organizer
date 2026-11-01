@@ -7,9 +7,9 @@ const B = '22222222-2222-4222-8222-222222222222';
 const D = '33333333-3333-4333-8333-333333333333';
 const taxonomy: Taxonomy = {
   categories: [
-    { id: A, name: 'A', deleted: false, importance: 'important', tags: [] },
-    { id: B, name: 'B', deleted: false, importance: 'not_important', tags: [] },
-    { id: D, name: 'D', deleted: true, importance: 'important', tags: [] },
+    { id: A, name: 'A', deleted: false, importance: 'important', color: 'slate', tags: [] },
+    { id: B, name: 'B', deleted: false, importance: 'not_important', color: 'slate', tags: [] },
+    { id: D, name: 'D', deleted: true, importance: 'important', color: 'slate', tags: [] },
   ],
 };
 

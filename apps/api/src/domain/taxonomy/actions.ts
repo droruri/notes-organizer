@@ -14,6 +14,7 @@ function run(db: Db, userId: string, a: AgentAction): Promise<service.Result<unk
       ? service.renameCategory(db, userId, a.id, a.newName)
       : service.renameTag(db, userId, a.id, a.newName);
   }
+  if (a.action === 'recolor') return service.setCategoryColor(db, userId, a.id, a.color);
   const deleted = a.action === 'delete';
   return a.kind === 'category'
     ? service.setCategoryDeleted(db, userId, a.id, deleted)

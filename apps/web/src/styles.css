@@ -26,6 +26,23 @@
   --danger: #b42318;
   --danger-soft: #fdecea;
   --shadow-rgb: 22 36 42;
+  /* Category palette: ink on tint is 4.5:1, ink edge on --surface 3:1. No yellow (that is --marker). */
+  --cat-blue-tint: #dbeafe;
+  --cat-blue-ink: #1e40af;
+  --cat-green-tint: #dcfce7;
+  --cat-green-ink: #166534;
+  --cat-purple-tint: #ede9fe;
+  --cat-purple-ink: #5b21b6;
+  --cat-amber-tint: #ffedd5;
+  --cat-amber-ink: #9a3412;
+  --cat-teal-tint: #ccfbf1;
+  --cat-teal-ink: #115e59;
+  --cat-pink-tint: #fce7f3;
+  --cat-pink-ink: #9d174d;
+  --cat-red-tint: #fee2e2;
+  --cat-red-ink: #991b1b;
+  --cat-slate-tint: #e2e8f0;
+  --cat-slate-ink: #334155;
   /* The select arrow, stroked in --line-strong (a data URI cannot read a CSS variable). */
   --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23849397' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
 
@@ -55,6 +72,22 @@
     --danger: #f28b82;
     --danger-soft: #3a1d1b;
     --shadow-rgb: 0 0 0;
+    --cat-blue-tint: #1e3a5f;
+    --cat-blue-ink: #93c5fd;
+    --cat-green-tint: #14532d;
+    --cat-green-ink: #86efac;
+    --cat-purple-tint: #3b2a6b;
+    --cat-purple-ink: #c4b5fd;
+    --cat-amber-tint: #5a2d0c;
+    --cat-amber-ink: #fdba74;
+    --cat-teal-tint: #134e4a;
+    --cat-teal-ink: #5eead4;
+    --cat-pink-tint: #5b1d3d;
+    --cat-pink-ink: #f9a8d4;
+    --cat-red-tint: #5c1f1f;
+    --cat-red-ink: #fca5a5;
+    --cat-slate-tint: #2b3a47;
+    --cat-slate-ink: #cbd5e1;
     --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%235f767c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
   }
 }
@@ -300,6 +333,9 @@
   .status-draft {
     --slip: var(--line-strong);
   }
+  .status-none {
+    --slip: var(--line);
+  }
   .status-todo {
     --slip: var(--accent);
   }
@@ -352,6 +388,35 @@
     }
   }
 
+  /* Category color swatches ---------------------------------------------------- */
+  .swatch {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: 9999px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .swatch-dot {
+    inline-size: 24px;
+    block-size: 24px;
+    border-radius: 9999px;
+    border: 2px solid;
+  }
+  .swatch[aria-checked='true'] {
+    box-shadow: 0 0 0 2px var(--fg);
+  }
+  .swatch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .swatch:not(:disabled):active {
+      scale: 0.92;
+    }
+  }
+
   /* Small labels ----------------------------------------------------------- */
   .pill {
     display: inline-flex;
@@ -394,6 +459,51 @@
     color: var(--fg);
     font-size: 0.8125rem;
     font-weight: 500;
+  }
+  .cat-pill[data-color='blue'],
+  .cat-pill[data-color='green'],
+  .cat-pill[data-color='purple'],
+  .cat-pill[data-color='amber'],
+  .cat-pill[data-color='teal'],
+  .cat-pill[data-color='pink'],
+  .cat-pill[data-color='red'],
+  .cat-pill[data-color='slate'] {
+    border-color: transparent;
+    border-inline-start: 3px solid var(--cat-ink);
+    background: var(--cat-tint);
+    color: var(--cat-ink);
+  }
+  .cat-pill[data-color='blue'] {
+    --cat-tint: var(--cat-blue-tint);
+    --cat-ink: var(--cat-blue-ink);
+  }
+  .cat-pill[data-color='green'] {
+    --cat-tint: var(--cat-green-tint);
+    --cat-ink: var(--cat-green-ink);
+  }
+  .cat-pill[data-color='purple'] {
+    --cat-tint: var(--cat-purple-tint);
+    --cat-ink: var(--cat-purple-ink);
+  }
+  .cat-pill[data-color='amber'] {
+    --cat-tint: var(--cat-amber-tint);
+    --cat-ink: var(--cat-amber-ink);
+  }
+  .cat-pill[data-color='teal'] {
+    --cat-tint: var(--cat-teal-tint);
+    --cat-ink: var(--cat-teal-ink);
+  }
+  .cat-pill[data-color='pink'] {
+    --cat-tint: var(--cat-pink-tint);
+    --cat-ink: var(--cat-pink-ink);
+  }
+  .cat-pill[data-color='red'] {
+    --cat-tint: var(--cat-red-tint);
+    --cat-ink: var(--cat-red-ink);
+  }
+  .cat-pill[data-color='slate'] {
+    --cat-tint: var(--cat-slate-tint);
+    --cat-ink: var(--cat-slate-ink);
   }
   .tag-box {
     display: inline-flex;
@@ -537,6 +647,54 @@
     .menu-item:hover {
       background: var(--surface-hover);
     }
+  }
+  /* The app menu: a wider panel with roomier, thumb-sized rows. */
+  .menu-trigger[aria-expanded='true'] {
+    background: var(--surface-hover);
+  }
+  .menu-app {
+    width: 17.5rem;
+    padding: 0.375rem;
+    /* .menu-item radius (10px) + padding (6px) + border (1px). */
+    border-radius: 17px;
+  }
+  .menu-app .menu-item {
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+  .menu-item:focus-visible {
+    outline-offset: -2px;
+  }
+  .menu-item-danger {
+    color: var(--danger);
+  }
+  @media (hover: hover) {
+    .menu-item-danger:hover {
+      background: var(--danger-soft);
+    }
+  }
+  .menu-sep {
+    height: 1px;
+    margin: 0.375rem 0.75rem;
+    background: var(--line);
+  }
+  .menu-lang {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding-inline: 0.75rem 0.375rem;
+  }
+  .menu-lang-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .menu-lang .segment {
+    padding: 0 0.625rem;
   }
   /* Holds every open toast, so two at once stack instead of overlapping. */
   .toast-stack {

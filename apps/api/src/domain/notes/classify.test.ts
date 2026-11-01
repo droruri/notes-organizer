@@ -14,6 +14,7 @@ const taxonomy: Taxonomy = {
       name: 'Work',
       deleted: false,
       importance: null,
+      color: 'slate',
       tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
     },
     {
@@ -21,6 +22,7 @@ const taxonomy: Taxonomy = {
       name: 'Old',
       deleted: true,
       importance: null,
+      color: 'slate',
       tags: [{ id: T2, categoryId: C2, name: 'x', deleted: false }],
     },
   ],
@@ -161,6 +163,7 @@ describe('classify importance inheritance', () => {
         name: 'Work',
         deleted: false,
         importance: 'important',
+        color: 'slate',
         tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
       },
     ],
@@ -181,5 +184,51 @@ describe('classify importance inheritance', () => {
   it('a suggested tag implies its category', async () => {
     const ai = createFakeAi([{ value: { tagIds: [T1] } }]);
     expect((await classify(ai, input)).importance).toBe('important');
+  });
+});
+
+describe('classify workspaces', () => {
+  const W1 = '55555555-5555-4555-8555-555555555555';
+  const W2 = '66666666-6666-4666-8666-666666666666';
+  const input = {
+    body: 'pay rent',
+    today: '2026-10-25',
+    locale: 'en' as const,
+    taxonomy,
+    links: [],
+  };
+  const two = [
+    { id: W1, name: 'Home', isDefault: true },
+    { id: W2, name: 'Work', isDefault: false },
+  ];
+
+  it('has no workspace block with one workspace', async () => {
+    const ai = createFakeAi([{ value: {} }]);
+    await classify(ai, { ...input, workspaces: two.slice(0, 1) });
+    expect(ai.calls[0]?.prompt).not.toContain('Workspaces');
+  });
+
+  it('lists id | name lines only with 2+ workspaces', async () => {
+    const ai = createFakeAi([{ value: { workspaceId: W2 } }]);
+    const s = await classify(ai, { ...input, workspaces: two });
+    const prompt = ai.calls[0]?.prompt ?? '';
+    expect(prompt).toContain(`Workspaces (id | name):\n${W1} | Home\n${W2} | Work`);
+    expect(prompt).not.toContain('isDefault');
+    expect(s.workspaceId).toBe(W2);
+  });
+
+  it('maps an unknown id to null', async () => {
+    const ai = createFakeAi([{ value: { workspaceId: '77777777-7777-4777-8777-777777777777' } }]);
+    expect((await classify(ai, { ...input, workspaces: two })).workspaceId).toBeNull();
+  });
+});
+
+describe('classify actionable', () => {
+  it('maps actionable: false to tracksStatus false; missing or null to true', () => {
+    expect(mapSuggestion(raw({ actionable: false }), taxonomy).tracksStatus).toBe(false);
+    expect(mapSuggestion(raw({ actionable: true }), taxonomy).tracksStatus).toBe(true);
+    expect(mapSuggestion(raw({}), taxonomy).tracksStatus).toBe(true);
+    expect(mapSuggestion(raw({ actionable: null }), taxonomy).tracksStatus).toBe(true);
+    expect(mapSuggestion(raw({ actionable: 'maybe' }), taxonomy).tracksStatus).toBe(true);
   });
 });

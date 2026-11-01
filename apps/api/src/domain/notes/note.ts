@@ -1,18 +1,9 @@
-import { statusMoves } from '@notes/shared';
-import type { NewTag, NoteStatus, Taxonomy } from '@notes/shared';
+import type { NewTag, Taxonomy } from '@notes/shared';
 import { normalizeName } from '../taxonomy/taxonomy';
 
 // Pure note rules: status transitions, link invariants, and which new taxonomy a submit creates.
 
 export type Links = { categoryIds: string[]; tagIds: string[] };
-
-/** Draft → todo only (submit); then one step forward or back; never back to draft. */
-export function isValidTransition(from: NoteStatus, to: NoteStatus): boolean {
-  if (from === to) return true;
-  if (from === 'draft') return to === 'todo';
-  const { back, forward } = statusMoves(from);
-  return to === back || to === forward;
-}
 
 /** `today` is the client's local date; accept it only within a day of the server's UTC date. */
 export function isTodayPlausible(today: string, now: Date = new Date()): boolean {

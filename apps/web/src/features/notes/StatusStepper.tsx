@@ -1,4 +1,4 @@
-import { statusMoves, type NoteStatus } from '@notes/shared';
+import { statusClass, statusMoves, type NoteStatus } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 
 const step = 'btn btn-sm';
@@ -15,7 +15,7 @@ export function StatusStepper({
   const { back, forward } = statusMoves(status);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className={`pill pill-dot status-${status}`}>{t(`notes.status.${status}`)}</span>
+      <span className={`pill pill-dot ${statusClass(status)}`}>{t(`notes.status.${status}`)}</span>
       {[back, forward].map(
         (to) =>
           to && (

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { EMPTY_SUGGESTION, type Note } from '@notes/shared';
+import { DEFAULT_NOTE_FORM, EMPTY_SUGGESTION, type Note } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
@@ -28,6 +28,7 @@ const note = (n: number, body: string, tagIds: string[]): Note => ({
   title: null,
   body,
   status: 'todo',
+  workspaceId: '00000000-0000-4000-8000-0000000000f1',
   importance: null,
   urgency: null,
   dueDate: null,
@@ -75,11 +76,15 @@ describe('NotesScreen opened from a tag', () => {
           name: 'work',
           deleted: false,
           importance: null,
+          color: 'slate' as const,
           tags: [{ id: T1, categoryId: C, name: 'urgent', deleted: false }],
         },
       ],
     });
-    vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'newest' });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+    });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
@@ -98,7 +103,10 @@ describe('NotesScreen modes from the URL', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(api, 'notes').mockResolvedValue([note(1, 'first note', [])]);
     vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
-    vi.spyOn(api, 'settings').mockResolvedValue({ noteSort: 'newest' });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+    });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const Where = () => <p data-testid="where">{useLocation().pathname}</p>;
     render(
@@ -122,6 +130,18 @@ describe('NotesScreen modes from the URL', () => {
   it('shows compose on /new', async () => {
     setup('/new');
     await screen.findByRole('button', { name: 'Suggest' });
+  });
+
+  it('compose fields are rtl while empty and auto once they have text', async () => {
+    setup('/new');
+    const title = await screen.findByRole('textbox', { name: i18n.t('notes.noteTitle') });
+    const body = screen.getByRole('textbox', { name: i18n.t('notes.body') });
+    expect(title.getAttribute('dir')).toBe('rtl');
+    expect(body.getAttribute('dir')).toBe('rtl');
+    fireEvent.change(body, { target: { value: 'hello' } });
+    expect(body.getAttribute('dir')).toBe('auto');
+    fireEvent.change(body, { target: { value: '   ' } });
+    expect(body.getAttribute('dir')).toBe('rtl');
   });
 
   it('shows the editor on /notes/:id', async () => {

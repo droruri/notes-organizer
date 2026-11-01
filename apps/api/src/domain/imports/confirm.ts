@@ -5,11 +5,13 @@ import { withTransaction } from '../../tx';
 import { planLinks, planNewTaxonomy } from '../notes/note';
 import * as notesRepo from '../notes/repository';
 import { createPlanned, getTaxonomy } from '../taxonomy/service';
+import { listWorkspaces } from '../workspaces/service';
+import { resolveWorkspace } from '../workspaces/workspaces';
 
 // Import confirm: create the chosen taxonomy and notes in one transaction, all or nothing.
 
 export type ConfirmResult =
-  | { ok: true; value: ImportCreated }
+  | { ok: true; value: ImportCreated; workspaceId: string }
   | { ok: false; error: 'unknown_taxonomy' };
 
 class Invalid extends Error {}
@@ -21,7 +23,8 @@ export function confirmImport(
 ): Promise<ConfirmResult> {
   return timed('confirmImport', {}, async () => {
     const result = await confirmImportUntimed(db, userId, input);
-    if (result.ok) log().info(result.value.created, 'import confirmed');
+    if (result.ok)
+      log().info({ ...result.value.created, workspaceId: result.workspaceId }, 'import confirmed');
     else log().warn({ error: result.error }, 'import rejected');
     return result;
   });
@@ -32,6 +35,8 @@ async function confirmImportUntimed(
   userId: string,
   input: ImportConfirm,
 ): Promise<ConfirmResult> {
+  const workspace = resolveWorkspace(await listWorkspaces(db, userId), input.workspaceId);
+  if (!workspace) throw new Error('user has no default workspace');
   try {
     return await withTransaction(db, async (tx): Promise<ConfirmResult> => {
       const plan = planNewTaxonomy(input.categories, input.tags, await getTaxonomy(tx, userId));
@@ -59,6 +64,7 @@ async function confirmImportUntimed(
         );
         if (!links) throw new Invalid();
         const id = await notesRepo.insertTodo(tx, userId, {
+          workspaceId: workspace.id,
           body: note.body,
           title: note.title ?? null,
           dueDate: note.dueDate ?? null,
@@ -70,6 +76,7 @@ async function confirmImportUntimed(
       }
       return {
         ok: true,
+        workspaceId: workspace.id,
         value: {
           created: {
             categories: plan.categories.length,

@@ -51,7 +51,7 @@ describe('VoiceRecorder', () => {
     });
     expect(screen.getByRole('timer').textContent).toBe('0:03');
     fireEvent.click(screen.getByText('עצור'));
-    fireEvent.click(screen.getByText('שלח הקלטה'));
+    expect(screen.queryByText('שלח הקלטה')).toBeNull();
     expect(onSend).toHaveBeenCalledOnce();
     expect(onSend.mock.calls[0]?.[0]).toBeInstanceOf(Blob);
   });
@@ -71,12 +71,34 @@ describe('VoiceRecorder', () => {
     expect(screen.getByRole('alert').textContent).toContain('הרשאת המיקרופון');
   });
 
-  it('shows the uploading state and an upload failure', async () => {
-    const { rerender } = render(<VoiceRecorder {...props} pending />);
+  it('shows the uploading state after stopping, with discard disabled', async () => {
+    render(<VoiceRecorder {...props} pending />);
     await act(async () => fireEvent.click(screen.getByText('הקלטה')));
     fireEvent.click(screen.getByText('עצור'));
-    expect(screen.getByText('מעלה ומתמלל…').closest('button')?.disabled).toBe(true);
-    rerender(<VoiceRecorder {...props} failed />);
+    expect(screen.getByRole('status').textContent).toContain('מעלה ומתמלל…');
+    expect(screen.getByText('מחק הקלטה').closest('button')?.disabled).toBe(true);
+  });
+
+  it('shows an upload failure with a retry that resends the same blob', async () => {
+    const onSend = vi.fn();
+    const { rerender } = render(<VoiceRecorder {...props} onSend={onSend} />);
+    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    fireEvent.click(screen.getByText('עצור'));
+    rerender(<VoiceRecorder {...props} onSend={onSend} failed />);
     expect(screen.getByRole('alert').textContent).toContain('העלאת ההקלטה נכשלה');
+    fireEvent.click(screen.getByText('שלח הקלטה'));
+    expect(onSend).toHaveBeenCalledTimes(2);
+    expect(onSend.mock.calls[1]?.[0]).toBe(onSend.mock.calls[0]?.[0]);
+  });
+
+  it('never sends when unmounted or discarded mid-recording', async () => {
+    const onSend = vi.fn();
+    const first = render(<VoiceRecorder {...props} onSend={onSend} />);
+    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    first.unmount();
+    render(<VoiceRecorder {...props} onSend={onSend} />);
+    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    fireEvent.click(screen.getByText('מחק הקלטה'));
+    expect(onSend).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@ const menuButton = (page: import('@playwright/test').Page) =>
 test('the app menu is visible on the list and in compose, and signs out', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
-  await expect(page.getByRole('heading', { name: 'הפתקים', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
   await expect(menuButton(page)).toBeVisible();
   await menuButton(page).click();
   await expect(page.getByRole('menuitem', { name: 'התנתקות' })).toBeVisible();

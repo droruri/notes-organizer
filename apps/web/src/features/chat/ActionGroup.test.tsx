@@ -24,6 +24,20 @@ const setup = (
 };
 
 describe('ActionGroup', () => {
+  it('approves two recolor cards in one request', async () => {
+    const id = (n: number) => `${n}`.repeat(8) + '-1111-4111-8111-111111111111';
+    const R: AgentAction[] = [
+      { action: 'recolor', kind: 'category', id: id(1), name: 'Work', color: 'blue' },
+      { action: 'recolor', kind: 'category', id: id(2), name: 'Home', color: 'blue' },
+    ];
+    const { fn } = setup(R);
+    expect(screen.getAllByText(/work|home/i).length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('.cat-pill[data-color="blue"]')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: allBtn }));
+    await waitFor(() => expect(fn).toHaveBeenCalledTimes(1));
+    expect(fn).toHaveBeenCalledWith({ actions: R });
+  });
+
   it('approves all cards with one request and one refresh', async () => {
     const { fn, onApplied } = setup(A);
     fireEvent.click(screen.getByRole('button', { name: /\(3\)/ }));

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { api, ApiRequestError } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
+import { ColorControl } from './ColorControl';
 import { ImportanceControl } from './ImportanceControl';
 
 type TaxonomyApi = Pick<
@@ -14,6 +15,7 @@ type TaxonomyApi = Pick<
   | 'deleteCategory'
   | 'restoreCategory'
   | 'setCategoryImportance'
+  | 'setCategoryColor'
   | 'createTag'
   | 'renameTag'
   | 'deleteTag'
@@ -220,6 +222,15 @@ export function TaxonomyScreen({
                   value={c.importance}
                   disabled={run.isPending}
                   onChange={(next) => write(() => taxonomyApi.setCategoryImportance(c.id, next))}
+                />
+              )}
+
+              {!c.deleted && (
+                <ColorControl
+                  name={c.name}
+                  value={c.color}
+                  disabled={run.isPending}
+                  onChange={(next) => write(() => taxonomyApi.setCategoryColor(c.id, next))}
                 />
               )}
 

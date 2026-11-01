@@ -31,6 +31,7 @@ Decisions taken with the user:
 | New taxonomy from Claude | Allowed, shown with a "new" badge, created only when the note is submitted. |
 | Status | `draft → todo → in_progress → done`; one step forward or back; no skipping; `draft` leaves only by submit. |
 | Category importance | A category has an optional default importance (none / important / not important), set with one tap on the categories screen and clearable. Deleted categories show it as a muted pill. |
+| Category color | Every category has one of 8 palette colors (`blue, green, purple, amber, teal, pink, red, slate`), assigned on creation as the least-used among the user's active categories (ties → palette order). Notes show their categories as colored tabs on the collapsed card. |
 | Deleting a category/tag | Soft delete: not offered for new choices, shown disabled on notes that have it, restorable. A deleted category makes its tags unavailable too. |
 | Notes | Every field editable after submit; soft delete with an Undo toast; "Re-analyze" re-runs Claude and fills the editor without writing. |
 | Link preview | YouTube/Vimeo play in an iframe; articles show an OG card; tap opens a server-extracted reader view. |
@@ -103,7 +104,7 @@ lib/i18n.ts         i18next: he (default) + en; sets <html lang dir>. locales/he
 features/auth/      AuthProvider, SignIn (Google), DevSignIn (seed user, DEV only), NoAccess.
 features/notes/     NotesScreen, NoteList, NoteCard, NoteFilters, NoteEditor, TaxonomyPicker,
                     VoiceRecorder, LinkPreview, UndoToast, useNotes.
-features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore, set a category's default importance with a three-segment radio group; tap a tag to filter notes).
+features/taxonomy/  TaxonomyScreen (categories & tags: add, rename, delete, restore, set a category's default importance with a three-segment radio group and its color with a row of 8 swatches (`ColorControl`); tap a tag to filter notes).
 features/chat/      ChatPanel, ActionCard.
 features/imports/   ImportDialog.
 features/offline/   outbox.ts (localStorage + idb-keyval), useOnline, OfflineBanner, OutboxDialog.
@@ -140,8 +141,8 @@ erDiagram
   notes ||--o| note_audio : ""
   notes ||--o{ note_attachments : ""
   auth_users ||--o{ allowed_users : "added_by"
-  user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" }
-  categories { uuid id PK uuid user_id FK text name importance importance "optional default" timestamptz deleted_at timestamptz created_at }
+  user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" jsonb note_form "nullable, null = defaults" }
+  categories { uuid id PK uuid user_id FK text name importance importance "optional default" category_color color timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
   notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
   note_categories { uuid note_id PK uuid category_id PK }
@@ -152,7 +153,8 @@ erDiagram
 ```
 
 - Enums: `note_status (draft, todo, in_progress, done)`, `importance (important, not_important)`,
-  `urgency (not_critical, medium, critical, urgent)`. `importance`, `urgency`, `due_date` nullable.
+  `urgency (not_critical, medium, critical, urgent)`,
+  `category_color (blue, green, purple, amber, teal, pink, red, slate)`. `importance`, `urgency`, `due_date` nullable.
 - Unique active names: `unique (user_id, lower(name)) where deleted_at is null` on categories;
   `unique (category_id, lower(name)) where deleted_at is null` on tags;
   `unique (user_id, client_id)` on notes.
@@ -211,11 +213,12 @@ caller's `user_id`; another user's id behaves as not found.
 | POST | `/users` | `{email, isAdmin?}` | `201 {email, isAdmin, createdAt}` · `422 invalid_email` · `409 exists` |
 | PATCH | `/users/:email` | `{isAdmin}` | updated user · `404` · `422 invalid_body` · `422 last_admin` / `cannot_change_self` on demote |
 | DELETE | `/users/:email` | — | `204` · `404` · `422 last_admin` / `cannot_change_self` |
-| GET / PUT | `/settings` | `{noteSort}` | `Settings` (defaults when no row) |
+| GET / PUT | `/settings` | `{noteSort?, noteForm?}` (patch; defined keys merged) | `Settings` (defaults when no row) |
 | GET | `/taxonomy` | — | categories with their tags, deleted ones included and flagged |
 | POST | `/categories` | `{name}` | `201 Category` · `409 name_taken` |
 | PATCH | `/categories/:id` | `{name}` | `Category` · `409 name_taken` |
 | DELETE | `/categories/:id` | — | `204` (soft) |
+| PUT | `/categories/:id/color` | `{color: blue\|green\|purple\|amber\|teal\|pink\|red\|slate}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | PUT | `/categories/:id/importance` | `{importance: important\|not_important\|null}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | POST | `/categories/:id/restore` | — | `Category` · `409 name_taken` if an active one has the name |
 | POST | `/categories/:id/tags` | `{name}` | `201 Tag` · `409 name_taken` · `422 category_deleted` |
@@ -282,7 +285,8 @@ Rules:
   - `find_notes({categoryIds?, tagIds?, statuses?, overdue?, text?, dueBefore?, dueAfter?,
     limit ≤ 100})` — loads the user's notes and runs shared `filterNotes` + `sortNotes`; returns
     rows `id | status | due | importance | urgency | categories | tags | body (≤ 1 000 chars)`.
-  - `propose_change(action)` — `create | rename | delete | restore` × `category | tag`; checks it
+  - `propose_change(action)` — `create | rename | delete | restore` × `category | tag`, plus
+    `recolor` (category only, one of the 8 palette keys; one call per category); checks it
     against the DB and returns an `AgentAction` or `{error}`. **Writes nothing.**
   - `maxSteps` 6; last 20 messages; answer in the request `locale`; ground answers in tool
     results only; note ids cited in the answer are checked before the web renders them.
@@ -330,11 +334,11 @@ and Re-analyze are the safety net.
   status, category and tag chips (deleted ones greyed), link previews, audio player, a
   "link not read" chip per entry in `unreadLinks`.
 - **NoteEditor** — one component with four callers: new draft review, edit, outbox item, import
-  row. Body, `TaxonomyPicker` (existing chips, Claude's new names with a "new" badge, inline
-  create), due date, importance, urgency, status stepper (one step forward/back), link previews,
+  row. Body, `TaxonomyPicker` (existing chips, alphabetical (Hebrew-aware), Claude's new names with a "new" badge, inline
+  create; below `sm` only suggested + selected categories show inline, the rest via a "more categories" bottom-sheet dialog), due date, importance, urgency, status stepper (one step forward/back), link previews,
   audio player, Re-analyze, Submit/Save.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.
-- **Chat:** side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
+- **Chat:** recolor cards show a `.cat-pill` preview in the new color. Side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
   Approve / Dismiss; the cards of one answer form an action group, with "Approve all (N)" sending
   one `POST /taxonomy/actions`.
 - **Import:** paste into a textarea or pick a `.txt` file → analyze → review (new categories, new

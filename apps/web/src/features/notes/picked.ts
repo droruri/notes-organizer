@@ -14,5 +14,6 @@ export function pickedFrom(s: Suggestion): Picked {
         )
       : s.newTags,
     offeredCategories: s.newCategories,
+    suggestedCategoryIds: s.categoryIds,
   };
 }

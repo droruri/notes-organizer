@@ -64,4 +64,44 @@ describe.skipIf(!databaseUrl)('applyActions logs', () => {
     expect(text).not.toContain(other);
     await app.close();
   });
+
+  it('applies several recolors and logs "actions applied"', async () => {
+    const { app, lines } = captureLogs({ db: pool });
+    const headers = { authorization: 'Bearer allowed' };
+    const ids: string[] = [];
+    for (const n of ['recolor-a', 'recolor-b']) {
+      const r = await app.inject({
+        method: 'POST',
+        url: '/categories',
+        headers,
+        payload: { name: `${n}-${randomUUID()}` },
+      });
+      ids.push(r.json().id);
+    }
+    const res = await app.inject({
+      method: 'POST',
+      url: '/taxonomy/actions',
+      headers,
+      payload: {
+        actions: ids.map((id) => ({
+          action: 'recolor',
+          kind: 'category',
+          id,
+          name: 'x',
+          color: 'blue',
+        })),
+      },
+    });
+    expect(res.json()).toEqual({ results: [{ ok: true }, { ok: true }] });
+    expect(lines.filter((l) => l.msg === 'actions applied')).toMatchObject([
+      { applied: 2, failed: 0 },
+    ]);
+    const tax = await app.inject({ method: 'GET', url: '/taxonomy', headers });
+    const colors = tax
+      .json()
+      .categories.filter((c: { id: string }) => ids.includes(c.id))
+      .map((c: { color: string }) => c.color);
+    expect(colors).toEqual(['blue', 'blue']);
+    await app.close();
+  });
 });

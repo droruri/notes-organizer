@@ -4,6 +4,19 @@ import { Attachment } from './attachments';
 export const NoteStatus = z.enum(['draft', 'todo', 'in_progress', 'done']);
 export type NoteStatus = z.infer<typeof NoteStatus>;
 
+/** Palette keys for a category's color, in the order new categories are assigned them. */
+export const CategoryColor = z.enum([
+  'blue',
+  'green',
+  'purple',
+  'amber',
+  'teal',
+  'pink',
+  'red',
+  'slate',
+]);
+export type CategoryColor = z.infer<typeof CategoryColor>;
+
 export const Importance = z.enum(['important', 'not_important']);
 export type Importance = z.infer<typeof Importance>;
 
@@ -37,6 +50,8 @@ export type NewTag = z.infer<typeof NewTag>;
 export const Proposed = z.object({
   newCategories: z.array(z.string()),
   newTags: z.array(NewTag),
+  /** The draft's "track status" switch until submit; missing = on. */
+  tracksStatus: z.boolean().optional(),
 });
 export type Proposed = z.infer<typeof Proposed>;
 
@@ -49,6 +64,10 @@ export const Suggestion = Proposed.extend({
   urgency: Urgency.nullable(),
   /** A short title Claude proposes; null when it gave none. */
   title: z.string().nullable(),
+  /** The workspace Claude picked (one of the user's); null when it picked none. */
+  workspaceId: z.uuid().nullable(),
+  /** Whether the note is something to do, so it should have a status. */
+  tracksStatus: z.boolean(),
   /** Links in the body that Claude could not read (set by the service, not by Claude). */
   unreadLinks: z.array(z.string()),
 });
@@ -59,7 +78,8 @@ export const Note = z.object({
   clientId: z.uuid(),
   title: z.string().nullable(),
   body: z.string(),
-  status: NoteStatus,
+  status: NoteStatus.nullable(),
+  workspaceId: z.uuid(),
   importance: Importance.nullable(),
   urgency: Urgency.nullable(),
   dueDate: DateString.nullable(),
@@ -84,6 +104,8 @@ export const EMPTY_SUGGESTION: Suggestion = {
   importance: null,
   urgency: null,
   title: null,
+  workspaceId: null,
+  tracksStatus: true,
   unreadLinks: [],
 };
 
@@ -98,6 +120,8 @@ export function suggestionOf(note: Note): Suggestion {
     importance: note.importance,
     urgency: note.urgency,
     title: note.title,
+    workspaceId: note.workspaceId,
+    tracksStatus: note.proposed?.tracksStatus ?? true,
     unreadLinks: note.unreadLinks,
   };
 }
@@ -109,6 +133,8 @@ export const NoteCreate = z.object({
   clientId: z.uuid(),
   today: DateString,
   locale: Locale,
+  /** The current workspace; the API falls back to the default if missing or not the caller's. */
+  workspaceId: z.uuid().optional(),
 });
 export type NoteCreate = z.infer<typeof NoteCreate>;
 
@@ -126,7 +152,10 @@ export const NoteEdit = z.object({
   dueDate: DateString.nullable().optional(),
   importance: Importance.nullable().optional(),
   urgency: Urgency.nullable().optional(),
-  status: NoteStatus.optional(),
+  /** `null` turns status tracking off. */
+  status: NoteStatus.nullable().optional(),
+  /** Moves the note; must be one of the caller's workspaces. */
+  workspaceId: z.uuid().optional(),
   /** Replaces the stored list; the web sends the suggestion's list on submit / save. */
   unreadLinks: z.array(z.string().max(2000)).max(100).optional(),
 });
@@ -148,18 +177,6 @@ export const NoteList = z.array(Note);
 /** Body of `POST /notes/:id/analyze`. */
 export const NoteAnalyze = z.object({ today: DateString, locale: Locale });
 export type NoteAnalyze = z.infer<typeof NoteAnalyze>;
-
-const FLOW: NoteStatus[] = ['todo', 'in_progress', 'done'];
-
-/** The legal one-step moves from a status. A draft has none (submit is not a step). */
-export function statusMoves(status: NoteStatus): {
-  back: NoteStatus | null;
-  forward: NoteStatus | null;
-} {
-  const i = FLOW.indexOf(status);
-  if (i === -1) return { back: null, forward: null };
-  return { back: FLOW[i - 1] ?? null, forward: FLOW[i + 1] ?? null };
-}
 
 /** Chat history sent with `POST /chat`; the server keeps only the last 20. */
 export const ChatMessage = z.object({
@@ -201,6 +218,13 @@ export const AgentAction = z.union([
     kind: z.enum(['category', 'tag']),
     id: z.uuid(),
     name: z.string(),
+  }),
+  z.object({
+    action: z.literal('recolor'),
+    kind: z.literal('category'),
+    id: z.uuid(),
+    name: z.string(),
+    color: CategoryColor,
   }),
 ]);
 export type AgentAction = z.infer<typeof AgentAction>;

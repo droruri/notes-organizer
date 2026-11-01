@@ -1,19 +1,27 @@
 import {
+  DEFAULT_NOTE_FORM,
+  HideableField,
   Importance,
   MAX_TITLE_LENGTH,
   Urgency,
+  raiseImportance,
   type Note,
   type NoteEdit,
   type NoteStatus,
   type Suggestion,
   type Taxonomy,
+  type Workspace,
 } from '@notes/shared';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
+import { ChoiceField } from './ChoiceField';
+import { NoteFormSettings } from './NoteFormSettings';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusStepper } from './StatusStepper';
@@ -34,6 +42,7 @@ export function NoteEditor({
   onReanalyze,
   onDelete,
   attachable,
+  workspaces = [],
 }: {
   note: Note;
   suggestion: Suggestion;
@@ -47,25 +56,65 @@ export function NoteEditor({
   onDelete?: (() => void) | undefined;
   /** Show the attachments with an "Add file" button; omit for notes that are not stored yet. */
   attachable?: boolean | undefined;
+  /** Offer the workspace select when there is a choice; omit for notes that are not stored yet. */
+  workspaces?: readonly Workspace[] | undefined;
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const slow = useSlow(busy);
+  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const noteForm = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
+  const hidden = new Set<HideableField>(noteForm.hiddenFields);
+  const [formSettingsOpen, setFormSettingsOpen] = useState(false);
+  const gridCols = (['dueDate', 'importance', 'urgency'] satisfies HideableField[]).filter(
+    (f) => !hidden.has(f),
+  ).length;
   // Any field Claude filled in counts; comparing JSON would depend on key order.
-  const hasSuggestion = Object.values(suggestion).some((v) =>
+  const { workspaceId: suggestedWorkspace, tracksStatus: suggestedTracks, ...content } = suggestion;
+  const hasSuggestion = Object.values(content).some((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
   );
+  const [workspaceId, setWorkspaceId] = useState(suggestedWorkspace ?? note.workspaceId);
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
+  // Name of the category that raised importance; cleared when the field is changed by hand.
+  const [importanceHint, setImportanceHint] = useState<string | null>(null);
   const [urgency, setUrgency] = useState<Urgency | null>(suggestion.urgency);
 
-  const [status, setStatus] = useState<NoteStatus>(note.status === 'draft' ? 'todo' : note.status);
+  const [status, setStatus] = useState<NoteStatus>(
+    note.status === 'draft' || note.status === null ? 'todo' : note.status,
+  );
+  // Review starts from the AI's guess, edit from whether the note has a status.
+  const [tracksStatus, setTracksStatus] = useState(
+    note.status === 'draft' ? suggestedTracks : note.status !== null,
+  );
   const [analyzing, setAnalyzing] = useState(false);
   const slowReanalyze = useSlow(analyzing);
   const [analyzeFailed, setAnalyzeFailed] = useState(false);
+
+  /** Only categories added by this change (directly or via a tag) can raise importance. */
+  const changePicked = (next: Picked) => {
+    const tagCategory = (id: string) =>
+      taxonomy.categories.find((c) => c.tags.some((tg) => tg.id === id))?.id;
+    const added = [
+      ...next.categoryIds.filter((id) => !picked.categoryIds.includes(id)),
+      ...next.tagIds
+        .filter((id) => !picked.tagIds.includes(id))
+        .map(tagCategory)
+        .filter((id): id is string => id !== undefined),
+    ];
+    setPicked(next);
+    const raised = raiseImportance(importance, added, taxonomy);
+    if (raised === importance) return;
+    setImportance(raised);
+    setImportanceHint(
+      taxonomy.categories.find((c) => added.includes(c.id) && c.importance === raised)?.name ??
+        null,
+    );
+  };
 
   /** Fill the fields with a fresh suggestion; nothing is saved until Submit. */
   const reanalyze = async () => {
@@ -78,8 +127,11 @@ export function NoteEditor({
       setTitle((cur) => (cur.trim() ? cur : (next.title ?? '')));
       setPicked(pickedFrom(next));
       setUnreadLinks(next.unreadLinks);
+      if (next.workspaceId) setWorkspaceId(next.workspaceId);
+      if (note.status === 'draft') setTracksStatus(next.tracksStatus);
       setDueDate(next.dueDate ?? '');
       setImportance(next.importance);
+      setImportanceHint(null);
       setUrgency(next.urgency);
     } catch {
       setAnalyzeFailed(true);
@@ -96,8 +148,9 @@ export function NoteEditor({
       dueDate: dueDate || null,
       importance,
       urgency,
-      status,
+      status: tracksStatus ? status : null,
       unreadLinks,
+      ...(workspaces.length > 1 ? { workspaceId } : {}),
     });
 
   return (
@@ -118,17 +171,27 @@ export function NoteEditor({
             {t('notes.suggested')}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => setFormSettingsOpen(true)}
+          aria-label={t('notes.formSettings.open')}
+          className="btn btn-ghost btn-icon btn-sm ms-auto"
+        >
+          <Icon name="sliders" size={18} />
+        </button>
       </div>
-      <label className="label">
-        {t('notes.noteTitle')}
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={MAX_TITLE_LENGTH}
-          dir="auto"
-          className={`${field} text-fg`}
-        />
-      </label>
+      {!hidden.has('title') && (
+        <label className="label">
+          {t('notes.noteTitle')}
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={MAX_TITLE_LENGTH}
+            dir="auto"
+            className={`${field} text-fg`}
+          />
+        </label>
+      )}
       <label className="label">
         {t('notes.body')}
         <textarea
@@ -147,55 +210,92 @@ export function NoteEditor({
       <LinkPreviews body={body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}
       {attachable && <Attachments noteId={note.id} attachments={note.attachments} editable />}
-      <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={setPicked} />
-      <div className="grid gap-3 sm:grid-cols-3">
+      {workspaces.length > 1 && (
         <label className="label">
-          {t('notes.dueDate')}
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className={`${field} text-fg`}
-          />
-        </label>
-        <label className="label">
-          {t('notes.importance')}
+          {t('notes.workspace')}
           <select
-            value={importance ?? ''}
-            onChange={(e) => {
-              const v = Importance.safeParse(e.target.value);
-              setImportance(v.success ? v.data : null);
-            }}
+            value={workspaceId}
+            onChange={(e) => setWorkspaceId(e.target.value)}
             className={`${field} text-fg`}
           >
-            <option value="">{t('notes.none')}</option>
-            {Importance.options.map((o) => (
-              <option key={o} value={o}>
-                {t(`notes.importanceValues.${o}`)}
+            {workspaces.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
               </option>
             ))}
           </select>
         </label>
-        <label className="label">
-          {t('notes.urgency')}
-          <select
-            value={urgency ?? ''}
-            onChange={(e) => {
-              const v = Urgency.safeParse(e.target.value);
-              setUrgency(v.success ? v.data : null);
-            }}
-            className={`${field} text-fg`}
-          >
-            <option value="">{t('notes.none')}</option>
-            {Urgency.options.map((o) => (
-              <option key={o} value={o}>
-                {t(`notes.urgencyValues.${o}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {note.status !== 'draft' && <StatusStepper status={status} onChange={setStatus} />}
+      )}
+      {!hidden.has('categories') && (
+        <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={changePicked} />
+      )}
+      {gridCols > 0 && (
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))]">
+          {!hidden.has('dueDate') && (
+            <label className="label">
+              {t('notes.dueDate')}
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className={`${field} text-fg`}
+              />
+            </label>
+          )}
+          {!hidden.has('importance') && (
+            <ChoiceField
+              label={t('notes.importance')}
+              options={Importance.options}
+              parse={(v) => {
+                const r = Importance.safeParse(v);
+                return r.success ? r.data : null;
+              }}
+              labelOf={(o) => (o ? t(`notes.importanceValues.${o}`) : t('notes.none'))}
+              display={noteForm.importance.display}
+              hiddenValues={noteForm.importance.hiddenValues}
+              value={importance}
+              onChange={(v) => {
+                setImportance(v);
+                setImportanceHint(null);
+              }}
+            >
+              {importanceHint && (
+                <span className="text-sm font-normal text-muted">
+                  {t('notes.importanceFromCategory', { name: importanceHint })}
+                </span>
+              )}
+            </ChoiceField>
+          )}
+          {!hidden.has('urgency') && (
+            <ChoiceField
+              label={t('notes.urgency')}
+              options={Urgency.options}
+              parse={(v) => {
+                const r = Urgency.safeParse(v);
+                return r.success ? r.data : null;
+              }}
+              labelOf={(o) => (o ? t(`notes.urgencyValues.${o}`) : t('notes.none'))}
+              display={noteForm.urgency.display}
+              hiddenValues={noteForm.urgency.hiddenValues}
+              value={urgency}
+              onChange={setUrgency}
+            />
+          )}
+        </div>
+      )}
+      <label className="flex items-center gap-3">
+        <span>{t('notes.tracksStatus')}</span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={tracksStatus}
+          onChange={(e) => setTracksStatus(e.target.checked)}
+          className="ms-auto h-5 w-9 accent-[var(--accent)]"
+        />
+      </label>
+      {note.status !== 'draft' && tracksStatus && (
+        <StatusStepper status={status} onChange={setStatus} />
+      )}
       {(failed || analyzeFailed) && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
@@ -228,6 +328,7 @@ export function NoteEditor({
           </button>
         )}
       </div>
+      {formSettingsOpen && <NoteFormSettings onClose={() => setFormSettingsOpen(false)} />}
     </form>
   );
 }

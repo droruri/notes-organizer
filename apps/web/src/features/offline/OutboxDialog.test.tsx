@@ -1,10 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { OutboxDialog } from './OutboxDialog';
 import type { OutboxEntry } from './outbox';
 
 afterEach(cleanup);
+
+// The editor reads the settings query, so the dialog needs a client.
+const renderDialog = (ui: ReactElement) =>
+  render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 
 const entry: OutboxEntry = {
   clientId: crypto.randomUUID(),
@@ -17,7 +23,7 @@ const taxonomy = { categories: [], tags: [] };
 describe('OutboxDialog', () => {
   it('lists items, opens one in the editor and sends it on confirm', async () => {
     const onSend = vi.fn().mockResolvedValue(undefined);
-    render(
+    renderDialog(
       <OutboxDialog entries={[entry]} taxonomy={taxonomy} onSend={onSend} onClose={vi.fn()} />,
     );
     fireEvent.click(screen.getByText('call the plumber'));
@@ -33,7 +39,7 @@ describe('OutboxDialog', () => {
 
   it('shows an error and stays open when sending fails', async () => {
     const onSend = vi.fn().mockRejectedValue(new Error('down'));
-    render(
+    renderDialog(
       <OutboxDialog entries={[entry]} taxonomy={taxonomy} onSend={onSend} onClose={vi.fn()} />,
     );
     fireEvent.click(screen.getByText('call the plumber'));
