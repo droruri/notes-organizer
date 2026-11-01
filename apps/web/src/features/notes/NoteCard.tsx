@@ -20,6 +20,7 @@ export function NoteCard({
   onOpen,
   onStatus,
   statusPending = false,
+  workspaceName,
 }: {
   note: Note;
   taxonomy: Taxonomy;
@@ -28,6 +29,8 @@ export function NoteCard({
   onStatus: (note: Note, status: NoteStatus | null) => void;
   /** This note's status save is in flight. */
   statusPending?: boolean;
+  /** Shown as a pill when listing across workspaces. */
+  workspaceName?: string | undefined;
 }) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -80,6 +83,13 @@ export function NoteCard({
         {note.status === 'draft' && (
           <span className={`pill pill-dot ${statusClass(note.status)}`}>
             {t(`notes.status.${note.status}`)}
+          </span>
+        )}
+        {workspaceName && (
+          <span className="pill bg-transparent text-muted">
+            <Icon name="layers" size={13} />
+            <span className="sr-only">{t('filters.workspace')}: </span>
+            {workspaceName}
           </span>
         )}
         {note.dueDate && (

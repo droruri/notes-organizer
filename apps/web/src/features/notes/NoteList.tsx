@@ -12,6 +12,7 @@ export function NoteList({
   onStatus,
   statusPendingId,
   onAdd,
+  workspaceNames,
 }: {
   notes: Note[];
   /** Notes exist, but the filter hides all of them. */
@@ -24,6 +25,8 @@ export function NoteList({
   statusPendingId?: string | undefined;
   /** Shown as the empty state's action when there are no notes at all. */
   onAdd?: () => void;
+  /** Workspace id → name; set only when notes from every workspace are listed. */
+  workspaceNames?: Map<string, string> | undefined;
 }) {
   const { t } = useTranslation();
   if (notes.length === 0) {
@@ -54,6 +57,7 @@ export function NoteList({
           onOpen={onOpen}
           onStatus={onStatus}
           statusPending={statusPendingId === n.id}
+          workspaceName={workspaceNames?.get(n.workspaceId)}
         />
       ))}
     </ul>
