@@ -412,11 +412,13 @@ export function NotesScreen({
 
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
+  const showAllWorkspaces = (workspaces.data?.length ?? 0) > 1;
+  const acrossWorkspaces = allWorkspaces && showAllWorkspaces;
   const inWorkspace =
-    workspace && !allWorkspaces
+    workspace && !acrossWorkspaces
       ? notes.data.filter((n) => n.workspaceId === workspace.id)
       : notes.data;
-  const workspaceNames = allWorkspaces
+  const workspaceNames = acrossWorkspaces
     ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name]))
     : undefined;
   const visible = sortNotes(filterNotes(inWorkspace, filter, today), sort, today);
@@ -487,9 +489,9 @@ export function NotesScreen({
         filter={filter}
         onChange={setFilter}
         taxonomy={taxonomy.data}
-        allWorkspaces={allWorkspaces}
+        allWorkspaces={acrossWorkspaces}
         onAllWorkspaces={setAllWorkspaces}
-        showAllWorkspaces={(workspaces.data?.length ?? 0) > 1}
+        showAllWorkspaces={showAllWorkspaces}
         sort={
           <label className="flex items-center gap-2 text-sm text-muted">
             <span className="shrink-0">{t('notes.sort.label')}</span>

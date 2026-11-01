@@ -253,8 +253,9 @@ describe('NotesScreen across workspaces', () => {
       </QueryClientProvider>,
     );
   };
+  const home = { id: W1, name: 'Home', isDefault: true };
   const two = [
-    { id: W1, name: 'Home', isDefault: true },
+    home,
     { id: W2, name: 'Garden', isDefault: false },
   ];
 
@@ -270,7 +271,7 @@ describe('NotesScreen across workspaces', () => {
   });
 
   it('has no toggle with a single workspace', async () => {
-    setup([two[0] as (typeof two)[number]]);
+    setup([home]);
     await screen.findByText('home note');
     expect(screen.queryByRole('button', { name: 'All workspaces' })).toBeNull();
   });
