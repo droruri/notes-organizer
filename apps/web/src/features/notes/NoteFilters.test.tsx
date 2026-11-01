@@ -39,4 +39,26 @@ describe('NoteFilters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'הושלם' }));
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTER, statuses: ['done'] });
   });
+
+  it('shows the all-workspaces toggle only when offered, and reports it', () => {
+    const onAll = vi.fn();
+    const { rerender } = render(
+      <NoteFilters filter={EMPTY_FILTER} onChange={vi.fn()} taxonomy={taxonomy} />,
+    );
+    expect(screen.queryByRole('button', { name: 'בכל סביבות העבודה' })).toBeNull();
+    rerender(
+      <NoteFilters
+        filter={EMPTY_FILTER}
+        onChange={vi.fn()}
+        taxonomy={taxonomy}
+        showAllWorkspaces
+        allWorkspaces={false}
+        onAllWorkspaces={onAll}
+      />,
+    );
+    const chip = screen.getByRole('button', { name: 'בכל סביבות העבודה' });
+    expect(chip.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(chip);
+    expect(onAll).toHaveBeenCalledWith(true);
+  });
 });

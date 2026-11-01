@@ -95,6 +95,7 @@
     "expand": "Expand",
     "collapse": "Collapse",
     "created": "Created",
+    "updated": "Updated",
     "overdue": "Overdue",
     "sort": {
       "label": "Sort",
@@ -146,6 +147,8 @@
   "filters": {
     "title": "Filter",
     "search": "Search notes",
+    "allWorkspaces": "All workspaces",
+    "workspace": "Workspace",
     "tags": "Tags",
     "status": "Status",
     "from": "from",
@@ -367,6 +370,7 @@
     "error": "Couldn't save the workspace. Try again.",
     "loadError": "Couldn't load the workspaces.",
     "actions": "Actions for {{name}}",
+    "save": "Save",
     "rename": "Rename",
     "renameLabel": "Workspace name",
     "makeDefault": "Make default",

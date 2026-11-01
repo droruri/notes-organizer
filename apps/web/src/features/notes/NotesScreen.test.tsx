@@ -232,6 +232,52 @@ describe('NotesScreen status from the list', () => {
   });
 });
 
+describe('NotesScreen across workspaces', () => {
+  const W1 = '00000000-0000-4000-8000-0000000000f1';
+  const W2 = '00000000-0000-4000-8000-0000000000f2';
+  const setup = (workspaceList: { id: string; name: string; isDefault: boolean }[]) => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockResolvedValue([
+      note(1, 'home note', []),
+      { ...note(2, 'garden note', []), workspaceId: W2 },
+    ]);
+    vi.spyOn(api, 'workspaces').mockResolvedValue(workspaceList);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen workspace={{ id: W1, name: 'Home', isDefault: true }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+  const home = { id: W1, name: 'Home', isDefault: true };
+  const two = [home, { id: W2, name: 'Garden', isDefault: false }];
+
+  it('finds a note from another workspace with the toggle on, and names its workspace', async () => {
+    setup(two);
+    await screen.findByText('home note');
+    expect(screen.queryByText('garden note')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: 'All workspaces' }));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'garden' } });
+    await screen.findByText('garden note');
+    expect(screen.getByText('Garden')).toBeTruthy();
+    expect(screen.queryByText('home note')).toBeNull();
+  });
+
+  it('has no toggle with a single workspace', async () => {
+    setup([home]);
+    await screen.findByText('home note');
+    expect(screen.queryByRole('button', { name: 'All workspaces' })).toBeNull();
+  });
+});
+
 describe('NotesScreen mobile quick actions', () => {
   const renderWith = async (quickActions: ('workspaces' | 'record' | 'import')[]) => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);

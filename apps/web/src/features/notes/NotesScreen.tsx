@@ -129,6 +129,7 @@ export function NotesScreen({
     open(ROUTES.review, fromCompose, draft);
   };
   const online = useOnline();
+  const [allWorkspaces, setAllWorkspaces] = useState(false);
   const [outbox, setOutbox] = useState(readOutbox);
   const [outboxDismissed, setOutboxDismissed] = useState(false);
   const waiting = !online && outbox.length > 0 && (
@@ -436,9 +437,15 @@ export function NotesScreen({
 
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
-  const inWorkspace = workspace
-    ? notes.data.filter((n) => n.workspaceId === workspace.id)
-    : notes.data;
+  const showAllWorkspaces = (workspaces.data?.length ?? 0) > 1;
+  const acrossWorkspaces = allWorkspaces && showAllWorkspaces;
+  const inWorkspace =
+    workspace && !acrossWorkspaces
+      ? notes.data.filter((n) => n.workspaceId === workspace.id)
+      : notes.data;
+  const workspaceNames = acrossWorkspaces
+    ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name]))
+    : undefined;
   const visible = sortNotes(filterNotes(inWorkspace, filter, today), sort, today);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
@@ -534,6 +541,9 @@ export function NotesScreen({
         filter={filter}
         onChange={setFilter}
         taxonomy={taxonomy.data}
+        allWorkspaces={acrossWorkspaces}
+        onAllWorkspaces={setAllWorkspaces}
+        showAllWorkspaces={showAllWorkspaces}
         sort={
           <label className="flex items-center gap-2 text-sm text-muted">
             <span className="shrink-0">{t('notes.sort.label')}</span>
@@ -564,6 +574,7 @@ export function NotesScreen({
         <NoteList
           notes={visible}
           filtered={inWorkspace.length > 0}
+          workspaceNames={workspaceNames}
           taxonomy={taxonomy.data}
           today={today}
           onOpen={(note) => {

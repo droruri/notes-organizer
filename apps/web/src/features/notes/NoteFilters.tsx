@@ -28,12 +28,19 @@ export function NoteFilters({
   onChange,
   taxonomy,
   sort,
+  allWorkspaces = false,
+  onAllWorkspaces,
+  showAllWorkspaces = false,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
   taxonomy: Taxonomy;
   /** The sort control, shown on the toolbar row. */
   sort?: ReactNode;
+  allWorkspaces?: boolean;
+  onAllWorkspaces?: (next: boolean) => void;
+  /** Only offered when the user has more than one workspace. */
+  showAllWorkspaces?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -84,6 +91,13 @@ export function NoteFilters({
             className="field ps-10"
           />
         </div>
+        {showAllWorkspaces && onAllWorkspaces && (
+          <Chip
+            label={t('filters.allWorkspaces')}
+            selected={allWorkspaces}
+            onClick={() => onAllWorkspaces(!allWorkspaces)}
+          />
+        )}
         <button
           type="button"
           aria-expanded={open}
