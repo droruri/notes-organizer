@@ -499,11 +499,11 @@ export function NotesScreen({
             aria-hidden="true"
             className="bg-bg fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
           />
-          <div className="max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:flex max-sm:-translate-x-1/2 max-sm:gap-2 sm:contents">
+          <div className="max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:flex max-sm:-translate-x-1/2 max-sm:gap-2 max-[359px]:gap-1.5! sm:contents">
             <button
               type="button"
               onClick={() => open(ROUTES.compose)}
-              className={`btn btn-primary sm:min-h-11 sm:px-5 max-sm:h-16 max-sm:rounded-2xl ${quickActions.length > 1 ? 'max-sm:px-4 max-[359px]:px-3' : 'max-sm:px-8'} max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]`}
+              className={`btn btn-primary sm:min-h-11 sm:px-5 max-sm:h-16 max-sm:rounded-2xl ${quickActions.length > 1 ? 'max-sm:px-4 max-[359px]:px-2.5! max-[359px]:text-base!' : 'max-sm:px-8'} max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]`}
             >
               <Icon name="plus" size={22} />
               {t('notes.add')}
