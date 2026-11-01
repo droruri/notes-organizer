@@ -40,11 +40,30 @@ afterEach(() => {
 const props = { onSend: () => undefined, pending: false, failed: false };
 
 describe('VoiceRecorder', () => {
+  it('calls getUserMedia on mount only with autoStart', async () => {
+    render(<VoiceRecorder {...props} />);
+    await act(async () => undefined);
+    expect(getUserMedia).not.toHaveBeenCalled();
+    cleanup();
+    render(<VoiceRecorder {...props} autoStart />);
+    await act(async () => undefined);
+    expect(getUserMedia).toHaveBeenCalledOnce();
+    expect(screen.getByRole('timer')).toBeTruthy();
+  });
+
+  it('keeps the idle button and shows the reason when autoStart is denied', async () => {
+    getUserMedia.mockRejectedValue({ name: 'NotAllowedError' });
+    render(<VoiceRecorder {...props} autoStart />);
+    await act(async () => undefined);
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'הקלטה' })).toBeTruthy();
+  });
+
   it('records, shows elapsed time, stops, and sends the blob', async () => {
     vi.useFakeTimers();
     const onSend = vi.fn();
     render(<VoiceRecorder {...props} onSend={onSend} />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     expect(screen.getByRole('timer').textContent).toBe('0:00');
     act(() => {
       vi.advanceTimersByTime(3000);
@@ -58,22 +77,22 @@ describe('VoiceRecorder', () => {
 
   it('discards a recording and returns to idle', async () => {
     render(<VoiceRecorder {...props} />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     fireEvent.click(screen.getByText('מחק הקלטה'));
-    expect(screen.getByText('הקלטה')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'הקלטה' })).toBeTruthy();
     expect(screen.queryByRole('timer')).toBeNull();
   });
 
   it('shows the permission error when the microphone is denied', async () => {
     getUserMedia.mockRejectedValue(new DOMException('no', 'NotAllowedError'));
     render(<VoiceRecorder {...props} />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     expect(screen.getByRole('alert').textContent).toContain('הרשאת המיקרופון');
   });
 
   it('shows the uploading state after stopping, with discard disabled', async () => {
     render(<VoiceRecorder {...props} pending />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     fireEvent.click(screen.getByText('עצור'));
     expect(screen.getByRole('status').textContent).toContain('מעלה ומתמלל…');
     expect(screen.getByText('מחק הקלטה').closest('button')?.disabled).toBe(true);
@@ -82,7 +101,7 @@ describe('VoiceRecorder', () => {
   it('shows an upload failure with a retry that resends the same blob', async () => {
     const onSend = vi.fn();
     const { rerender } = render(<VoiceRecorder {...props} onSend={onSend} />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     fireEvent.click(screen.getByText('עצור'));
     rerender(<VoiceRecorder {...props} onSend={onSend} failed />);
     expect(screen.getByRole('alert').textContent).toContain('העלאת ההקלטה נכשלה');
@@ -94,10 +113,10 @@ describe('VoiceRecorder', () => {
   it('never sends when unmounted or discarded mid-recording', async () => {
     const onSend = vi.fn();
     const first = render(<VoiceRecorder {...props} onSend={onSend} />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     first.unmount();
     render(<VoiceRecorder {...props} onSend={onSend} />);
-    await act(async () => fireEvent.click(screen.getByText('הקלטה')));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'הקלטה' })));
     fireEvent.click(screen.getByText('מחק הקלטה'));
     expect(onSend).not.toHaveBeenCalled();
   });
