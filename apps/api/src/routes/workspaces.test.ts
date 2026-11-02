@@ -87,6 +87,86 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
     expect(blank.json()).toEqual({ error: 'invalid_name' });
   });
 
+  describe('defaultFilter', () => {
+    const filter = {
+      categoryIds: ['11111111-1111-4111-8111-111111111111'],
+      tagIds: [],
+      statuses: ['todo'],
+      importances: [],
+      urgencies: ['urgent'],
+      createdFrom: '2026-01-01',
+      createdTo: '',
+      dueFrom: '',
+      dueTo: '2026-12-31',
+      unreadLinksOnly: true,
+    };
+
+    it('saves, returns, isolates and clears the filter; text is not stored', async () => {
+      await clean();
+      const a = Workspace.parse((await send(mine, 'POST', '/workspaces', { name: 'A' })).json());
+      expect(a.defaultFilter).toBeNull();
+      const saved = await send(mine, 'PATCH', `/workspaces/${a.id}`, {
+        defaultFilter: { ...filter, text: 'secret' },
+      });
+      expect(saved.statusCode).toBe(200);
+      const all = await list(mine);
+      expect(all.find((w) => w.id === a.id)?.defaultFilter).toEqual(filter);
+      expect(all.filter((w) => w.id !== a.id).every((w) => w.defaultFilter === null)).toBe(true);
+      const { rows } = await pool.query(
+        'select default_filter::text as f from workspaces where id = $1',
+        [a.id],
+      );
+      expect(rows[0].f).not.toContain('secret');
+      const cleared = await send(mine, 'PATCH', `/workspaces/${a.id}`, { defaultFilter: null });
+      expect(cleared.statusCode).toBe(200);
+      expect((await list(mine)).find((w) => w.id === a.id)?.defaultFilter).toBeNull();
+    });
+
+    it('404s for another user’s workspace and 400s for an invalid filter', async () => {
+      await clean();
+      const t = Workspace.parse((await send(theirs, 'POST', '/workspaces', { name: 'T' })).json());
+      const nf = await send(mine, 'PATCH', `/workspaces/${t.id}`, { defaultFilter: filter });
+      expect(nf.statusCode).toBe(404);
+      expect(nf.json()).toEqual({ error: 'not_found' });
+      const m = Workspace.parse((await send(mine, 'POST', '/workspaces', { name: 'M' })).json());
+      for (const bad of [
+        { ...filter, statuses: ['nope'] },
+        { ...filter, dueTo: '31/12/2026' },
+        { ...filter, tagIds: ['not-a-uuid'] },
+      ]) {
+        const res = await send(mine, 'PATCH', `/workspaces/${m.id}`, { defaultFilter: bad });
+        expect(res.statusCode).toBe(400);
+        expect(res.json()).toEqual({ error: 'invalid_body' });
+      }
+    });
+
+    it('logs defaultFilterSet, and warns on an invalid stored filter', async () => {
+      await clean();
+      const { app: logged, lines } = captureLogs({ db: pool, verifyToken, allowedEmails });
+      const m = Workspace.parse((await send(mine, 'POST', '/workspaces', { name: 'M' })).json());
+      await logged.inject({
+        method: 'PATCH',
+        url: `/workspaces/${m.id}`,
+        headers: mine,
+        payload: { defaultFilter: filter },
+      });
+      expect(lines.find((l) => l.msg === 'workspace updated')).toMatchObject({
+        level: 30,
+        defaultFilterSet: true,
+      });
+      await pool.query(`update workspaces set default_filter = '"nope"'::jsonb where id = $1`, [
+        m.id,
+      ]);
+      const res = await logged.inject({ method: 'GET', url: '/workspaces', headers: mine });
+      expect(WorkspaceList.parse(res.json()).find((w) => w.id === m.id)?.defaultFilter).toBeNull();
+      expect(lines.find((l) => l.msg === 'stored workspace filter invalid')).toMatchObject({
+        level: 40,
+        field: 'defaultFilter',
+      });
+      await logged.close();
+    });
+  });
+
   it('stores a new note in the owned workspace, else in the caller’s default', async () => {
     await clean();
     const owned = Workspace.parse(

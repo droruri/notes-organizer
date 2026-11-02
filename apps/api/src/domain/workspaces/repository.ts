@@ -1,16 +1,30 @@
-import type { Workspace } from '@notes/shared';
+import { SavedFilter, type Workspace } from '@notes/shared';
+import { log } from '../../requestLog';
 import type { Queryable } from '../../tx';
 
 // SQL for workspaces.
 
-const COLS = 'id, name, is_default as "isDefault"';
+const COLS = 'id, name, is_default as "isDefault", default_filter as "defaultFilter"';
+
+type Row = Omit<Workspace, 'defaultFilter'> & { defaultFilter: unknown };
+
+/** Parses a stored row; an invalid saved filter becomes null and is warned (never logged). */
+function fromRow(row: Row): Workspace {
+  if (row.defaultFilter == null) return { ...row, defaultFilter: null };
+  const parsed = SavedFilter.safeParse(row.defaultFilter);
+  if (!parsed.success) {
+    log().warn({ field: 'defaultFilter' }, 'stored workspace filter invalid');
+    return { ...row, defaultFilter: null };
+  }
+  return { ...row, defaultFilter: parsed.data };
+}
 
 export async function listWorkspaces(db: Queryable, userId: string): Promise<Workspace[]> {
-  const { rows } = await db.query<Workspace>(
+  const { rows } = await db.query<Row>(
     `select ${COLS} from workspaces where user_id = $1 order by is_default desc, lower(name), id`,
     [userId],
   );
-  return rows;
+  return rows.map(fromRow);
 }
 
 /** Creates the user's default; true when this call created it (false: it already existed). */
@@ -32,13 +46,13 @@ export async function insertWorkspace(
   userId: string,
   name: string,
 ): Promise<Workspace> {
-  const { rows } = await db.query<Workspace>(
+  const { rows } = await db.query<Row>(
     `insert into workspaces (user_id, name) values ($1, $2) returning ${COLS}`,
     [userId, name],
   );
   const row = rows[0];
   if (!row) throw new Error('workspace insert returned no row');
-  return row;
+  return fromRow(row);
 }
 
 /**
@@ -47,15 +61,26 @@ export async function insertWorkspace(
  * after this call is current.
  */
 export async function lockUserWorkspaces(db: Queryable, userId: string): Promise<Workspace[]> {
-  const { rows } = await db.query<Workspace>(
+  const { rows } = await db.query<Row>(
     `select ${COLS} from workspaces where user_id = $1 order by id for update`,
     [userId],
   );
-  return rows;
+  return rows.map(fromRow);
 }
 
 export async function renameWorkspace(db: Queryable, id: string, name: string): Promise<void> {
   await db.query('update workspaces set name = $2 where id = $1', [id, name]);
+}
+
+export async function setDefaultFilter(
+  db: Queryable,
+  id: string,
+  filter: SavedFilter | null,
+): Promise<void> {
+  await db.query('update workspaces set default_filter = $2::jsonb where id = $1', [
+    id,
+    filter === null ? null : JSON.stringify(filter),
+  ]);
 }
 
 /** Moves the default flag to `id`: clears the old one first so the one-default index holds. */

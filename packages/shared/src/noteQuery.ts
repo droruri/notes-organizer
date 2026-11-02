@@ -1,23 +1,33 @@
 import { isOpen, sortBand } from './noteStatus';
-import type { Importance, Note, NoteSort, NoteStatus, Urgency } from './index';
+import { z } from 'zod';
+import { Importance, NoteStatus, Urgency } from './notes';
+import type { Note, NoteSort } from './index';
 
 // One implementation of "which notes, in what order" for the web list and the agent's tools.
 
-export type NoteFilter = {
-  text: string;
-  categoryIds: string[];
-  tagIds: string[];
-  statuses: NoteStatus[];
-  importances: Importance[];
-  urgencies: Urgency[];
+/** `''` (open end) or a `YYYY-MM-DD` day. */
+const FilterDate = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
+
+export const NoteFilter = z.object({
+  text: z.string(),
+  categoryIds: z.array(z.uuid()),
+  tagIds: z.array(z.uuid()),
+  statuses: z.array(NoteStatus),
+  importances: z.array(Importance),
+  urgencies: z.array(Urgency),
   /** Inclusive `YYYY-MM-DD` ranges; empty string = open end. */
-  createdFrom: string;
-  createdTo: string;
-  dueFrom: string;
-  dueTo: string;
+  createdFrom: FilterDate,
+  createdTo: FilterDate,
+  dueFrom: FilterDate,
+  dueTo: FilterDate,
   /** Only notes that have at least one unread link. */
-  unreadLinksOnly: boolean;
-};
+  unreadLinksOnly: z.boolean(),
+});
+export type NoteFilter = z.infer<typeof NoteFilter>;
+
+/** The part of a filter that is saved per workspace: everything but the search text. */
+export const SavedFilter = NoteFilter.omit({ text: true });
+export type SavedFilter = z.infer<typeof SavedFilter>;
 
 export const EMPTY_FILTER: NoteFilter = {
   text: '',
