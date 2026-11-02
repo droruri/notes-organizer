@@ -347,9 +347,7 @@ export function NotesScreen({
   /** The list and the open page as sibling slots; CSS decides what shows (the list hides behind a detail). */
   const slots = (list: ReactNode, detail: ReactNode) => (
     <div data-detail-open={detail ? '' : undefined}>
-      <div data-slot="list" hidden={Boolean(detail)}>
-        {list}
-      </div>
+      <div data-slot="list">{list}</div>
       {detail ? <div data-slot="detail">{detail}</div> : null}
     </div>
   );
@@ -387,7 +385,8 @@ export function NotesScreen({
     const edited = notes.data.find((n) => n.id === editId);
     const note = parsed?.success ? parsed.data.note : edited;
     if ((parsed && !parsed.success) || !note) {
-      editor = <Navigate to={ROUTES.notes} replace />;
+      // A bad or missing note is a redirect guard, not a mode: skip the list so it never flashes.
+      return <Navigate to={ROUTES.notes} replace />;
     } else {
       editor = (
         <NoteEditor

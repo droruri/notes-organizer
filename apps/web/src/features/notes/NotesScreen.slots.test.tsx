@@ -67,22 +67,29 @@ describe('NotesScreen list and detail slots', () => {
     await screen.findByDisplayValue('first note');
     const list = container.querySelector('[data-slot="list"]');
     expect(list).not.toBeNull();
-    expect(list?.hasAttribute('hidden')).toBe(true);
+    // Hidden by CSS: the list sits under the data-detail-open container (see styles.css).
+    expect(list?.parentElement?.hasAttribute('data-detail-open')).toBe(true);
     expect(list?.textContent).toContain('first note');
-    expect(container.querySelector('[data-detail-open]')).not.toBeNull();
     expect(container.querySelector('[data-slot="detail"]')).not.toBeNull();
   });
 
   it('keeps the list mounted but hidden on /new', async () => {
     const { container } = setup('/new');
     await screen.findByRole('button', { name: 'Suggest' });
-    expect(container.querySelector('[data-slot="list"]')?.hasAttribute('hidden')).toBe(true);
+    expect(
+      container
+        .querySelector('[data-slot="list"]')
+        ?.parentElement?.hasAttribute('data-detail-open'),
+    ).toBe(true);
   });
 
   it('shows the list and no detail on /', async () => {
     const { container } = setup('/');
     await screen.findByText('first note');
-    expect(container.querySelector('[data-slot="list"]')?.hasAttribute('hidden')).toBe(false);
-    expect(container.querySelector('[data-detail-open]')).toBeNull();
+    expect(
+      container
+        .querySelector('[data-slot="list"]')
+        ?.parentElement?.hasAttribute('data-detail-open'),
+    ).toBe(false);
   });
 });
