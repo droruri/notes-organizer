@@ -232,7 +232,9 @@ describe('NotesScreen status from the list', () => {
 describe('NotesScreen across workspaces', () => {
   const W1 = '00000000-0000-4000-8000-0000000000f1';
   const W2 = '00000000-0000-4000-8000-0000000000f2';
-  const setup = (workspaceList: { id: string; name: string; isDefault: boolean }[]) => {
+  const setup = (
+    workspaceList: { id: string; name: string; isDefault: boolean; defaultFilter: null }[],
+  ) => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     vi.spyOn(api, 'notes').mockResolvedValue([
       note(1, 'home note', []),
@@ -249,13 +251,13 @@ describe('NotesScreen across workspaces', () => {
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter>
-          <NotesScreen workspace={{ id: W1, name: 'Home', isDefault: true }} />
+          <NotesScreen workspace={{ id: W1, name: 'Home', isDefault: true, defaultFilter: null }} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
   };
-  const home = { id: W1, name: 'Home', isDefault: true };
-  const two = [home, { id: W2, name: 'Garden', isDefault: false }];
+  const home = { id: W1, name: 'Home', isDefault: true, defaultFilter: null };
+  const two = [home, { id: W2, name: 'Garden', isDefault: false, defaultFilter: null }];
 
   it('finds a note from another workspace with the toggle on, and names its workspace', async () => {
     setup(two);

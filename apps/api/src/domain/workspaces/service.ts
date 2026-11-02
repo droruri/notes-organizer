@@ -68,17 +68,26 @@ export function updateWorkspace(
         if (!current) return undefined;
         if (name !== undefined) await repo.renameWorkspace(tx, id, name);
         if (edit.isDefault) await repo.makeDefault(tx, userId, id);
+        if (edit.defaultFilter !== undefined)
+          await repo.setDefaultFilter(tx, id, edit.defaultFilter);
         return {
           id,
           name: name ?? current.name,
           isDefault: current.isDefault || edit.isDefault === true,
+          defaultFilter:
+            edit.defaultFilter === undefined ? current.defaultFilter : edit.defaultFilter,
         };
       }),
     );
     if (!result.ok) return fail(result.error);
     if (!result.value) return fail('not_found');
     log().info(
-      { workspaceId: id, renamed: name !== undefined, madeDefault: edit.isDefault === true },
+      {
+        workspaceId: id,
+        renamed: name !== undefined,
+        madeDefault: edit.isDefault === true,
+        defaultFilterSet: edit.defaultFilter != null,
+      },
       'workspace updated',
     );
     return { ok: true, value: result.value };

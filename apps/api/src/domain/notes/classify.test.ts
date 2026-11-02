@@ -198,8 +198,8 @@ describe('classify workspaces', () => {
     links: [],
   };
   const two = [
-    { id: W1, name: 'Home', isDefault: true },
-    { id: W2, name: 'Work', isDefault: false },
+    { id: W1, name: 'Home', isDefault: true, defaultFilter: null },
+    { id: W2, name: 'Work', isDefault: false, defaultFilter: null },
   ];
 
   it('has no workspace block with one workspace', async () => {

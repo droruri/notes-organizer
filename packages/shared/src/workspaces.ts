@@ -1,9 +1,12 @@
 import { z } from 'zod';
+import { SavedFilter } from './noteQuery';
 
 export const Workspace = z.object({
   id: z.uuid(),
   name: z.string(),
   isDefault: z.boolean(),
+  /** Saved default note filter (no search text); null = none. */
+  defaultFilter: SavedFilter.nullable(),
 });
 export type Workspace = z.infer<typeof Workspace>;
 
@@ -14,10 +17,17 @@ export type WorkspaceList = z.infer<typeof WorkspaceList>;
 export const WorkspaceCreate = z.object({ name: z.string() });
 export type WorkspaceCreate = z.infer<typeof WorkspaceCreate>;
 
-/** Body of `PATCH /workspaces/:id`: a new name and/or `isDefault: true` (the default moves, never clears). */
+/** Body of `PATCH /workspaces/:id`: a new name, `isDefault: true` (the default moves, never clears) and/or a `defaultFilter`. */
 export const WorkspaceEdit = z
-  .object({ name: z.string().optional(), isDefault: z.literal(true).optional() })
-  .refine((v) => v.name !== undefined || v.isDefault !== undefined);
+  .object({
+    name: z.string().optional(),
+    isDefault: z.literal(true).optional(),
+    /** `null` clears the saved filter. */
+    defaultFilter: SavedFilter.nullable().optional(),
+  })
+  .refine(
+    (v) => v.name !== undefined || v.isDefault !== undefined || v.defaultFilter !== undefined,
+  );
 export type WorkspaceEdit = z.infer<typeof WorkspaceEdit>;
 
 /** Why a workspace change was refused. */

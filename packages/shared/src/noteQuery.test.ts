@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 import { noteHeading, type Note } from './index';
-import { EMPTY_FILTER, filterNotes, isOverdue, sortNotes } from './noteQuery';
+import {
+  EMPTY_FILTER,
+  filterNotes,
+  isOverdue,
+  NoteFilter,
+  SavedFilter,
+  sortNotes,
+} from './noteQuery';
 
 const TODAY = '2026-10-25';
 let seq = 0;
@@ -172,5 +179,23 @@ describe('sortNotes', () => {
     expect(ids(sortNotes([overdue, late, none], 'oldest', TODAY))).toEqual(
       ids([none, late, overdue]),
     );
+  });
+});
+
+describe('NoteFilter / SavedFilter', () => {
+  it('accepts the empty filter', () => {
+    expect(NoteFilter.safeParse(EMPTY_FILTER).success).toBe(true);
+  });
+  it('rejects a bad enum, date or uuid', () => {
+    expect(NoteFilter.safeParse({ ...EMPTY_FILTER, statuses: ['x'] }).success).toBe(false);
+    expect(NoteFilter.safeParse({ ...EMPTY_FILTER, dueFrom: '1/2/2026' }).success).toBe(false);
+    expect(NoteFilter.safeParse({ ...EMPTY_FILTER, dueFrom: '2026-13-45' }).success).toBe(false);
+    expect(NoteFilter.safeParse({ ...EMPTY_FILTER, dueFrom: '2026-02-30' }).success).toBe(false);
+    expect(NoteFilter.safeParse({ ...EMPTY_FILTER, tagIds: ['x'] }).success).toBe(false);
+    expect(NoteFilter.safeParse({ ...EMPTY_FILTER, dueFrom: '2026-02-01' }).success).toBe(true);
+  });
+  it('SavedFilter drops text', () => {
+    const { text: _text, ...rest } = EMPTY_FILTER;
+    expect(SavedFilter.parse(EMPTY_FILTER)).toEqual(rest);
   });
 });

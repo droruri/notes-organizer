@@ -13,11 +13,13 @@ const GENERAL: Workspace = {
   id: '00000000-0000-4000-8000-0000000000a1',
   name: 'כללי',
   isDefault: true,
+  defaultFilter: null,
 };
 const KNOWLEDGE: Workspace = {
   id: '00000000-0000-4000-8000-0000000000a2',
   name: 'ידע',
   isDefault: false,
+  defaultFilter: null,
 };
 const note = (n: number, body: string, workspaceId: string): Note => ({
   id: `00000000-0000-4000-8000-00000000000${n}`,
@@ -106,7 +108,7 @@ describe('workspaces dialog', () => {
     const list = [GENERAL];
     vi.spyOn(api, 'workspaces').mockImplementation(async () => [...list]);
     const create = vi.spyOn(api, 'createWorkspace').mockImplementation(async (name) => {
-      const created = { id: KNOWLEDGE.id, name, isDefault: false };
+      const created = { id: KNOWLEDGE.id, name, isDefault: false, defaultFilter: null };
       list.push(created);
       return created;
     });

@@ -415,8 +415,8 @@ describe('NoteEditor workspace', () => {
   const W1 = '00000000-0000-4000-8000-0000000000f1';
   const W2 = '00000000-0000-4000-8000-0000000000f2';
   const workspaces = [
-    { id: W1, name: 'Home', isDefault: true },
-    { id: W2, name: 'Work', isDefault: false },
+    { id: W1, name: 'Home', isDefault: true, defaultFilter: null },
+    { id: W2, name: 'Work', isDefault: false, defaultFilter: null },
   ];
   const editor = (onSubmit: () => void, ws = workspaces) =>
     render(
