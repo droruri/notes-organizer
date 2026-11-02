@@ -14,6 +14,7 @@ const props = {
   today: '2026-10-25',
   onOpen: () => {},
   onStatus: () => {},
+  hiddenStatuses: [],
 };
 
 describe('NoteList', () => {

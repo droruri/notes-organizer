@@ -1,5 +1,6 @@
 import {
   isOverdue,
+  nextStatus,
   noteHeading,
   statusClass,
   type Note,
@@ -10,7 +11,6 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCardDetails } from './NoteCardDetails';
-import { StatusSelect } from './StatusSelect';
 import { formatDate } from './formatDate';
 
 export function NoteCard({
@@ -19,6 +19,7 @@ export function NoteCard({
   today,
   onOpen,
   onStatus,
+  hiddenStatuses,
   statusPending = false,
   workspaceName,
 }: {
@@ -27,6 +28,8 @@ export function NoteCard({
   today: string;
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
+  /** Statuses the status button skips over. */
+  hiddenStatuses: readonly NoteStatus[];
   /** This note's status save is in flight. */
   statusPending?: boolean;
   /** Shown as a pill when listing across workspaces. */
@@ -37,6 +40,7 @@ export function NoteCard({
   const detailsId = useId();
   const heading = noteHeading(note);
   const overdue = isOverdue(note, today);
+  const tracked = note.status === null || note.status === 'draft' ? null : note.status;
   return (
     <li className={`card slip ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5`}>
       <div className="flex items-start gap-1">
@@ -72,13 +76,19 @@ export function NoteCard({
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-sm">
-        {note.status !== null && note.status !== 'draft' && (
-          <StatusSelect
-            status={note.status}
-            allowNone
+        {tracked !== null && (
+          <button
+            type="button"
+            aria-label={t('notes.status.advance', {
+              current: t(`notes.status.${tracked}`),
+              next: t(`notes.status.${nextStatus(tracked, hiddenStatuses)}`),
+            })}
             disabled={statusPending}
-            onChange={(next) => onStatus(note, next)}
-          />
+            onClick={() => onStatus(note, nextStatus(tracked, hiddenStatuses))}
+            className={`pill pill-dot ${statusClass(tracked)} cursor-pointer`}
+          >
+            {t(`notes.status.${tracked}`)}
+          </button>
         )}
         {note.status === 'draft' && (
           <span className={`pill pill-dot ${statusClass(note.status)}`}>

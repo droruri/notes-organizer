@@ -17,6 +17,17 @@ export function isValidTransition(from: NoteStatus | null, to: NoteStatus | null
   return true;
 }
 
+/** The status after `current` in the To do → In progress → Done → To do cycle, skipping `hidden`. */
+export function nextStatus(current: NoteStatus, hidden: readonly NoteStatus[]): NoteStatus {
+  const at = TRACKED_STATUSES.indexOf(current);
+  if (at === -1) return current;
+  for (let step = 1; step <= TRACKED_STATUSES.length; step++) {
+    const candidate = TRACKED_STATUSES[(at + step) % TRACKED_STATUSES.length];
+    if (candidate !== undefined && !hidden.includes(candidate)) return candidate;
+  }
+  return current;
+}
+
 /** Not done; a note without status counts as open. */
 export function isOpen(status: NoteStatus | null): boolean {
   return status !== 'done';

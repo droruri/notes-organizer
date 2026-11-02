@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { TRACKED_STATUSES, isOpen, isValidTransition, sortBand, statusClass } from './noteStatus';
+import {
+  TRACKED_STATUSES,
+  isOpen,
+  nextStatus,
+  isValidTransition,
+  sortBand,
+  statusClass,
+} from './noteStatus';
 
 describe('isValidTransition', () => {
   it('lets a draft be submitted to todo or to no status, nothing else', () => {
@@ -28,5 +35,20 @@ describe('isOpen, sortBand, statusClass', () => {
     ]);
     expect(statusClass(null)).toBe('status-none');
     expect(statusClass('todo')).toBe('status-todo');
+  });
+});
+
+describe('nextStatus', () => {
+  it('cycles todo → in_progress → done → todo', () => {
+    expect(nextStatus('todo', [])).toBe('in_progress');
+    expect(nextStatus('in_progress', [])).toBe('done');
+    expect(nextStatus('done', [])).toBe('todo');
+  });
+  it('skips hidden statuses, even when the current one is hidden', () => {
+    expect(nextStatus('todo', ['in_progress'])).toBe('done');
+    expect(nextStatus('in_progress', ['in_progress'])).toBe('done');
+  });
+  it('leaves a draft unchanged', () => {
+    expect(nextStatus('draft', [])).toBe('draft');
   });
 });

@@ -1,16 +1,14 @@
 import { NoteStatus, TRACKED_STATUSES, statusClass } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 
-/** A native select styled as the status pill; picks any tracked status (and none, if allowed). */
+/** A native select styled as the status pill; picks any tracked status. */
 export function StatusSelect({
   status,
   onChange,
-  allowNone = false,
   disabled = false,
 }: {
   status: NoteStatus | null;
   onChange: (status: NoteStatus | null) => void;
-  allowNone?: boolean;
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
@@ -32,7 +30,6 @@ export function StatusSelect({
           {t(`notes.status.${s}`)}
         </option>
       ))}
-      {allowNone && <option value="">{t('notes.status.none')}</option>}
     </select>
   );
 }
