@@ -80,7 +80,11 @@ export function WorkspacesDialog({
   };
   const taken = add.error instanceof ApiRequestError && add.error.code === 'name_taken';
   return (
-    <Sheet title={t('workspaces.title')} onClose={onClose}>
+    <Sheet
+      title={t('workspaces.title')}
+      onClose={onClose}
+      dirty={name !== '' || (active?.mode === 'rename' && renameValue !== '')}
+    >
       {(close) => (
         <>
           <div

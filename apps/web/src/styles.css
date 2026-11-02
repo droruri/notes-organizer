@@ -241,14 +241,14 @@
   @media (prefers-reduced-motion: no-preference) {
     .btn:not(:disabled):active,
     .menu-item:active,
-    .card:is(button, a):active {
+    .card :is(button, a):not(:disabled):active {
       scale: 0.98;
     }
   }
   @media (prefers-reduced-motion: reduce) {
     .btn:not(:disabled):active,
     .menu-item:active,
-    .card:is(button, a):active {
+    .card :is(button, a):not(:disabled):active {
       background: var(--surface-hover);
     }
   }
@@ -313,13 +313,6 @@
     background: var(--surface);
     box-shadow: var(--e-2);
     touch-action: manipulation;
-  }
-  @media (prefers-color-scheme: dark) {
-    .card {
-      box-shadow:
-        0 0 0 1px rgb(255 255 255 / 0.06),
-        0 4px 12px -4px rgb(0 0 0 / 0.5);
-    }
   }
   /* A note slip: the inline-start edge carries the status color. */
   .slip {

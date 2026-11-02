@@ -60,7 +60,13 @@ export function OutboxDialog({
   };
 
   return (
-    <Sheet title={t('offline.dialogTitle')} onClose={onClose} wide>
+    <Sheet
+      title={t('offline.dialogTitle')}
+      onClose={onClose}
+      // The open editor may hold unsaved edits; closing the sheet would drop them.
+      dirty={open !== undefined}
+      wide
+    >
       <div className="flex w-full flex-col gap-5 p-5 text-start">
         {open ? (
           <>

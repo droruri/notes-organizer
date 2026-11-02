@@ -1,4 +1,4 @@
-import { type PointerEvent, type ReactNode, useRef } from 'react';
+import { type PointerEvent, type ReactNode, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { useEscape } from './useEscape';
@@ -10,6 +10,8 @@ const DISMISS_RATIO = 0.25;
 const FLICK_SPEED = 0.5;
 /** Movement before the drag axis is decided (px). */
 const AXIS_SLOP = 8;
+/** A fast release only dismisses once it has moved at least this far (px). */
+const FLICK_MIN_DISTANCE = 48;
 
 const isBottomSheet = () => !window.matchMedia?.('(min-width: 640px)').matches;
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -38,6 +40,7 @@ export function Sheet({
   const { t } = useTranslation();
   const { closing, exit, onTransitionEnd } = useExit();
   const panel = useRef<HTMLDivElement>(null);
+  const handle = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const pointers = useRef(new Set<number>());
 
@@ -46,6 +49,11 @@ export function Sheet({
     exit(onClose);
   };
   useEscape(close);
+
+  // Move focus into the sheet so keyboard users don't stay on the trigger behind it.
+  useEffect(() => {
+    panel.current?.focus({ preventScroll: true });
+  }, []);
 
   const reset = () => {
     drag.current = null;
@@ -58,11 +66,13 @@ export function Sheet({
 
   const onDown = (e: PointerEvent<HTMLDivElement>) => {
     pointers.current.add(e.pointerId);
-    // A second finger cancels any drag in progress and blocks a new one.
+    // A second finger (anywhere on the sheet) cancels any drag in progress and blocks a new one.
     if (pointers.current.size > 1) return reset();
-    if (!isBottomSheet()) return;
+    // Only the handle starts a drag; the body scrolls normally.
+    const onHandle = e.target instanceof Node && !!handle.current?.contains(e.target);
+    if (!onHandle || !isBottomSheet()) return;
     drag.current = { x: e.clientX, y: e.clientY, t: performance.now(), axis: 'none', dy: 0 };
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    panel.current?.setPointerCapture?.(e.pointerId);
   };
 
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
@@ -89,7 +99,8 @@ export function Sheet({
     if (!d || !el || d.axis !== 'y') return reset();
     const height = el.offsetHeight;
     const speed = d.dy / Math.max(1, performance.now() - d.t);
-    const dismiss = d.dy > height * DISMISS_RATIO || (speed > FLICK_SPEED && d.dy > 0);
+    const dismiss =
+      d.dy > height * DISMISS_RATIO || (speed > FLICK_SPEED && d.dy >= FLICK_MIN_DISTANCE);
     if (!dismiss) return reset();
     if (dirty && !window.confirm(t('sheet.discardConfirm'))) return reset();
     drag.current = null;
@@ -116,16 +127,14 @@ export function Sheet({
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerCancel={onCancel}
         className={`enter-sheet sheet ${closing ? 'closing ' : ''}flex max-h-[92dvh] w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} flex-col overflow-hidden bg-surface text-fg`}
       >
-        <div
-          data-testid="sheet-handle"
-          className="sheet-handle"
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onCancel}
-        >
+        <div data-testid="sheet-handle" ref={handle} className="sheet-handle">
           <div aria-hidden="true" className="sheet-grabber sm:hidden" />
           <div className="flex items-center gap-2 border-b border-line px-5 py-2">
             <h2 className="text-lg font-bold">{title}</h2>

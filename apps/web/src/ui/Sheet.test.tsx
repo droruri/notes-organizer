@@ -59,9 +59,9 @@ describe('Sheet', () => {
     const { onClose, handle } = setup();
     fireEvent.pointerDown(handle, ptr(1, 100, 0));
     wait(40);
-    fireEvent.pointerMove(handle, ptr(1, 100, 40));
+    fireEvent.pointerMove(handle, ptr(1, 100, 60));
     wait(10);
-    fireEvent.pointerUp(handle, ptr(1, 100, 40));
+    fireEvent.pointerUp(handle, ptr(1, 100, 60));
     settle();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -93,6 +93,33 @@ describe('Sheet', () => {
     settle();
     expect(panel.style.translate).toBe('');
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('a second finger on the body cancels a handle drag', () => {
+    const { onClose, handle, panel } = setup();
+    fireEvent.pointerDown(handle, ptr(1, 100, 0));
+    fireEvent.pointerDown(panel.querySelector('p') ?? panel, ptr(2, 100, 0));
+    fireEvent.pointerMove(handle, ptr(1, 100, 300));
+    wait(1000);
+    fireEvent.pointerUp(handle, ptr(1, 100, 300));
+    fireEvent.pointerUp(panel, ptr(2, 100, 0));
+    settle();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(panel.style.translate).toBe('');
+  });
+
+  it('a later drag works once both fingers have lifted', () => {
+    const { onClose, handle, panel } = setup();
+    fireEvent.pointerDown(handle, ptr(1, 100, 0));
+    fireEvent.pointerDown(panel.querySelector('p') ?? panel, ptr(2, 100, 0));
+    fireEvent.pointerUp(panel, ptr(2, 100, 0));
+    fireEvent.pointerUp(handle, ptr(1, 100, 0));
+    fireEvent.pointerDown(handle, ptr(3, 100, 0));
+    fireEvent.pointerMove(handle, ptr(3, 100, 300));
+    wait(1000);
+    fireEvent.pointerUp(handle, ptr(3, 100, 300));
+    settle();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('asks before closing when dirty', () => {
