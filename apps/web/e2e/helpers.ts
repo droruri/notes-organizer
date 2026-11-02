@@ -21,3 +21,12 @@ export async function composeNote(page: Page, body: string) {
 
 /** Texts of the note cards, in the order shown (NoteList's `ul.gap-3`, not the outbox's). */
 export const cardTexts = (page: Page) => page.locator('ul.gap-3 > li').allInnerTexts();
+
+/** Opens the form settings sheet from the app menu (#179) and returns its dialog. */
+export async function openFormSettings(page: Page) {
+  await page.getByRole('button', { name: 'תפריט' }).click();
+  await page.getByRole('menuitem', { name: 'הגדרות', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'הגדרות', exact: true });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}

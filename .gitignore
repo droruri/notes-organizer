@@ -161,3 +161,6 @@ apps/web/android/
 
 # scripts/test-env.sh: per-worktree test stack config (.env.test is covered by .env.*)
 .test-env/
+
+# understand-anything plugin scratch
+.ua/
