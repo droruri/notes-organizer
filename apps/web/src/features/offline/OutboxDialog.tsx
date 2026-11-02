@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NoteEditor } from '../notes/NoteEditor';
 import { Icon } from '../../ui/Icon';
+import { Sheet } from '../../ui/Sheet';
 import { AudioPreview } from './AudioPreview';
 import type { OutboxEntry } from './outbox';
 
@@ -59,14 +60,8 @@ export function OutboxDialog({
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('offline.dialogTitle')}
-      className="screen enter-rise text-fg"
-    >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 text-start">
-        <h2 className="text-2xl font-bold tracking-tight">{t('offline.dialogTitle')}</h2>
+    <Sheet title={t('offline.dialogTitle')} onClose={onClose} wide>
+      <div className="flex w-full flex-col gap-5 p-5 text-start">
         {open ? (
           <>
             {open.hasAudio && <AudioPreview clientId={open.clientId} />}
@@ -106,6 +101,6 @@ export function OutboxDialog({
           </>
         )}
       </div>
-    </div>
+    </Sheet>
   );
 }

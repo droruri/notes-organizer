@@ -1,4 +1,8 @@
 {
+  "sheet": {
+    "close": "Close",
+    "discardConfirm": "You have unsaved changes. Close anyway?"
+  },
   "app": {
     "name": "My Notes",
     "menu": "Menu"
