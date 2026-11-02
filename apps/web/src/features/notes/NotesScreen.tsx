@@ -595,6 +595,11 @@ export function NotesScreen({
           {t('notes.error')}
         </p>
       )}
+      {saveDefault.isError && (
+        <p role="alert" className="notice notice-danger">
+          {t('notes.error')}
+        </p>
+      )}
       {waiting}
       <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
         <NoteList

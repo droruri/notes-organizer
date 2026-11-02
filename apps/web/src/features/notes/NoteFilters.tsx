@@ -25,17 +25,15 @@ const activeCount = (filter: NoteFilter) =>
   ).length;
 
 /** Whether a filter equals the saved default, ignoring the search text. */
-const matchesDefault = (filter: NoteFilter, saved: SavedFilter | null) => {
-  const base: NoteFilter = { ...EMPTY_FILTER, ...saved };
-  return Object.keys(EMPTY_FILTER).every((key) => {
-    if (key === 'text') return true;
-    const a: unknown = filter[key as keyof NoteFilter];
-    const b: unknown = base[key as keyof NoteFilter];
-    return Array.isArray(a) && Array.isArray(b)
-      ? a.length === b.length && [...a].sort().join() === [...b].sort().join()
-      : a === b;
-  });
-};
+const comparable = (f: NoteFilter) =>
+  JSON.stringify(
+    Object.entries(f)
+      .filter(([key]) => key !== 'text')
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => [key, Array.isArray(value) ? [...value].sort() : value]),
+  );
+const matchesDefault = (filter: NoteFilter, saved: SavedFilter | null) =>
+  comparable({ ...EMPTY_FILTER, ...filter }) === comparable({ ...EMPTY_FILTER, ...saved });
 
 /** Search box plus a collapsible filter sheet. Deleted taxonomy is greyed but still filters. */
 export function NoteFilters({

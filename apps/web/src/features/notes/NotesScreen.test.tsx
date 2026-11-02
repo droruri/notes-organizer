@@ -1,6 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { DEFAULT_NOTE_FORM, EMPTY_FILTER, EMPTY_SUGGESTION, type Note } from '@notes/shared';
+import {
+  DEFAULT_NOTE_FORM,
+  EMPTY_FILTER,
+  EMPTY_SUGGESTION,
+  type Note,
+  type SavedFilter,
+  type Taxonomy,
+} from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
@@ -379,7 +386,7 @@ describe('NotesScreen default filter', () => {
   const TAG = '00000000-0000-4000-8000-0000000000b1';
   const { text: _t, ...base } = EMPTY_FILTER;
   const saved = { ...base, statuses: ['done' as const], tagIds: [TAG] };
-  const ws = (id: string, defaultFilter: typeof saved | null) => ({
+  const ws = (id: string, defaultFilter: SavedFilter | null) => ({
     id,
     name: id === W1 ? 'Home' : 'Garden',
     isDefault: id === W1,
@@ -396,7 +403,7 @@ describe('NotesScreen default filter', () => {
       note(2, 'todo plain', []),
     ]);
     vi.spyOn(api, 'workspaces').mockResolvedValue(list);
-    vi.spyOn(api, 'taxonomy').mockResolvedValue({
+    const taxonomy: Taxonomy = {
       categories: [
         {
           id: C,
@@ -404,10 +411,11 @@ describe('NotesScreen default filter', () => {
           deleted: false,
           importance: null,
           color: 'slate',
-          tags: [{ id: TAG, name: 'Tg', deleted: false }],
+          tags: [{ id: TAG, categoryId: C, name: 'Tg', deleted: false }],
         },
       ],
-    } as never);
+    };
+    vi.spyOn(api, 'taxonomy').mockResolvedValue(taxonomy);
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
@@ -450,7 +458,8 @@ describe('NotesScreen default filter', () => {
   });
 
   it('initialTagId overrides the default', async () => {
-    setup(ws(W1, { ...saved, tagIds: [], statuses: ['done'] }), [ws(W1, saved)], TAG);
+    // Default is status "todo" only, so "done tagged" shows only if the tag override wins.
+    setup(ws(W1, { ...saved, tagIds: [], statuses: ['todo' as const] }), [ws(W1, saved)], TAG);
     await screen.findByText('done tagged');
     expect(screen.queryByText('todo plain')).toBeNull();
   });
