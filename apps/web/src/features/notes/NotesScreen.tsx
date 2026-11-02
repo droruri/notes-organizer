@@ -14,10 +14,9 @@ import {
   DEFAULT_NOTE_FORM,
   type NoteStatus,
   type Workspace,
-  MAX_TITLE_LENGTH,
   suggestionOf,
 } from '@notes/shared';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
@@ -40,7 +39,7 @@ import { Toast } from '../../ui/Toast';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
-import { VoiceRecorder } from './VoiceRecorder';
+import { ComposeForm } from './ComposeForm';
 
 // Chat and import open only on request, so they load in their own chunks. Hovering or focusing
 // the chat button starts the chat download early.
@@ -51,7 +50,6 @@ const ImportDialog = lazy(() =>
 );
 
 const UNDO_MS = 5000;
-const inputDir = (value: string) => (value.trim() ? 'auto' : 'rtl');
 
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
@@ -321,91 +319,44 @@ export function NotesScreen({
       </Toast>
     );
 
-  if (pathname === ROUTES.compose) {
-    return (
-      <form
-        className="enter-rise flex flex-col gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!text.trim()) return;
-          if (online) create.mutate({ body: text, title, clientId: crypto.randomUUID() });
-          else void saveOffline(text, undefined, undefined, title);
-        }}
-      >
-        <h2 className="text-2xl font-bold tracking-tight">{t('notes.add')}</h2>
-        {!online && (
-          <p role="status" className="notice notice-info">
-            {t('offline.banner')}
-          </p>
-        )}
-        <div className="card flex flex-col gap-3 p-3 transition-[box-shadow] duration-150 has-[:focus-visible]:shadow-[0_0_0_2px_var(--accent)]">
-          <div className="border-b border-line pb-3">
-            <VoiceRecorder
-              onSend={(audio) =>
-                online
-                  ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
-                  : void saveOffline('', audio, undefined, title)
-              }
-              pending={createVoice.isPending}
-              failed={createVoice.isError}
-              autoStart={autoRecord}
-            />
-          </div>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={MAX_TITLE_LENGTH}
-            dir={inputDir(title)}
-            aria-label={t('notes.noteTitle')}
-            placeholder={t('notes.noteTitle')}
-            className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
-          />
-          <textarea
-            autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={6}
-            dir={inputDir(text)}
-            aria-label={t('notes.body')}
-            placeholder={t('notes.placeholder')}
-            className="w-full resize-none bg-transparent px-1 py-1 text-[1.0625rem] leading-relaxed outline-none placeholder:text-muted focus-visible:outline-none"
-          />
-        </div>
-        {offlineNotice === 'failed' && (
-          <p role="alert" className="notice notice-danger">
-            {t('offline.saveFailed')}
-          </p>
-        )}
-        {create.isError && (
-          <p role="alert" className="notice notice-danger">
-            {t('notes.error')}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="submit"
-            disabled={create.isPending || text.trim() === ''}
-            className="btn btn-primary"
-          >
-            {create.isPending ? (
-              <span aria-hidden="true" className="spinner" />
-            ) : (
-              <Icon name="spark" size={16} />
-            )}
-            {create.isPending ? t('notes.suggesting') : t('notes.suggest')}
-          </button>
-          <button type="button" onClick={goBack} className="btn btn-ghost">
-            {t('notes.cancel')}
-          </button>
-        </div>
-        <p className="text-sm text-muted">{t('notes.suggestHint')}</p>
-      </form>
-    );
-  }
+  const composeForm = pathname === ROUTES.compose && (
+    <ComposeForm
+      title={title}
+      text={text}
+      onTitle={setTitle}
+      onText={setText}
+      online={online}
+      suggesting={create.isPending}
+      suggestFailed={create.isError}
+      voicePending={createVoice.isPending}
+      voiceFailed={createVoice.isError}
+      saveFailed={offlineNotice === 'failed'}
+      autoRecord={autoRecord}
+      onSuggest={() => {
+        if (online) create.mutate({ body: text, title, clientId: crypto.randomUUID() });
+        else void saveOffline(text, undefined, undefined, title);
+      }}
+      onVoice={(audio) =>
+        online
+          ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
+          : void saveOffline('', audio, undefined, title)
+      }
+      onCancel={goBack}
+    />
+  );
+  /** The list and the open page as sibling slots; CSS decides what shows (the list hides behind a detail). */
+  const slots = (list: ReactNode, detail: ReactNode) => (
+    <div data-detail-open={detail ? '' : undefined}>
+      <div data-slot="list" hidden={Boolean(detail)}>
+        {list}
+      </div>
+      {detail ? <div data-slot="detail">{detail}</div> : null}
+    </div>
+  );
 
   if (!notes.data || !taxonomy.data) {
     if (notes.isError || taxonomy.isError || !online) {
-      return (
+      return slots(
         <section className="flex flex-col items-start gap-4">
           {online ? (
             <p role="alert" className="notice notice-danger">
@@ -422,36 +373,39 @@ export function NotesScreen({
           </button>
           {waiting}
           <div className="toast-stack">{offlineToast}</div>
-        </section>
+        </section>,
+        composeForm,
       );
     }
-    return <Loading label={t('status.checking')} />;
+    return composeForm ? slots(null, composeForm) : <Loading label={t('status.checking')} />;
   }
 
+  let editor: ReactNode = null;
   if (pathname === ROUTES.review || editId !== undefined) {
     // History state survives a reload, so it is untrusted like any other input.
     const parsed = pathname === ROUTES.review ? NoteCreated.safeParse(state) : undefined;
-    if (parsed && !parsed.success) return <Navigate to={ROUTES.notes} replace />;
     const edited = notes.data.find((n) => n.id === editId);
-    if (!parsed && !edited) return <Navigate to={ROUTES.notes} replace />;
     const note = parsed?.success ? parsed.data.note : edited;
-    if (!note) return <Navigate to={ROUTES.notes} replace />;
-    return (
-      <NoteEditor
-        key={note.id}
-        note={note}
-        suggestion={parsed?.success ? parsed.data.suggestion : suggestionOf(note)}
-        taxonomy={taxonomy.data}
-        busy={submit.isPending}
-        failed={submit.isError || remove.isError}
-        onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
-        onCancel={goBack}
-        onReanalyze={() => reanalyze(note.id)}
-        onDelete={() => remove.mutate(note.id)}
-        attachable
-        workspaces={workspaces.data}
-      />
-    );
+    if ((parsed && !parsed.success) || !note) {
+      editor = <Navigate to={ROUTES.notes} replace />;
+    } else {
+      editor = (
+        <NoteEditor
+          key={note.id}
+          note={note}
+          suggestion={parsed?.success ? parsed.data.suggestion : suggestionOf(note)}
+          taxonomy={taxonomy.data}
+          busy={submit.isPending}
+          failed={submit.isError || remove.isError}
+          onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
+          onCancel={goBack}
+          onReanalyze={() => reanalyze(note.id)}
+          onDelete={() => remove.mutate(note.id)}
+          attachable
+          workspaces={workspaces.data}
+        />
+      );
+    }
   }
 
   const today = localToday();
@@ -467,7 +421,7 @@ export function NotesScreen({
     : undefined;
   const visible = sortNotes(filterNotes(inWorkspace, filter, today), sort, today);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
-  return (
+  return slots(
     <section className="flex flex-col gap-5">
       {online && !outboxDismissed && outbox.length > 0 && (
         <OutboxDialog
@@ -702,6 +656,7 @@ export function NotesScreen({
           </Toast>
         )}
       </div>
-    </section>
+    </section>,
+    composeForm || editor,
   );
 }
