@@ -73,7 +73,8 @@
       "in_progress": "בתהליך",
       "done": "הושלם",
       "none": "ללא סטטוס",
-      "label": "סטטוס"
+      "label": "סטטוס",
+      "advance": "{{current}} — העבר ל{{next}}"
     },
     "picker": {
       "categories": "קטגוריות",

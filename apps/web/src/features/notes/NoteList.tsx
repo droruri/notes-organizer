@@ -10,6 +10,7 @@ export function NoteList({
   today,
   onOpen,
   onStatus,
+  hiddenStatuses,
   statusPendingId,
   onAdd,
   workspaceNames,
@@ -21,6 +22,7 @@ export function NoteList({
   today: string;
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
+  hiddenStatuses: readonly NoteStatus[];
   /** Id of the note whose status save is pending. */
   statusPendingId?: string | undefined;
   /** Shown as the empty state's action when there are no notes at all. */
@@ -56,6 +58,7 @@ export function NoteList({
           today={today}
           onOpen={onOpen}
           onStatus={onStatus}
+          hiddenStatuses={hiddenStatuses}
           statusPending={statusPendingId === n.id}
           workspaceName={workspaceNames?.get(n.workspaceId)}
         />

@@ -191,9 +191,10 @@ describe('NotesScreen modes from the URL', () => {
 });
 
 describe('NotesScreen status from the list', () => {
-  it('saves a picked status, keeps the list open and shows the saved note', async () => {
+  it('saves the next status on tap, keeps the list open and shows the saved note', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     const done: Note = { ...note(1, 'first note', []), status: 'done' };
+    // the mock returns `done` regardless; the card then shows Done
     let saved = false;
     vi.spyOn(api, 'notes').mockImplementation(async () => [
       saved ? done : note(1, 'first note', []),
@@ -217,17 +218,13 @@ describe('NotesScreen status from the list', () => {
       </QueryClientProvider>,
     );
     await screen.findByText('first note');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
-      target: { value: 'done' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'To do — move to In progress' }));
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', {
-        status: 'done',
+        status: 'in_progress',
       }),
     );
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Status' })).toHaveProperty('value', 'done'),
-    );
+    await screen.findByRole('button', { name: 'Done — move to To do' });
     screen.getByText('first note');
   });
 });

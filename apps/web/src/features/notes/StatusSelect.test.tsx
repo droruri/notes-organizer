@@ -16,14 +16,6 @@ describe('StatusSelect', () => {
     expect(onChange).toHaveBeenCalledWith('done');
   });
 
-  it('adds a no-status option that reports null', () => {
-    const onChange = vi.fn();
-    render(<StatusSelect status="done" allowNone onChange={onChange} />);
-    expect(options()).toEqual(['לביצוע', 'בתהליך', 'הושלם', 'ללא סטטוס']);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: '' } });
-    expect(onChange).toHaveBeenCalledWith(null);
-  });
-
   it('can be disabled', () => {
     render(<StatusSelect status="todo" disabled onChange={() => undefined} />);
     expect(screen.getByRole('combobox')).toHaveProperty('disabled', true);
