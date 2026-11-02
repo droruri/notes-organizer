@@ -10,6 +10,7 @@ import {
   NoteCreated,
   type Note,
   type NoteFilter,
+  DEFAULT_NOTE_FORM,
   type NoteStatus,
   type Workspace,
   MAX_TITLE_LENGTH,
@@ -49,7 +50,6 @@ const ImportDialog = lazy(() =>
 );
 
 const UNDO_MS = 5000;
-const NO_HIDDEN_STATUSES: readonly NoteStatus[] = [];
 const inputDir = (value: string) => (value.trim() ? 'auto' : 'rtl');
 
 /** The client's local date as YYYY-MM-DD. */
@@ -583,7 +583,9 @@ export function NotesScreen({
             open(notePath(note.id));
           }}
           onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-          hiddenStatuses={NO_HIDDEN_STATUSES}
+          hiddenStatuses={
+            settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
+          }
           statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
           onAdd={() => open(ROUTES.compose)}
         />

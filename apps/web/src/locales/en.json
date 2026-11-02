@@ -119,6 +119,7 @@
       "cancel": "Cancel",
       "saving": "Saving…",
       "error": "Could not save the settings. Try again.",
+      "statusesTitle": "Statuses",
       "quickActionsTitle": "Home screen buttons (mobile)",
       "quickAction": {
         "workspaces": "Workspaces",

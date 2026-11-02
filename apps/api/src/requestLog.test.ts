@@ -145,6 +145,7 @@ describe('settings logs', () => {
         hiddenFields: [],
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
+        status: { hiddenValues: [] },
       },
       quickActions: ['record'],
     });

@@ -49,6 +49,32 @@ describe('NoteFormSettings (app settings sheet)', () => {
     });
   });
 
+  it('sends hidden statuses when In progress is switched off', async () => {
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'urgency',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const save = vi.spyOn(api, 'saveSettings').mockResolvedValue({
+      noteSort: 'urgency',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <NoteFormSettings onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Statuses')).toBeTruthy();
+    const sw = within(dialog).getByRole<HTMLInputElement>('switch', { name: 'Show In progress' });
+    expect(sw.checked).toBe(true);
+    fireEvent.click(sw);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save settings' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0]?.[0].noteForm?.status).toEqual({ hiddenValues: ['in_progress'] });
+  });
+
   it('disables the last offered value chip', async () => {
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'urgency',

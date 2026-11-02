@@ -8,6 +8,7 @@ describe('NoteForm', () => {
       hiddenFields: ['title'],
       importance: { display: 'dropdown', hiddenValues: [] },
       urgency: { display: 'dropdown', hiddenValues: [] },
+      status: { hiddenValues: [] },
     });
   });
 
@@ -18,6 +19,19 @@ describe('NoteForm', () => {
     });
     expect(parsed.noteForm.urgency.display).toBe('buttons');
     expect(parsed.noteForm.importance.display).toBe('dropdown');
+  });
+});
+
+describe('NoteForm status', () => {
+  it('defaults to nothing hidden', () => {
+    expect(NoteForm.parse({}).status.hiddenValues).toEqual([]);
+  });
+  it('only lets in_progress be hidden', () => {
+    expect(
+      NoteForm.parse({ status: { hiddenValues: ['in_progress'] } }).status.hiddenValues,
+    ).toEqual(['in_progress']);
+    expect(NoteForm.safeParse({ status: { hiddenValues: ['todo'] } }).success).toBe(false);
+    expect(NoteForm.safeParse({ status: { hiddenValues: ['done'] } }).success).toBe(false);
   });
 });
 

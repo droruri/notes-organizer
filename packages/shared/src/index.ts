@@ -28,10 +28,17 @@ const choiceSettings = <T extends z.ZodEnum>(values: T) =>
     hiddenValues: z.array(values).default([]),
   });
 
+/** Statuses a user may switch off; To do and Done are always on. */
+export const HideableStatus = z.enum(['in_progress']);
+export type HideableStatus = z.infer<typeof HideableStatus>;
+
 export const NoteForm = z.object({
   hiddenFields: z.array(HideableField).default([]),
   importance: choiceSettings(Importance).default({ display: 'dropdown', hiddenValues: [] }),
   urgency: choiceSettings(Urgency).default({ display: 'dropdown', hiddenValues: [] }),
+  status: z
+    .object({ hiddenValues: z.array(HideableStatus).default([]) })
+    .default({ hiddenValues: [] }),
 });
 export type NoteForm = z.infer<typeof NoteForm>;
 export const DEFAULT_NOTE_FORM: NoteForm = NoteForm.parse({});

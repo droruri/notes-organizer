@@ -5,10 +5,12 @@ import { useTranslation } from 'react-i18next';
 export function StatusSelect({
   status,
   onChange,
+  hiddenValues,
   disabled = false,
 }: {
   status: NoteStatus | null;
   onChange: (status: NoteStatus | null) => void;
+  hiddenValues: readonly NoteStatus[];
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
@@ -25,7 +27,7 @@ export function StatusSelect({
       }}
       className={`pill pill-dot ${statusClass(status)} cursor-pointer`}
     >
-      {TRACKED_STATUSES.map((s) => (
+      {TRACKED_STATUSES.filter((s) => !hiddenValues.includes(s) || s === status).map((s) => (
         <option key={s} value={s}>
           {t(`notes.status.${s}`)}
         </option>
