@@ -481,6 +481,18 @@ describe('NotesScreen default filter', () => {
     expect((b as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('disables the save button while offline', async () => {
+    setup(ws(W1, null), [ws(W1, null)]);
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    window.dispatchEvent(new Event('offline'));
+    await openSheet();
+    fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
+    const b = await screen.findByRole('button', { name: 'Save as default' });
+    expect((b as HTMLButtonElement).disabled).toBe(true);
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    window.dispatchEvent(new Event('online'));
+  });
+
   it('hides the button with all workspaces on', async () => {
     setup(ws(W1, null), [ws(W1, null), ws(W2, null)]);
     await screen.findByRole('button', { name: 'All workspaces' });

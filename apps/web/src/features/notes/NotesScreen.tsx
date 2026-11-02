@@ -123,8 +123,8 @@ export function NotesScreen({
     setFilter({ ...EMPTY_FILTER, ...workspace?.defaultFilter });
   }
   const saveDefault = useMutation({
-    mutationFn: (defaultFilter: SavedFilter) =>
-      api.editWorkspace(workspace?.id ?? '', { defaultFilter }),
+    mutationFn: ({ id, defaultFilter }: { id: string; defaultFilter: SavedFilter }) =>
+      api.editWorkspace(id, { defaultFilter }),
     onSuccess: (saved) =>
       queryClient.setQueryData<Workspace[]>(['workspaces'], (list) =>
         list?.map((w) => (w.id === saved.id ? saved : w)),
@@ -567,7 +567,7 @@ export function NotesScreen({
         {...(workspace && {
           onSaveDefault: () => {
             const { text: _text, ...defaultFilter } = filter;
-            saveDefault.mutate(defaultFilter);
+            saveDefault.mutate({ id: workspace.id, defaultFilter });
           },
         })}
         sort={

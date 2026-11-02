@@ -65,7 +65,7 @@ export function NoteFilters({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const online = useOnline();
-  const isDefault = matchesDefault(filter, savedDefault);
+  const isDefault = savedDefault !== null && matchesDefault(filter, savedDefault);
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });
   const tags = taxonomy.categories.flatMap((c) => c.tags);
   const date = (label: string, from: 'createdFrom' | 'dueFrom', to: 'createdTo' | 'dueTo') => (
