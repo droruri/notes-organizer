@@ -155,7 +155,9 @@
     "status": "Status",
     "from": "from",
     "to": "to",
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "saveDefault": "Save as default",
+    "isDefault": "✓ Default"
   },
   "voice": {
     "record": "Record",

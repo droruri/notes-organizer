@@ -10,6 +10,7 @@ import {
   NoteCreated,
   type Note,
   type NoteFilter,
+  type SavedFilter,
   DEFAULT_NOTE_FORM,
   type NoteStatus,
   type Workspace,
@@ -110,8 +111,25 @@ export function NotesScreen({
   const [imported, setImported] = useState<ImportResult | null>(null);
   const [undoId, setUndoId] = useState<string | null>(null);
   const [filter, setFilter] = useState<NoteFilter>(
-    initialTagId === null ? EMPTY_FILTER : { ...EMPTY_FILTER, tagIds: [initialTagId] },
+    initialTagId === null
+      ? { ...EMPTY_FILTER, ...workspace?.defaultFilter }
+      : { ...EMPTY_FILTER, tagIds: [initialTagId] },
   );
+  // Apply a workspace's saved default when the workspace changes (adjusting state during render,
+  // so open child routes are not remounted).
+  const [appliedFor, setAppliedFor] = useState(workspace?.id);
+  if (workspace?.id !== appliedFor) {
+    setAppliedFor(workspace?.id);
+    setFilter({ ...EMPTY_FILTER, ...workspace?.defaultFilter });
+  }
+  const saveDefault = useMutation({
+    mutationFn: (defaultFilter: SavedFilter) =>
+      api.editWorkspace(workspace?.id ?? '', { defaultFilter }),
+    onSuccess: (saved) =>
+      queryClient.setQueryData<Workspace[]>(['workspaces'], (list) =>
+        list?.map((w) => (w.id === saved.id ? saved : w)),
+      ),
+  });
   const saveSort = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
@@ -545,6 +563,13 @@ export function NotesScreen({
         allWorkspaces={acrossWorkspaces}
         onAllWorkspaces={setAllWorkspaces}
         showAllWorkspaces={showAllWorkspaces}
+        savedDefault={workspace?.defaultFilter ?? null}
+        {...(workspace && {
+          onSaveDefault: () => {
+            const { text: _text, ...defaultFilter } = filter;
+            saveDefault.mutate(defaultFilter);
+          },
+        })}
         sort={
           <label className="flex items-center gap-2 text-sm text-muted">
             <span className="shrink-0">{t('notes.sort.label')}</span>

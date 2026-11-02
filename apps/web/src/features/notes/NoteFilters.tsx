@@ -4,11 +4,13 @@ import {
   NoteStatus,
   Urgency,
   type NoteFilter,
+  type SavedFilter,
   type Taxonomy,
 } from '@notes/shared';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { useOnline } from '../offline/useOnline';
 import { Chip } from './Chip';
 
 const toggle = <T,>(list: T[], x: T): T[] =>
@@ -22,6 +24,19 @@ const activeCount = (filter: NoteFilter) =>
     ([key, value]) => key !== 'text' && (Array.isArray(value) ? value.length > 0 : Boolean(value)),
   ).length;
 
+/** Whether a filter equals the saved default, ignoring the search text. */
+const matchesDefault = (filter: NoteFilter, saved: SavedFilter | null) => {
+  const base: NoteFilter = { ...EMPTY_FILTER, ...saved };
+  return Object.keys(EMPTY_FILTER).every((key) => {
+    if (key === 'text') return true;
+    const a: unknown = filter[key as keyof NoteFilter];
+    const b: unknown = base[key as keyof NoteFilter];
+    return Array.isArray(a) && Array.isArray(b)
+      ? a.length === b.length && [...a].sort().join() === [...b].sort().join()
+      : a === b;
+  });
+};
+
 /** Search box plus a collapsible filter sheet. Deleted taxonomy is greyed but still filters. */
 export function NoteFilters({
   filter,
@@ -31,6 +46,8 @@ export function NoteFilters({
   allWorkspaces = false,
   onAllWorkspaces,
   showAllWorkspaces = false,
+  onSaveDefault,
+  savedDefault = null,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
@@ -41,9 +58,14 @@ export function NoteFilters({
   onAllWorkspaces?: (next: boolean) => void;
   /** Only offered when the user has more than one workspace. */
   showAllWorkspaces?: boolean;
+  /** Saves the current filter (minus the text) as the workspace's default. */
+  onSaveDefault?: () => void;
+  savedDefault?: SavedFilter | null;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const online = useOnline();
+  const isDefault = matchesDefault(filter, savedDefault);
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });
   const tags = taxonomy.categories.flatMap((c) => c.tags);
   const date = (label: string, from: 'createdFrom' | 'dueFrom', to: 'createdTo' | 'dueTo') => (
@@ -192,6 +214,16 @@ export function NoteFilters({
           >
             {t('filters.clear')}
           </button>
+          {onSaveDefault && !allWorkspaces && (
+            <button
+              type="button"
+              onClick={onSaveDefault}
+              disabled={isDefault || !online}
+              className="btn btn-ghost btn-sm self-start text-muted"
+            >
+              {isDefault ? t('filters.isDefault') : t('filters.saveDefault')}
+            </button>
+          )}
         </div>
       )}
     </div>

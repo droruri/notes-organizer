@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { DEFAULT_NOTE_FORM, EMPTY_SUGGESTION, type Note } from '@notes/shared';
+import { DEFAULT_NOTE_FORM, EMPTY_FILTER, EMPTY_SUGGESTION, type Note } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
@@ -370,5 +370,123 @@ describe('NotesScreen mobile quick actions', () => {
     await screen.findAllByRole('button', { name: 'New note' });
     await waitFor(() => expect(api.settings).toHaveBeenCalled());
     expect(quick('workspaces')).toBeNull();
+  });
+});
+
+describe('NotesScreen default filter', () => {
+  const W1 = '00000000-0000-4000-8000-0000000000f1';
+  const W2 = '00000000-0000-4000-8000-0000000000f2';
+  const TAG = '00000000-0000-4000-8000-0000000000b1';
+  const { text: _t, ...base } = EMPTY_FILTER;
+  const saved = { ...base, statuses: ['done' as const], tagIds: [TAG] };
+  const ws = (id: string, defaultFilter: typeof saved | null) => ({
+    id,
+    name: id === W1 ? 'Home' : 'Garden',
+    isDefault: id === W1,
+    defaultFilter,
+  });
+  const setup = (
+    workspace: ReturnType<typeof ws>,
+    list: ReturnType<typeof ws>[],
+    initialTagId: string | null = null,
+  ) => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockResolvedValue([
+      { ...note(1, 'done tagged', [TAG]), status: 'done' },
+      note(2, 'todo plain', []),
+    ]);
+    vi.spyOn(api, 'workspaces').mockResolvedValue(list);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({
+      categories: [
+        {
+          id: C,
+          name: 'Cat',
+          deleted: false,
+          importance: null,
+          color: 'slate',
+          tags: [{ id: TAG, name: 'Tg', deleted: false }],
+        },
+      ],
+    } as never);
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const tree = (w: typeof workspace) => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen workspace={w} initialTagId={initialTagId} />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const r = render(tree(workspace));
+    return { client, rerender: (w: typeof workspace) => r.rerender(tree(w)) };
+  };
+  const openSheet = async () =>
+    fireEvent.click(await screen.findByRole('button', { name: /^Filter/ }));
+
+  it('applies the workspace default and filters the list', async () => {
+    setup(ws(W1, saved), [ws(W1, saved)]);
+    await screen.findByText('done tagged');
+    expect(screen.queryByText('todo plain')).toBeNull();
+    await openSheet();
+    expect(screen.getByRole('button', { name: 'Done' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Tg' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('applies the next workspace default when switching', async () => {
+    const { rerender } = setup(ws(W1, saved), [ws(W1, saved), ws(W2, null)]);
+    await screen.findByText('done tagged');
+    await openSheet();
+    expect(screen.getByRole('button', { name: 'Done' }).getAttribute('aria-pressed')).toBe('true');
+    rerender(ws(W2, null));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Done' }).getAttribute('aria-pressed')).toBe(
+        'false',
+      ),
+    );
+  });
+
+  it('initialTagId overrides the default', async () => {
+    setup(ws(W1, { ...saved, tagIds: [], statuses: ['done'] }), [ws(W1, saved)], TAG);
+    await screen.findByText('done tagged');
+    expect(screen.queryByText('todo plain')).toBeNull();
+  });
+
+  it('saves the filter without text and updates the cache', async () => {
+    const w = ws(W1, null);
+    const edit = vi.spyOn(api, 'editWorkspace');
+    const { client } = setup(w, [w]);
+    edit.mockResolvedValue(ws(W1, saved));
+    await openSheet();
+    fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tg' }));
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzz' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save as default' }));
+    await waitFor(() => expect(edit).toHaveBeenCalled());
+    expect(edit).toHaveBeenCalledWith(W1, { defaultFilter: saved });
+    await waitFor(() =>
+      expect(
+        client.getQueryData<{ defaultFilter: unknown }[]>(['workspaces'])?.[0]?.defaultFilter,
+      ).toEqual(saved),
+    );
+  });
+
+  it('shows a disabled "✓ Default" when the filter matches', async () => {
+    setup(ws(W1, saved), [ws(W1, saved)]);
+    await openSheet();
+    const b = await screen.findByRole('button', { name: '✓ Default' });
+    expect((b as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('hides the button with all workspaces on', async () => {
+    setup(ws(W1, null), [ws(W1, null), ws(W2, null)]);
+    await screen.findByRole('button', { name: 'All workspaces' });
+    await openSheet();
+    expect(await screen.findByRole('button', { name: /default/i })).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: 'All workspaces' }));
+    expect(screen.queryByRole('button', { name: /default/i })).toBeNull();
   });
 });
