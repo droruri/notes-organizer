@@ -100,6 +100,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         hiddenFields: [],
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
+        status: { hiddenValues: [] },
       },
       quickActions: ['record'],
     });
@@ -116,6 +117,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         hiddenFields: [],
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
+        status: { hiddenValues: [] },
       },
       quickActions: ['record'],
     });
@@ -126,6 +128,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         hiddenFields: [],
         importance: { display: 'dropdown', hiddenValues: [] },
         urgency: { display: 'dropdown', hiddenValues: [] },
+        status: { hiddenValues: [] },
       },
       quickActions: ['record'],
     });
@@ -136,6 +139,7 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       hiddenFields: ['dueDate'],
       importance: { display: 'dropdown', hiddenValues: [] },
       urgency: { display: 'dropdown', hiddenValues: [] },
+      status: { hiddenValues: [] },
     };
     const a = await app.inject({
       method: 'PUT',

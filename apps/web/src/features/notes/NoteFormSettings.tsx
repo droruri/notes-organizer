@@ -4,6 +4,7 @@ import {
   DEFAULT_NOTE_FORM,
   DEFAULT_QUICK_ACTIONS,
   HideableField,
+  HideableStatus,
   Importance,
   QuickAction,
   Urgency,
@@ -48,6 +49,9 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
     hiddenValues[f] ?? stored[f].hiddenValues;
   const [quickEdited, setQuickEdited] = useState<ReadonlyArray<QuickAction> | null>(null);
   const quick = quickEdited ?? settings.data?.quickActions ?? DEFAULT_QUICK_ACTIONS;
+  const [statusHiddenEdited, setStatusHiddenEdited] =
+    useState<ReadonlyArray<HideableStatus> | null>(null);
+  const statusHidden = statusHiddenEdited ?? stored.status.hiddenValues;
   const save = useMutation({
     mutationFn: () =>
       api.saveSettings({
@@ -60,6 +64,9 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
           urgency: {
             display: displayOf('urgency'),
             hiddenValues: Urgency.options.filter((v) => hiddenOf('urgency').includes(v)),
+          },
+          status: {
+            hiddenValues: HideableStatus.options.filter((v) => statusHidden.includes(v)),
           },
         } satisfies NoteForm,
         quickActions: QuickAction.options.filter((a) => quick.includes(a)),
@@ -174,6 +181,34 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
                     <p className="w-full">{t('notes.formSettings.lastValue')}</p>
                   </div>
                 )}
+              </li>
+            );
+          })}
+          <li className="mt-2 border-t border-line pt-3 text-sm font-bold text-muted">
+            {t('notes.formSettings.statusesTitle')}
+          </li>
+          {HideableStatus.options.map((s) => {
+            const name = t(`notes.status.${s}`);
+            const on = !statusHidden.includes(s);
+            return (
+              <li key={s} className={`flex items-center py-3 ${on ? '' : 'text-muted'}`}>
+                <label className="flex w-full items-center gap-3">
+                  <span>{name}</span>
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={on}
+                    aria-label={t('notes.formSettings.show', { field: name })}
+                    onChange={(e) =>
+                      setStatusHiddenEdited(
+                        e.target.checked
+                          ? statusHidden.filter((x) => x !== s)
+                          : [...statusHidden, s],
+                      )
+                    }
+                    className="ms-auto h-5 w-9 accent-[var(--accent)]"
+                  />
+                </label>
               </li>
             );
           })}

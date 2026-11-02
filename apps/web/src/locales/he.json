@@ -120,6 +120,7 @@
       "cancel": "ביטול",
       "saving": "שומר…",
       "error": "לא הצלחנו לשמור את ההגדרות. נסו שוב.",
+      "statusesTitle": "סטטוסים",
       "quickActionsTitle": "כפתורים במסך הראשי (נייד)",
       "quickAction": {
         "workspaces": "סביבות עבודה",

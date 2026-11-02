@@ -288,6 +288,7 @@ export function NoteEditor({
       {note.status !== 'draft' && tracksStatus && (
         <StatusSelect
           status={status}
+          hiddenValues={noteForm.status.hiddenValues}
           onChange={(next) => {
             if (next) setStatus(next);
           }}
