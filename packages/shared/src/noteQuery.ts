@@ -6,7 +6,7 @@ import type { Note, NoteSort } from './index';
 // One implementation of "which notes, in what order" for the web list and the agent's tools.
 
 /** `''` (open end) or a `YYYY-MM-DD` day. */
-const FilterDate = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]);
+const FilterDate = z.union([z.literal(''), z.iso.date()]);
 
 export const NoteFilter = z.object({
   text: z.string(),
