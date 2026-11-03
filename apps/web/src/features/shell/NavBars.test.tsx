@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { Workspace } from '@notes/shared';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { i18n } from '../../lib/i18n';
@@ -37,10 +38,10 @@ describe('TabBar', () => {
 describe('Sidebar', () => {
   it('switches workspace in one click and highlights the current one', () => {
     const onSwitch = vi.fn();
-    const workspaces = [
-      { id: 'a', name: 'Alpha' },
-      { id: 'b', name: 'Beta' },
-    ] as never;
+    const workspaces: Workspace[] = [
+      { id: 'a', name: 'Alpha', isDefault: true, defaultFilter: null },
+      { id: 'b', name: 'Beta', isDefault: false, defaultFilter: null },
+    ];
     render(
       <MemoryRouter>
         <Sidebar

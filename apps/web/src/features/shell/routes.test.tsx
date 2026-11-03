@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { afterEach, describe, expect, it } from 'vite-plus/test';
-import { ROUTES, useGoBack } from './routes';
+import { NAV_ITEMS, ROUTES, isPushedPath, useGoBack } from './routes';
 
 afterEach(cleanup);
 
@@ -26,6 +26,26 @@ const renderAt = (entries: string[]) =>
       </Routes>
     </MemoryRouter>,
   );
+
+describe('isPushedPath', () => {
+  it.each(['/new', '/review', '/import', '/taxonomy', '/users', '/notes/abc'])(
+    'hides the tab bar on %s',
+    (path) => {
+      expect(isPushedPath(path)).toBe(true);
+    },
+  );
+
+  it.each(['/', '/chat', '/workspaces'])('keeps the tab bar on %s', (path) => {
+    expect(isPushedPath(path)).toBe(false);
+  });
+});
+
+describe('NAV_ITEMS', () => {
+  it('has the four tab items and the more group', () => {
+    const tabs = NAV_ITEMS.filter((i) => i.group === 'tab').map((i) => i.id);
+    expect(tabs).toEqual(['notes', 'chat', 'workspaces', 'more']);
+  });
+});
 
 describe('useGoBack', () => {
   it('goes back one entry when the app has an earlier one', () => {

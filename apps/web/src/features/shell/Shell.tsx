@@ -36,7 +36,7 @@ export function Shell({ children }: { children: ReactNode }) {
       )}
       <OfflineBanner />
       <main
-        className={`mx-auto w-full max-w-3xl px-4 pt-6 text-start ${signedIn ? 'pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(9rem+env(safe-area-inset-bottom))] lg:ps-[17rem] lg:pb-12' : 'pb-28 sm:pb-12'}`}
+        className={`mx-auto w-full max-w-3xl px-4 text-start ${signedIn ? 'pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(9rem+env(safe-area-inset-bottom))] lg:ps-[17rem] lg:pb-12' : 'pt-6 pb-28 sm:pb-12'}`}
       >
         {children}
       </main>
