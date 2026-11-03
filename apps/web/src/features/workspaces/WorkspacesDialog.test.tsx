@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { api, ApiRequestError } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
 import { AuthContext } from '../auth/authContext';
-import { HeaderSlot } from '../shell/headerSlot';
 import { Screens } from '../shell/Screens';
 
 const GENERAL: Workspace = {
@@ -61,25 +60,22 @@ afterEach(() => {
 });
 
 function setup() {
-  const slot = document.createElement('div');
-  document.body.append(slot);
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
       <AuthContext.Provider value={{ state: 'allowed', isAdmin: false, signOut: async () => {} }}>
-        <HeaderSlot value={slot}>
-          <MemoryRouter>
-            <Screens />
-          </MemoryRouter>
-        </HeaderSlot>
+        <MemoryRouter>
+          <Screens />
+        </MemoryRouter>
       </AuthContext.Provider>
     </QueryClientProvider>,
   );
 }
 const openDialog = () => {
-  fireEvent.click(screen.getByRole('button', { name: 'Menu' }));
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Workspaces' }));
+  // The tab bar's Workspaces tab (the sidebar's heading, hidden by CSS below 1024px, is a twin).
+  const [tab] = screen.getAllByRole('button', { name: 'Workspaces' });
+  if (tab) fireEvent.click(tab);
   return screen.findByRole('dialog', { name: 'Workspaces' });
 };
 

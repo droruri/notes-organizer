@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { composeNote, signIn, unique } from './helpers';
+import { composeNote, signIn, unique, openMenu } from './helpers';
 
 test.use({ viewport: { width: 375, height: 812 } });
 
 const openTaxonomy = async (page: import('@playwright/test').Page) => {
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: /קטגוריות ותגיות/ }).click();
   await expect(page).toHaveURL(/\/taxonomy$/);
 };
@@ -110,7 +110,7 @@ test('chat → open a note → back returns to the list', async ({ page }) => {
 
 test('menu → Import → back closes the dialog', async ({ page }) => {
   await signIn(page);
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: /ייבוא/ }).click();
   await expect(page).toHaveURL(/\/import$/);
   await expect(page.getByRole('dialog')).toBeVisible();

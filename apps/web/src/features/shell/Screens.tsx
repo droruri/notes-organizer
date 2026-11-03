@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { resolveWorkspace } from '@notes/shared';
-import { lazy, Suspense, useContext, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { lazy, Suspense, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api';
@@ -10,9 +9,11 @@ import { NotesScreen } from '../notes/NotesScreen';
 import { NoteFormSettings } from '../notes/NoteFormSettings';
 import { WorkspacesDialog } from '../workspaces/WorkspacesDialog';
 import { Loading } from '../../ui/Loading';
+import { Sheet } from '../../ui/Sheet';
 import { AppMenu } from './AppMenu';
-import { HeaderSlot } from './headerSlot';
-import { ROUTES, tagPath, useGoBack } from './routes';
+import { Sidebar } from './Sidebar';
+import { TabBar } from './TabBar';
+import { ROUTES, type NavId, tagPath, useGoBack } from './routes';
 
 // Taxonomy and the admin-only Users screen are rarely opened, so they load in their own chunks.
 const TaxonomyScreen = lazy(() =>
@@ -26,7 +27,6 @@ const UsersScreen = lazy(() =>
 export function Screens() {
   const { t } = useTranslation();
   const { isAdmin, signOut } = useAuth();
-  const slot = useContext(HeaderSlot);
   const navigate = useNavigate();
   const goBack = useGoBack();
   const [params] = useSearchParams();
@@ -37,34 +37,52 @@ export function Screens() {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const workspace = workspaces.data ? resolveWorkspace(workspaces.data, currentId) : undefined;
-  const menu = slot
-    ? createPortal(
-        <AppMenu
-          onNotes={() => void navigate(ROUTES.notes)}
-          onTaxonomy={() => void navigate(ROUTES.taxonomy)}
-          onImport={() => void navigate(ROUTES.import)}
-          onWorkspaces={() => setPicking(true)}
-          onSettings={() => setSettingsOpen(true)}
-          onSignOut={() => void signOut()}
-          {...(isAdmin ? { onUsers: () => void navigate(ROUTES.users) } : {})}
-        />,
-        slot,
-      )
-    : null;
+  const pick = (id: NavId) => {
+    if (id === 'notes') void navigate(ROUTES.notes);
+    else if (id === 'chat') void navigate(ROUTES.chat);
+    else if (id === 'workspaces') setPicking(true);
+    else if (id === 'more') setMoreOpen(true);
+    else if (id === 'settings') setSettingsOpen(true);
+    else void navigate(ROUTES[id]);
+  };
+  const switchTo = (id: string) => {
+    setCurrentId(id);
+    void navigate(ROUTES.notes);
+  };
   return (
     <>
-      {menu}
+      <TabBar onPick={pick} />
+      <Sidebar
+        workspaces={workspaces.data ?? []}
+        currentId={workspace?.id}
+        onSwitch={switchTo}
+        onManage={() => setPicking(true)}
+        onPick={pick}
+        onSignOut={() => void signOut()}
+        isAdmin={isAdmin}
+      />
+      {moreOpen && (
+        <Sheet title={t('app.menu')} onClose={() => setMoreOpen(false)}>
+          {(close) => (
+            <AppMenu
+              autoFocus
+              isAdmin={isAdmin}
+              onPick={pick}
+              onSignOut={() => void signOut()}
+              onDone={() => close(true)}
+            />
+          )}
+        </Sheet>
+      )}
       {settingsOpen && <NoteFormSettings onClose={() => setSettingsOpen(false)} />}
       {picking && (workspaces.data || workspaces.isError) && (
         <WorkspacesDialog
           workspaces={workspaces.data ?? []}
           loadFailed={workspaces.isError}
           currentId={workspace?.id}
-          onPick={(id) => {
-            setCurrentId(id);
-            void navigate(ROUTES.notes);
-          }}
+          onPick={switchTo}
           onClose={() => setPicking(false)}
         />
       )}

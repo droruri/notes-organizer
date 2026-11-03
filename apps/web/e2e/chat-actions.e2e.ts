@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signIn, unique } from './helpers';
+import { signIn, unique, openMenu } from './helpers';
 
 /** Replaces the model with a scripted SSE answer: one `data-actions` part with the given actions. */
 async function scriptChat(page: Page, names: string[]) {
@@ -28,7 +28,7 @@ test('"approve all" applies the chat action cards in one request', async ({ page
     }
   });
 
-  await page.getByRole('button', { name: 'שאלה', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'שאלה', exact: true }).click();
   const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
   await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('צור קטגוריות');
   await chat.getByRole('button', { name: 'שליחה' }).click();
@@ -40,7 +40,7 @@ test('"approve all" applies the chat action cards in one request', async ({ page
   expect(JSON.parse(applyPosts[0] ?? '{}').actions).toHaveLength(3);
 
   await chat.getByRole('button', { name: 'סגירה' }).click();
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: 'קטגוריות ותגיות' }).click();
   for (const name of names) await expect(page.getByText(name, { exact: true })).toBeVisible();
 
@@ -53,7 +53,7 @@ test('"approve all" applies the chat action cards in one request', async ({ page
 test('"approve all" recolors several categories from chat', async ({ page }) => {
   const names = [unique('עבודה'), unique('בית')];
   await signIn(page);
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: 'קטגוריות ותגיות' }).click();
   const created: { id: string; name: string }[] = [];
   for (const name of names) {
@@ -85,7 +85,7 @@ test('"approve all" recolors several categories from chat', async ({ page }) => 
     });
   });
 
-  await page.getByRole('button', { name: 'שאלה', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'שאלה', exact: true }).click();
   const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
   await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('צבע כחול');
   await chat.getByRole('button', { name: 'שליחה' }).click();
@@ -94,7 +94,7 @@ test('"approve all" recolors several categories from chat', async ({ page }) => 
   await expect(chat.getByText('בוצע', { exact: true })).toHaveCount(2);
 
   await chat.getByRole('button', { name: 'סגירה' }).click();
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: 'קטגוריות ותגיות' }).click();
   for (const name of names) {
     await expect(
