@@ -10,6 +10,7 @@ import {
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { Sheet } from '../../ui/Sheet';
 import { useOnline } from '../offline/useOnline';
 import { Chip } from './Chip';
 
@@ -35,7 +36,7 @@ const comparable = (f: NoteFilter) =>
 const matchesDefault = (filter: NoteFilter, saved: SavedFilter | null) =>
   comparable({ ...EMPTY_FILTER, ...filter }) === comparable({ ...EMPTY_FILTER, ...saved });
 
-/** Search box plus a collapsible filter sheet. Deleted taxonomy is greyed but still filters. */
+/** Search box plus a Filters button that opens one sheet with the filters and the sort. Deleted taxonomy is greyed but still filters. */
 export function NoteFilters({
   filter,
   onChange,
@@ -50,7 +51,7 @@ export function NoteFilters({
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
   taxonomy: Taxonomy;
-  /** The sort control, shown on the toolbar row. */
+  /** The sort control, shown inside the filters sheet. */
   sort?: ReactNode;
   allWorkspaces?: boolean;
   onAllWorkspaces?: (next: boolean) => void;
@@ -123,7 +124,8 @@ export function NoteFilters({
           type="button"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
-          className={`btn ${open || active > 0 ? 'text-accent' : ''}`}
+          aria-haspopup="dialog"
+          className={`btn min-h-11 ${open || active > 0 ? 'text-accent' : ''}`}
         >
           <Icon name="filter" size={16} />
           {t('filters.title')}
@@ -133,97 +135,106 @@ export function NoteFilters({
             </span>
           )}
         </button>
-        {sort}
       </div>
       {open && (
-        <div className="card enter-fade flex flex-col gap-4 p-4">
-          {group(
-            t('notes.picker.categories'),
-            taxonomy.categories.map((c) => (
+        <Sheet title={t('filters.sheetTitle')} onClose={() => setOpen(false)}>
+          <div className="flex flex-col gap-4">
+            {sort}
+            {group(
+              t('notes.picker.categories'),
+              taxonomy.categories.map((c) => (
+                <Chip
+                  key={c.id}
+                  label={c.name}
+                  deleted={c.deleted}
+                  selected={filter.categoryIds.includes(c.id)}
+                  onClick={() => set({ categoryIds: toggle(filter.categoryIds, c.id) })}
+                />
+              )),
+            )}
+            {group(
+              t('filters.tags'),
+              tags.map((tag) => (
+                <Chip
+                  key={tag.id}
+                  label={tag.name}
+                  tag
+                  deleted={tag.deleted}
+                  selected={filter.tagIds.includes(tag.id)}
+                  onClick={() => set({ tagIds: toggle(filter.tagIds, tag.id) })}
+                />
+              )),
+            )}
+            {group(
+              t('filters.status'),
+              NoteStatus.options.map((s) => (
+                <Chip
+                  key={s}
+                  label={t(`notes.status.${s}`)}
+                  selected={filter.statuses.includes(s)}
+                  onClick={() => set({ statuses: toggle(filter.statuses, s) })}
+                />
+              )),
+            )}
+            {group(
+              t('notes.importance'),
+              Importance.options.map((i) => (
+                <Chip
+                  key={i}
+                  label={t(`notes.importanceValues.${i}`)}
+                  selected={filter.importances.includes(i)}
+                  onClick={() => set({ importances: toggle(filter.importances, i) })}
+                />
+              )),
+            )}
+            {group(
+              t('notes.urgency'),
+              Urgency.options.map((u) => (
+                <Chip
+                  key={u}
+                  label={t(`notes.urgencyValues.${u}`)}
+                  selected={filter.urgencies.includes(u)}
+                  onClick={() => set({ urgencies: toggle(filter.urgencies, u) })}
+                />
+              )),
+            )}
+            {group(
+              t('links.filter'),
               <Chip
-                key={c.id}
-                label={c.name}
-                deleted={c.deleted}
-                selected={filter.categoryIds.includes(c.id)}
-                onClick={() => set({ categoryIds: toggle(filter.categoryIds, c.id) })}
-              />
-            )),
-          )}
-          {group(
-            t('filters.tags'),
-            tags.map((tag) => (
-              <Chip
-                key={tag.id}
-                label={tag.name}
-                tag
-                deleted={tag.deleted}
-                selected={filter.tagIds.includes(tag.id)}
-                onClick={() => set({ tagIds: toggle(filter.tagIds, tag.id) })}
-              />
-            )),
-          )}
-          {group(
-            t('filters.status'),
-            NoteStatus.options.map((s) => (
-              <Chip
-                key={s}
-                label={t(`notes.status.${s}`)}
-                selected={filter.statuses.includes(s)}
-                onClick={() => set({ statuses: toggle(filter.statuses, s) })}
-              />
-            )),
-          )}
-          {group(
-            t('notes.importance'),
-            Importance.options.map((i) => (
-              <Chip
-                key={i}
-                label={t(`notes.importanceValues.${i}`)}
-                selected={filter.importances.includes(i)}
-                onClick={() => set({ importances: toggle(filter.importances, i) })}
-              />
-            )),
-          )}
-          {group(
-            t('notes.urgency'),
-            Urgency.options.map((u) => (
-              <Chip
-                key={u}
-                label={t(`notes.urgencyValues.${u}`)}
-                selected={filter.urgencies.includes(u)}
-                onClick={() => set({ urgencies: toggle(filter.urgencies, u) })}
-              />
-            )),
-          )}
-          {group(
-            t('links.filter'),
-            <Chip
-              label={t('links.filter')}
-              selected={filter.unreadLinksOnly}
-              onClick={() => set({ unreadLinksOnly: !filter.unreadLinksOnly })}
-            />,
-          )}
-          {date(t('notes.created'), 'createdFrom', 'createdTo')}
-          {date(t('notes.dueDate'), 'dueFrom', 'dueTo')}
-          <button
-            type="button"
-            onClick={() => onChange(EMPTY_FILTER)}
-            disabled={active === 0 && filter.text === ''}
-            className="btn btn-ghost btn-sm self-start text-muted"
-          >
-            {t('filters.clear')}
-          </button>
-          {onSaveDefault && !allWorkspaces && (
+                label={t('links.filter')}
+                selected={filter.unreadLinksOnly}
+                onClick={() => set({ unreadLinksOnly: !filter.unreadLinksOnly })}
+              />,
+            )}
+            {date(t('notes.created'), 'createdFrom', 'createdTo')}
+            {date(t('notes.dueDate'), 'dueFrom', 'dueTo')}
             <button
               type="button"
-              onClick={onSaveDefault}
-              disabled={isDefault || !online}
+              onClick={() => onChange(EMPTY_FILTER)}
+              disabled={active === 0 && filter.text === ''}
               className="btn btn-ghost btn-sm self-start text-muted"
             >
-              {isDefault ? t('filters.isDefault') : t('filters.saveDefault')}
+              {t('filters.clear')}
             </button>
-          )}
-        </div>
+            {onSaveDefault && !allWorkspaces && (
+              <button
+                type="button"
+                onClick={onSaveDefault}
+                disabled={isDefault || !online}
+                className="btn btn-ghost btn-sm self-start text-muted"
+              >
+                {isDefault ? t('filters.isDefault') : t('filters.saveDefault')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="btn btn-primary min-h-11"
+            >
+              {t('filters.done')}
+            </button>
+          </div>
+        </Sheet>
       )}
     </div>
   );

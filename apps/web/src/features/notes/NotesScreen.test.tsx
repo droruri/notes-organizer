@@ -153,6 +153,43 @@ describe('NotesScreen modes from the URL', () => {
     expect(body.getAttribute('dir')).toBe('rtl');
   });
 
+  it('compose and the editor have a nav bar with back and the primary action', async () => {
+    setup('/new');
+    await screen.findByRole('button', { name: 'Suggest' });
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await screen.findByText('first note');
+    cleanup();
+    setup(`/notes/${note(1, '', []).id}`);
+    await screen.findByDisplayValue('first note');
+    expect(screen.getByRole('button', { name: 'Back' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  });
+
+  it('pushes compose and an opened note with a view transition on mobile', async () => {
+    const start = vi.fn((cb: () => Promise<void>) => void cb());
+    Object.assign(document, { startViewTransition: start });
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: false, media: query }));
+    try {
+      setup('/');
+      fireEvent.click(await screen.findByText('first note'));
+      await screen.findByDisplayValue('first note');
+      expect(start).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+      Reflect.deleteProperty(document, 'startViewTransition');
+    }
+  });
+
+  it('keeps the search field visible and moves sort into the filters sheet', async () => {
+    setup('/');
+    await screen.findByText('first note');
+    expect(screen.getByRole('searchbox')).toBeTruthy();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('combobox')).toBeTruthy();
+  });
+
   it('shows the editor on /notes/:id', async () => {
     setup(`/notes/${note(1, '', []).id}`);
     await screen.findByDisplayValue('first note');
