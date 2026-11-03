@@ -9,7 +9,7 @@ export function LanguageToggle() {
       type="button"
       lang={next}
       onClick={() => void i18n.changeLanguage(next)}
-      className="btn btn-ghost btn-sm min-h-11 text-muted"
+      className="btn btn-ghost min-h-11 px-3 text-sm text-muted"
     >
       <Icon name="globe" size={16} />
       {t('language.switchTo')}
