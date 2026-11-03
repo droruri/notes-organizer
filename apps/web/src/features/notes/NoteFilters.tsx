@@ -108,7 +108,7 @@ export function NoteFilters({
             onChange={(e) => set({ text: e.target.value })}
             aria-label={t('filters.search')}
             placeholder={t('filters.search')}
-            className="field ps-10"
+            className="field min-h-11 ps-10"
           />
         </div>
         {showAllWorkspaces && onAllWorkspaces && (

@@ -143,7 +143,7 @@ export function Sheet({
               onClick={() => close()}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={t('sheet.close')}
-              className="btn btn-ghost btn-icon ms-auto"
+              className="btn btn-ghost btn-icon min-h-11 min-w-11 ms-auto"
             >
               <Icon name="close" size={18} />
             </button>

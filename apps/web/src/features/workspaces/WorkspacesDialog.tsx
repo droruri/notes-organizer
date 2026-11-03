@@ -154,7 +154,7 @@ export function WorkspacesDialog({
                           remove.reset();
                           setActive(mode === 'menu' ? null : { id: w.id, mode: 'menu' });
                         }}
-                        className="btn btn-ghost btn-icon btn-sm"
+                        className="btn btn-ghost btn-icon min-h-11 min-w-11"
                       >
                         <Icon name="menu" size={16} />
                       </button>

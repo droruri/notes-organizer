@@ -1,11 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { composeNote, signIn, unique } from './helpers';
+import { composeNote, signIn, unique, openWorkspaces } from './helpers';
 
 test.use({ viewport: { width: 390, height: 844 } });
 
 const openDialog = async (page: import('@playwright/test').Page) => {
-  await page.getByRole('button', { name: 'תפריט' }).click();
-  await page.getByRole('menuitem', { name: 'מרחבי עבודה' }).click();
+  await openWorkspaces(page);
   await expect(page.getByRole('dialog', { name: 'מרחבי עבודה' })).toBeVisible();
 };
 

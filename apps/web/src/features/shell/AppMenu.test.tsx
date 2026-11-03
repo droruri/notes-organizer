@@ -8,80 +8,52 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-const handlers = () => ({
-  onNotes: vi.fn(),
-  onImport: vi.fn(),
-  onTaxonomy: vi.fn(),
-  onWorkspaces: vi.fn(),
-  onSettings: vi.fn(),
-  onSignOut: vi.fn(),
-});
-const open = () => fireEvent.click(screen.getByRole('button', { expanded: false }));
+const setup = (props: { isAdmin?: boolean } = {}) => {
+  const h = { onPick: vi.fn(), onSignOut: vi.fn(), onDone: vi.fn() };
+  render(<AppMenu {...h} {...props} />);
+  return h;
+};
 
 describe('AppMenu', () => {
-  it('closes on Escape and returns focus to the menu button', () => {
-    render(<AppMenu {...handlers()} />);
-    const toggle = screen.getByRole('button', { expanded: false });
-    fireEvent.click(toggle);
-    expect(screen.getByRole('menu')).toBeTruthy();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('menu')).toBeNull();
-    expect(document.activeElement).toBe(toggle);
-  });
-
-  it('signs out and closes the menu', () => {
-    const h = handlers();
-    render(<AppMenu {...h} />);
-    open();
+  it('signs out and reports done', () => {
+    const h = setup();
     fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('auth.signOut') }));
     expect(h.onSignOut).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(h.onDone).toHaveBeenCalledTimes(1);
   });
 
-  it('offers Notes, Import, Categories & tags and Sign out to everyone, and Import works', () => {
-    const h = handlers();
-    render(<AppMenu {...h} />);
-    open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(6);
+  it('offers Import, Categories & tags, Settings and Sign out to everyone', () => {
+    const h = setup();
+    expect(screen.getAllByRole('menuitem')).toHaveLength(4);
     expect(screen.queryByRole('menuitem', { name: i18n.t('users.menu') })).toBeNull();
     fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('import.open') }));
-    expect(h.onImport).toHaveBeenCalledTimes(1);
-  });
-
-  it('opens Settings', () => {
-    const h = handlers();
-    render(<AppMenu {...h} />);
-    open();
-    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('notes.formSettings.title') }));
-    expect(h.onSettings).toHaveBeenCalledTimes(1);
-  });
-
-  it('opens Categories & tags', () => {
-    const h = handlers();
-    render(<AppMenu {...h} />);
-    open();
     fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('taxonomy.menu') }));
-    expect(h.onTaxonomy).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('notes.formSettings.title') }));
+    expect(h.onPick.mock.calls.map((c) => c[0])).toEqual(['import', 'taxonomy', 'settings']);
   });
 
   it('shows Users only to an admin', () => {
-    const onUsers = vi.fn();
-    render(<AppMenu {...handlers()} onUsers={onUsers} />);
-    open();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(7);
+    const h = setup({ isAdmin: true });
+    expect(screen.getAllByRole('menuitem')).toHaveLength(5);
     fireEvent.click(screen.getByRole('menuitem', { name: i18n.t('users.menu') }));
-    expect(onUsers).toHaveBeenCalledTimes(1);
+    expect(h.onPick).toHaveBeenCalledWith('users');
   });
 
-  it('switches the language from inside the menu and stays open', async () => {
+  it('moves focus with the arrow keys, wrapping', () => {
+    setup();
+    const items = screen.getAllByRole('menuitem');
+    items[0]?.focus();
+    fireEvent.keyDown(items[0] as HTMLElement, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+  });
+
+  it('switches the language from inside the menu', async () => {
     await i18n.changeLanguage('he');
-    render(<AppMenu {...handlers()} />);
-    open();
+    setup();
     const english = screen.getByRole('menuitemradio', { name: 'English' });
     expect(english.getAttribute('aria-checked')).toBe('false');
     fireEvent.click(english);
     expect(document.documentElement.lang).toBe('en');
-    expect(screen.getByRole('menu')).toBeTruthy();
     expect(
       screen.getByRole('menuitemradio', { name: 'English' }).getAttribute('aria-checked'),
     ).toBe('true');

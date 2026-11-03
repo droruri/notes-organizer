@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { composeNote, signIn, unique } from './helpers';
+import { composeNote, signIn, unique, openMenu } from './helpers';
 
 test('changing a category color saves and shows on the collapsed note card', async ({ page }) => {
   await signIn(page);
@@ -14,7 +14,7 @@ test('changing a category color saves and shows on the collapsed note card', asy
   const card = page.locator('ul.gap-3 > li', { hasText: body });
   await expect(card).toBeVisible();
 
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: 'קטגוריות ותגיות' }).click();
   await page.getByLabel('קטגוריה חדשה').fill(gone);
   await page.getByRole('button', { name: 'הוספת קטגוריה' }).click();

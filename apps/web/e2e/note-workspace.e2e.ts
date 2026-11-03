@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { composeNote, signIn, unique } from './helpers';
+import { composeNote, signIn, unique, openWorkspaces } from './helpers';
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -10,8 +10,7 @@ test('note editor moves a note to another workspace and toasts; no select with o
   const ws = unique('מרחב');
   const body = unique('movenote');
 
-  await page.getByRole('button', { name: 'תפריט' }).click();
-  await page.getByRole('menuitem', { name: 'מרחבי עבודה' }).click();
+  await openWorkspaces(page);
   const dialog = page.getByRole('dialog', { name: 'מרחבי עבודה' });
   await dialog.getByRole('textbox', { name: 'שם מרחב חדש' }).fill(ws);
   await dialog.getByRole('button', { name: 'הוספה' }).click();
@@ -30,14 +29,13 @@ test('note editor moves a note to another workspace and toasts; no select with o
   await expect(page.locator('ul.gap-3 > li', { hasText: body })).toHaveCount(0);
 
   // switch to the new workspace: note is there
-  await page.getByRole('button', { name: 'תפריט' }).click();
-  await page.getByRole('menuitem', { name: 'מרחבי עבודה' }).click();
+  await openWorkspaces(page);
   await dialog.getByRole('radio', { name: ws }).click();
+  await expect(dialog).toBeHidden();
   await expect(page.locator('ul.gap-3 > li', { hasText: body })).toBeVisible();
 
   // delete the workspace -> single workspace, no select
-  await page.getByRole('button', { name: 'תפריט' }).click();
-  await page.getByRole('menuitem', { name: 'מרחבי עבודה' }).click();
+  await openWorkspaces(page);
   await dialog.getByRole('button', { name: `פעולות עבור ${ws}` }).click();
   await dialog.getByRole('button', { name: 'מחיקה' }).click();
   await dialog.getByRole('button', { name: 'מחיקה' }).click();

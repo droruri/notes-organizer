@@ -463,7 +463,7 @@ export function NotesScreen({
             onClick={() => open(ROUTES.chat)}
             onPointerEnter={() => void loadChat()}
             onFocus={() => void loadChat()}
-            className="btn"
+            className="btn min-h-11"
           >
             <Icon name="spark" size={16} className="text-accent" />
             {t('chat.open')}
@@ -471,20 +471,16 @@ export function NotesScreen({
           <button
             type="button"
             onClick={() => open(ROUTES.compose, false, { record: true })}
-            className="btn max-sm:hidden"
+            className="btn max-lg:hidden"
           >
             <Icon name="mic" size={16} />
             {t('voice.record')}
           </button>
-          <div
-            aria-hidden="true"
-            className="bg-bg fixed inset-x-0 bottom-0 z-10 h-[calc(6rem+env(safe-area-inset-bottom))] sm:hidden"
-          />
-          <div className="max-sm:fixed max-sm:left-1/2 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-20 max-sm:flex max-sm:-translate-x-1/2 max-sm:gap-2 max-[359px]:gap-1.5! sm:contents">
+          <div className="max-lg:fixed max-lg:end-4 max-lg:bottom-[calc(49px+1rem+env(safe-area-inset-bottom))] max-lg:z-20 max-lg:flex max-lg:flex-row-reverse max-lg:items-center max-lg:gap-1.5 lg:contents">
             <button
               type="button"
               onClick={() => open(ROUTES.compose)}
-              className={`btn btn-primary sm:min-h-11 sm:px-5 max-sm:h-16 max-sm:rounded-2xl ${quickActions.length > 1 ? 'max-sm:px-4 max-[359px]:px-2.5! max-[359px]:text-base!' : 'max-sm:px-8'} max-sm:text-lg max-sm:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)]`}
+              className="btn btn-primary max-lg:h-14 max-lg:rounded-full max-lg:px-5 max-lg:text-base max-lg:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)] lg:hidden"
             >
               <Icon name="plus" size={22} />
               {t('notes.add')}
@@ -499,7 +495,7 @@ export function NotesScreen({
                   data-quick-action={a}
                   aria-label={iconOnly ? label : undefined}
                   onClick={quickHandlers[a]}
-                  className={`btn h-16 rounded-2xl sm:hidden ${iconOnly ? 'size-16 p-0 max-[359px]:size-14' : 'px-5 text-lg'}`}
+                  className={`btn h-12 rounded-full lg:hidden ${iconOnly ? 'size-12 p-0' : 'px-5'}`}
                 >
                   <Icon name={icon} size={22} />
                   {!iconOnly && label}

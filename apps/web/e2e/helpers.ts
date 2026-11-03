@@ -24,9 +24,20 @@ export const cardTexts = (page: Page) => page.locator('ul.gap-3 > li').allInnerT
 
 /** Opens the form settings sheet from the app menu (#179) and returns its dialog. */
 export async function openFormSettings(page: Page) {
-  await page.getByRole('button', { name: 'תפריט' }).click();
+  await openMenu(page);
   await page.getByRole('menuitem', { name: 'הגדרות', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'הגדרות', exact: true });
   await expect(dialog).toBeVisible();
   return dialog;
+}
+
+/** Opens the More menu: the More tab below 1024px; on desktop the sidebar already shows its items. */
+export async function openMenu(page: Page) {
+  const tab = page.getByRole('button', { name: 'תפריט' });
+  if (await tab.isVisible()) await tab.click();
+}
+
+/** Opens the workspaces sheet: the Workspaces tab below 1024px, the sidebar's heading above. */
+export async function openWorkspaces(page: Page) {
+  await page.getByRole('button', { name: 'מרחבי עבודה' }).click();
 }
