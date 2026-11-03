@@ -17,6 +17,20 @@ for (const [name, viewport] of Object.entries(viewports)) {
         await testInfo.attach('list', { path: testInfo.outputPath('list.png') });
         await testInfo.attach('draft', { path: testInfo.outputPath('draft.png') });
       });
+
+      test('secondary screens', async ({ page }, testInfo) => {
+        await signIn(page);
+        for (const [file, path] of [
+          ['taxonomy', '/taxonomy'],
+          ['import', '/import'],
+          ['chat', '/chat'],
+        ] as const) {
+          await page.goto(path);
+          await page.waitForLoadState('networkidle');
+          await page.screenshot({ path: testInfo.outputPath(`${file}.png`), fullPage: true });
+          await testInfo.attach(file, { path: testInfo.outputPath(`${file}.png`) });
+        }
+      });
     });
   }
 }

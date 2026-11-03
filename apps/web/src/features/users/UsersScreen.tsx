@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiRequestError } from '../../lib/api';
+import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
 
@@ -70,16 +71,8 @@ export function UsersScreen({
   });
 
   return (
-    <section className="enter-rise flex flex-col gap-5">
-      <div className="flex flex-col items-start gap-2">
-        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm -ms-3 text-muted">
-          <Icon name="back" size={16} />
-          {t('users.back')}
-        </button>
-        <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
-          {t('users.title')}
-        </h2>
-      </div>
+    <section className="enter-rise detail-screen flex flex-col gap-5">
+      <NavBar title={t('users.title')} onBack={onBack} />
 
       <form
         className="card flex flex-col gap-3 p-3 sm:flex-row sm:items-center"
@@ -131,7 +124,7 @@ export function UsersScreen({
       )}
 
       {users.data && users.data.length > 0 && (
-        <ul className="card flex flex-col divide-y divide-line overflow-hidden">
+        <ul className="group-list">
           {users.data.map((u) => (
             <li
               key={u.email}

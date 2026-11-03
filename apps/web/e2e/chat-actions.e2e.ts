@@ -28,7 +28,10 @@ test('"approve all" applies the chat action cards in one request', async ({ page
     }
   });
 
-  await page.getByRole('main').getByRole('button', { name: 'שאלה', exact: true }).click();
+  await page
+    .locator('[data-slot="list"]')
+    .getByRole('button', { name: 'שאלה', exact: true })
+    .click();
   const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
   await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('צור קטגוריות');
   await chat.getByRole('button', { name: 'שליחה' }).click();
@@ -64,7 +67,7 @@ test('"approve all" recolors several categories from chat', async ({ page }) => 
     await page.getByRole('button', { name: 'הוספת קטגוריה' }).click();
     created.push({ id: (await (await res).json()).id, name });
   }
-  await page.getByRole('button', { name: 'חזרה' }).click();
+  await page.goBack();
 
   const part = {
     type: 'data-actions',
@@ -85,7 +88,10 @@ test('"approve all" recolors several categories from chat', async ({ page }) => 
     });
   });
 
-  await page.getByRole('main').getByRole('button', { name: 'שאלה', exact: true }).click();
+  await page
+    .locator('[data-slot="list"]')
+    .getByRole('button', { name: 'שאלה', exact: true })
+    .click();
   const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
   await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('צבע כחול');
   await chat.getByRole('button', { name: 'שליחה' }).click();

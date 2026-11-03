@@ -444,6 +444,21 @@ export function NotesScreen({
     }
   }
 
+  const chatPanel = chatOpen && (
+    <Suspense fallback={<Loading label={t('chat.loading')} />}>
+      <ChatPanel
+        notes={notes.data}
+        onOpenNote={(note) => {
+          open(notePath(note.id), true);
+        }}
+        onClose={goBack}
+        onTaxonomyChanged={() => {
+          void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+          void queryClient.invalidateQueries({ queryKey: ['notes'] });
+        }}
+      />
+    </Suspense>
+  );
   const today = localToday();
   const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
   const showAllWorkspaces = (workspaces.data?.length ?? 0) > 1;
@@ -629,21 +644,6 @@ export function NotesScreen({
           {t('notes.error')}
         </p>
       )}
-      {chatOpen && (
-        <Suspense fallback={<Loading label={t('chat.loading')} />}>
-          <ChatPanel
-            notes={notes.data}
-            onOpenNote={(note) => {
-              open(notePath(note.id), true);
-            }}
-            onClose={goBack}
-            onTaxonomyChanged={() => {
-              void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
-              void queryClient.invalidateQueries({ queryKey: ['notes'] });
-            }}
-          />
-        </Suspense>
-      )}
       <div className="toast-stack">
         {imported && (
           <Toast
@@ -702,7 +702,7 @@ export function NotesScreen({
         )}
       </div>
     </section>,
-    composeForm || editor,
+    composeForm || editor || chatPanel,
     true,
   );
 }
