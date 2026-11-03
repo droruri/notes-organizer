@@ -576,7 +576,7 @@ export function NotesScreen({
                   const next = NoteSort.safeParse(e.target.value);
                   if (next.success) saveSort.mutate({ noteSort: next.data });
                 }}
-                className="field min-h-9 w-auto py-1 text-sm text-fg"
+                className="field min-h-11 w-auto py-1 text-sm text-fg"
               >
                 {NoteSort.options.map((o) => (
                   <option key={o} value={o}>
