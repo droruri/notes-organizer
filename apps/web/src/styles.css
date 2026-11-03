@@ -366,7 +366,7 @@
     background: var(--surface);
   }
   .segment {
-    min-height: 2rem;
+    min-height: 2.75rem;
     padding: 0 0.75rem;
     border-radius: 8px;
     background: transparent;
