@@ -148,7 +148,8 @@
         "importance": "Importance",
         "urgency": "Urgency"
       }
-    }
+    },
+    "pick": "Pick a note or create one"
   },
   "filters": {
     "title": "Filter",

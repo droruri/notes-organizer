@@ -886,7 +886,28 @@
   }
 }
 
-/* An open note or compose page replaces the list. Desktop will show both side by side. */
+/* Below 1024px an open note or compose page replaces the list; from 1024px both panes show. */
 [data-detail-open] > [data-slot='list'] {
   display: none;
+}
+@media (min-width: 1024px) {
+  [data-panes] {
+    position: fixed;
+    inset-block: 0;
+    inset-inline: 16rem 0;
+    display: grid;
+    grid-template-columns: minmax(20rem, 26rem) 1fr;
+  }
+  [data-panes] > [data-slot] {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1.5rem 1rem;
+  }
+  [data-panes] > [data-slot='list'] {
+    display: block;
+    border-inline-end: 1px solid var(--line);
+  }
+  [data-panes] > [data-slot='detail'] {
+    padding-inline: 2rem;
+  }
 }

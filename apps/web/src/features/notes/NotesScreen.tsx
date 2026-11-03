@@ -40,6 +40,7 @@ import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
 import { ComposeForm } from './ComposeForm';
+import { useNoteShortcuts } from './useNoteShortcuts';
 
 // Chat and import open only on request, so they load in their own chunks. Hovering or focusing
 // the chat button starts the chat download early.
@@ -77,6 +78,8 @@ export function NotesScreen({
   const chatOpen = pathname === ROUTES.chat;
   const importing = pathname === ROUTES.import;
   const editId = useMatch('/notes/:id')?.params.id;
+  const detailOpen =
+    pathname === ROUTES.compose || pathname === ROUTES.review || editId !== undefined;
   // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
   const open = (to: string, replace = false, routeState?: NoteCreated | { record: true }) =>
     void navigate({ pathname: to, search }, { replace, state: routeState });
@@ -345,12 +348,31 @@ export function NotesScreen({
     />
   );
   /** The list and the open page as sibling slots; CSS decides what shows (the list hides behind a detail). */
-  const slots = (list: ReactNode, detail: ReactNode) => (
-    <div data-detail-open={detail ? '' : undefined}>
+  const slots = (list: ReactNode, detail: ReactNode, placeholder = false) => (
+    <div data-panes="" data-detail-open={detail ? '' : undefined}>
       <div data-slot="list">{list}</div>
-      {detail ? <div data-slot="detail">{detail}</div> : null}
+      {detail ? (
+        <div data-slot="detail">{detail}</div>
+      ) : placeholder ? (
+        <div data-slot="detail" className="max-lg:hidden">
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted">
+            <p className="font-medium">{t('notes.pick')}</p>
+            <button type="button" onClick={() => open(ROUTES.compose)} className="btn btn-primary">
+              <Icon name="plus" size={18} />
+              {t('notes.add')}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
+
+  useNoteShortcuts({
+    onNew: () => {
+      if (pathname !== ROUTES.compose) open(ROUTES.compose);
+    },
+    onClose: detailOpen ? goBack : undefined,
+  });
 
   if (!notes.data || !taxonomy.data) {
     if (notes.isError || taxonomy.isError || !online) {
@@ -557,6 +579,7 @@ export function NotesScreen({
           workspaceNames={workspaceNames}
           taxonomy={taxonomy.data}
           today={today}
+          selectedId={editId}
           onOpen={(note) => {
             clearErrors();
             open(notePath(note.id));
@@ -653,5 +676,6 @@ export function NotesScreen({
       </div>
     </section>,
     composeForm || editor,
+    true,
   );
 }
