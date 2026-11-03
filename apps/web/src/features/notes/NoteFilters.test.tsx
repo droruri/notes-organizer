@@ -32,6 +32,23 @@ describe('NoteFilters', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTER, categoryIds: [D] });
   });
 
+  it('puts the filters and the sort in one sheet, with the active count on the button', () => {
+    render(
+      <NoteFilters
+        filter={{ ...EMPTY_FILTER, categoryIds: [C], statuses: ['done'] }}
+        onChange={vi.fn()}
+        taxonomy={taxonomy}
+        sort={<select aria-label="sort-test" />}
+      />,
+    );
+    expect(screen.queryByLabelText('sort-test')).toBeNull();
+    const button = screen.getByRole('button', { name: /סינון/ });
+    expect(button.textContent).toContain('2');
+    fireEvent.click(button);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.contains(screen.getByLabelText('sort-test'))).toBe(true);
+  });
+
   it('toggles a status', () => {
     const onChange = vi.fn();
     render(<NoteFilters filter={EMPTY_FILTER} onChange={onChange} taxonomy={taxonomy} />);

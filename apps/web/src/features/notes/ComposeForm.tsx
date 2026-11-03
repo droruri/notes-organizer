@@ -1,6 +1,7 @@
 import { MAX_TITLE_LENGTH } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { NavBar } from '../../ui/NavBar';
 import { VoiceRecorder } from './VoiceRecorder';
 
 const inputDir = (value: string) => (value.trim() ? 'auto' : 'rtl');
@@ -48,7 +49,24 @@ export function ComposeForm({
         onSuggest();
       }}
     >
-      <h2 className="text-2xl font-bold tracking-tight">{t('notes.add')}</h2>
+      <NavBar
+        title={t('notes.add')}
+        onBack={onCancel}
+        action={
+          <button
+            type="submit"
+            disabled={suggesting || text.trim() === ''}
+            className="btn btn-primary min-h-11"
+          >
+            {suggesting ? (
+              <span aria-hidden="true" className="spinner" />
+            ) : (
+              <Icon name="spark" size={16} />
+            )}
+            {suggesting ? t('notes.suggesting') : t('notes.suggest')}
+          </button>
+        }
+      />
       {!online && (
         <p role="status" className="notice notice-info">
           {t('offline.banner')}
@@ -93,19 +111,7 @@ export function ComposeForm({
           {t('notes.error')}
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="submit"
-          disabled={suggesting || text.trim() === ''}
-          className="btn btn-primary"
-        >
-          {suggesting ? (
-            <span aria-hidden="true" className="spinner" />
-          ) : (
-            <Icon name="spark" size={16} />
-          )}
-          {suggesting ? t('notes.suggesting') : t('notes.suggest')}
-        </button>
+      <div className="flex flex-wrap items-center gap-2 max-lg:hidden">
         <button type="button" onClick={onCancel} className="btn btn-ghost">
           {t('notes.cancel')}
         </button>

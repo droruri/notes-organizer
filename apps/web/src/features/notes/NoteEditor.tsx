@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
+import { NavBar } from '../../ui/NavBar';
 import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
@@ -161,17 +162,26 @@ export function NoteEditor({
         submit();
       }}
     >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold tracking-tight">
-          {note.status === 'draft' ? t('notes.reviewTitle') : t('notes.editTitle')}
-        </h2>
-        {note.status === 'draft' && hasSuggestion && (
-          <span className="marker inline-flex items-center gap-1">
-            <Icon name="spark" size={13} />
-            {t('notes.suggested')}
-          </span>
-        )}
-      </div>
+      <NavBar
+        title={note.status === 'draft' ? t('notes.reviewTitle') : t('notes.editTitle')}
+        onBack={onCancel}
+        action={
+          <button
+            type="submit"
+            disabled={busy || body.trim() === ''}
+            className="btn btn-primary min-h-11"
+          >
+            {busy && <span aria-hidden="true" className="spinner" />}
+            {busy ? (slow ? t('notes.submittingSlow') : t('notes.submitting')) : t('notes.submit')}
+          </button>
+        }
+      />
+      {note.status === 'draft' && hasSuggestion && (
+        <span className="marker inline-flex items-center gap-1 self-start">
+          <Icon name="spark" size={13} />
+          {t('notes.suggested')}
+        </span>
+      )}
       {!hidden.has('title') && (
         <label className="label">
           {t('notes.noteTitle')}
@@ -300,11 +310,7 @@ export function NoteEditor({
         </p>
       )}
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-line bg-bg/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-        <button type="submit" disabled={busy || body.trim() === ''} className="btn btn-primary">
-          {busy && <span aria-hidden="true" className="spinner" />}
-          {busy ? (slow ? t('notes.submittingSlow') : t('notes.submitting')) : t('notes.submit')}
-        </button>
-        <button type="button" onClick={onCancel} className="btn btn-ghost">
+        <button type="button" onClick={onCancel} className="btn btn-ghost max-lg:hidden">
           {t('notes.cancel')}
         </button>
         {onReanalyze && (

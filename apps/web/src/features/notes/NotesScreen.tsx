@@ -36,6 +36,8 @@ import { ROUTES, notePath, useGoBack } from '../shell/routes';
 import { Loading } from '../../ui/Loading';
 import { Icon } from '../../ui/Icon';
 import { Toast } from '../../ui/Toast';
+import { useScrolledPast } from '../../ui/useScrolledPast';
+import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
@@ -52,6 +54,10 @@ const ImportDialog = lazy(() =>
 );
 
 const UNDO_MS = 5000;
+
+/** Compose, review and edit slide in as pushed screens. */
+const isPushed = (to: string) =>
+  to === ROUTES.compose || to === ROUTES.review || to.startsWith(notePath(''));
 
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
@@ -75,6 +81,7 @@ export function NotesScreen({
   useEffect(clearSharedNote, []);
   const navigate = useNavigate();
   const goBack = useGoBack();
+  const [titleSentinel, titleCollapsed] = useScrolledPast<HTMLDivElement>();
   const { pathname, search, state } = useLocation();
   const chatOpen = pathname === ROUTES.chat;
   const importing = pathname === ROUTES.import;
@@ -82,8 +89,12 @@ export function NotesScreen({
   const detailOpen =
     pathname === ROUTES.compose || pathname === ROUTES.review || editId !== undefined;
   // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
-  const open = (to: string, replace = false, routeState?: NoteCreated | { record: true }) =>
-    void navigate({ pathname: to, search }, { replace, state: routeState });
+  useViewTransitionCommit(pathname);
+  const open = (to: string, replace = false, routeState?: NoteCreated | { record: true }) => {
+    const go = () => void navigate({ pathname: to, search }, { replace, state: routeState });
+    if (isPushed(to)) pushWithTransition(go);
+    else go();
+  };
   // History state is untrusted: only a well-formed `{ record: true }` auto-starts the recorder.
   const autoRecord = z.object({ record: z.literal(true) }).safeParse(state).success;
   const [text, setText] = useState(shared ?? '');
@@ -474,6 +485,7 @@ export function NotesScreen({
           />
         </Suspense>
       )}
+      <div ref={titleSentinel} aria-hidden="true" className="-mb-5 h-px lg:hidden" />
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col">
           <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
@@ -531,40 +543,51 @@ export function NotesScreen({
           </div>
         </div>
       </div>
-      <NoteFilters
-        filter={filter}
-        onChange={setFilter}
-        taxonomy={taxonomy.data}
-        allWorkspaces={acrossWorkspaces}
-        onAllWorkspaces={setAllWorkspaces}
-        showAllWorkspaces={showAllWorkspaces}
-        savedDefault={workspace?.defaultFilter ?? null}
-        {...(workspace && {
-          onSaveDefault: () => {
-            const { text: _text, ...defaultFilter } = filter;
-            saveDefault.mutate({ id: workspace.id, defaultFilter });
-          },
-        })}
-        sort={
-          <label className="flex items-center gap-2 text-sm text-muted">
-            <span className="shrink-0">{t('notes.sort.label')}</span>
-            <select
-              value={sort}
-              onChange={(e) => {
-                const next = NoteSort.safeParse(e.target.value);
-                if (next.success) saveSort.mutate({ noteSort: next.data });
-              }}
-              className="field min-h-9 w-auto py-1 text-sm text-fg"
-            >
-              {NoteSort.options.map((o) => (
-                <option key={o} value={o}>
-                  {t(`notes.sort.${o}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-        }
-      />
+      <div className="max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:-mx-4 max-lg:bg-bg/90 max-lg:px-4 max-lg:pb-2 max-lg:backdrop-blur-md">
+        <div
+          aria-hidden="true"
+          data-collapsed={titleCollapsed ? '' : undefined}
+          className="grid grid-rows-[0fr] overflow-hidden transition-[grid-template-rows] duration-150 data-[collapsed]:grid-rows-[1fr] lg:hidden"
+        >
+          <p className="min-h-0 truncate pt-[env(safe-area-inset-top)] text-center text-base leading-10 font-semibold">
+            {workspace?.name ?? t('notes.title')}
+          </p>
+        </div>
+        <NoteFilters
+          filter={filter}
+          onChange={setFilter}
+          taxonomy={taxonomy.data}
+          allWorkspaces={acrossWorkspaces}
+          onAllWorkspaces={setAllWorkspaces}
+          showAllWorkspaces={showAllWorkspaces}
+          savedDefault={workspace?.defaultFilter ?? null}
+          {...(workspace && {
+            onSaveDefault: () => {
+              const { text: _text, ...defaultFilter } = filter;
+              saveDefault.mutate({ id: workspace.id, defaultFilter });
+            },
+          })}
+          sort={
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <span className="shrink-0">{t('notes.sort.label')}</span>
+              <select
+                value={sort}
+                onChange={(e) => {
+                  const next = NoteSort.safeParse(e.target.value);
+                  if (next.success) saveSort.mutate({ noteSort: next.data });
+                }}
+                className="field min-h-11 w-auto py-1 text-sm text-fg"
+              >
+                {NoteSort.options.map((o) => (
+                  <option key={o} value={o}>
+                    {t(`notes.sort.${o}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
+        />
+      </div>
       {saveSort.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}

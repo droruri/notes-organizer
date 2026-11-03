@@ -1,6 +1,7 @@
 {
   "sheet": {
     "close": "Close",
+    "back": "Back",
     "discardConfirm": "You have unsaved changes. Close anyway?"
   },
   "app": {
@@ -152,6 +153,8 @@
   },
   "filters": {
     "title": "Filter",
+    "sheetTitle": "Filters and sort",
+    "done": "Show results",
     "search": "Search notes",
     "allWorkspaces": "All workspaces",
     "workspace": "Workspace",

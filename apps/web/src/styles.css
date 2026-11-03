@@ -884,3 +884,37 @@
     padding-inline: 2rem;
   }
 }
+
+/* Pushed screens (compose, review, edit) slide in from the inline end; none under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --push-from: 100%;
+  }
+  [dir='rtl'] {
+    --push-from: -100%;
+  }
+  @keyframes push-in {
+    from {
+      transform: translateX(var(--push-from));
+    }
+  }
+  @keyframes push-out {
+    to {
+      transform: translateX(calc(var(--push-from) / -4));
+      opacity: 0.6;
+    }
+  }
+  ::view-transition-old(root) {
+    animation: push-out 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  ::view-transition-new(root) {
+    animation: push-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+}
+@media (prefers-reduced-motion: reduce), (min-width: 1024px) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
