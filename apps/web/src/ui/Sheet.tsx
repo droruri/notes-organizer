@@ -48,7 +48,7 @@ export function Sheet({
     if (!force && dirty && !window.confirm(t('sheet.discardConfirm'))) return;
     exit(onClose);
   };
-  useEscape(close);
+  useEscape(() => close());
 
   // Move focus into the sheet so keyboard users don't stay on the trigger behind it.
   useEffect(() => {

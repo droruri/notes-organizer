@@ -40,7 +40,8 @@ import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { NoteList } from './NoteList';
 import { ComposeForm } from './ComposeForm';
-import { useNoteShortcuts } from './useNoteShortcuts';
+import { useEscape } from '../../ui/useEscape';
+import { shouldCloseOnEscape, useNoteShortcuts } from './useNoteShortcuts';
 
 // Chat and import open only on request, so they load in their own chunks. Hovering or focusing
 // the chat button starts the chat download early.
@@ -371,7 +372,10 @@ export function NotesScreen({
     onNew: () => {
       if (pathname !== ROUTES.compose) open(ROUTES.compose);
     },
-    onClose: detailOpen ? goBack : undefined,
+  });
+  // Esc closes the open note on desktop; open sheets handle their own Esc.
+  useEscape((e) => {
+    if (detailOpen && shouldCloseOnEscape(e)) goBack();
   });
 
   if (!notes.data || !taxonomy.data) {

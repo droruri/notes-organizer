@@ -487,7 +487,7 @@ describe('NotesScreen default filter', () => {
     setup(ws(W1, saved), [ws(W1, saved)]);
     await openSheet();
     const b = await screen.findByRole('button', { name: '✓ Default' });
-    expect((b as HTMLButtonElement).disabled).toBe(true);
+    expect(b).toHaveProperty('disabled', true);
   });
 
   it('disables the save button while offline', async () => {
@@ -497,7 +497,7 @@ describe('NotesScreen default filter', () => {
     await openSheet();
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
     const b = await screen.findByRole('button', { name: 'Save as default' });
-    expect((b as HTMLButtonElement).disabled).toBe(true);
+    expect(b).toHaveProperty('disabled', true);
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     window.dispatchEvent(new Event('online'));
   });

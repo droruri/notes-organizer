@@ -42,8 +42,10 @@ describe('AppMenu', () => {
   it('moves focus with the arrow keys, wrapping', () => {
     setup();
     const items = screen.getAllByRole('menuitem');
-    items[0]?.focus();
-    fireEvent.keyDown(items[0] as HTMLElement, { key: 'ArrowUp' });
+    const first = items[0];
+    if (!first) throw new Error('menu has no items');
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowUp' });
     expect(document.activeElement).toBe(items[items.length - 1]);
   });
 

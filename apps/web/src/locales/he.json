@@ -76,7 +76,6 @@
       "todo": "לביצוע",
       "in_progress": "בתהליך",
       "done": "הושלם",
-      "none": "ללא סטטוס",
       "label": "סטטוס",
       "advance": "{{current}} — העבר ל{{next}}"
     },
@@ -376,7 +375,6 @@
   "workspaces": {
     "menu": "מרחבי עבודה",
     "title": "מרחבי עבודה",
-    "close": "סגירה",
     "default": "ברירת מחדל",
     "nameLabel": "שם מרחב חדש",
     "add": "הוספה",
