@@ -1,5 +1,4 @@
 import type { Workspace } from '@notes/shared';
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { Icon } from '../../ui/Icon';
@@ -29,18 +28,6 @@ export function Sidebar({
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const newNote = () => void navigate(ROUTES.compose);
-  // `N` starts a new note, unless the user is typing.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target instanceof HTMLElement ? e.target : null;
-      const typing = el?.closest('input, textarea, select, [contenteditable]') != null;
-      if (e.key.toLowerCase() !== 'n' || e.ctrlKey || e.metaKey || e.altKey || typing) return;
-      if (!window.matchMedia?.('(min-width: 1024px)').matches) return;
-      void navigate(ROUTES.compose);
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [navigate]);
   const link = (id: 'notes' | 'chat', to: string) => {
     const item = NAV_ITEMS.find((i) => i.id === id);
     if (!item) return null;

@@ -22,6 +22,7 @@ export function NoteCard({
   hiddenStatuses,
   statusPending = false,
   workspaceName,
+  selected = false,
 }: {
   note: Note;
   taxonomy: Taxonomy;
@@ -34,6 +35,8 @@ export function NoteCard({
   statusPending?: boolean;
   /** Shown as a pill when listing across workspaces. */
   workspaceName?: string | undefined;
+  /** Open in the detail pane. */
+  selected?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -42,7 +45,10 @@ export function NoteCard({
   const overdue = isOverdue(note, today);
   const tracked = note.status === null || note.status === 'draft' ? null : note.status;
   return (
-    <li className={`card slip ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5`}>
+    <li
+      aria-current={selected ? 'true' : undefined}
+      className={`card slip ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5 ${selected ? 'ring-2 ring-accent' : ''}`}
+    >
       <div className="flex items-start gap-1">
         <button
           type="button"

@@ -32,7 +32,11 @@ describe('Sheet', () => {
   it('closes on Esc, backdrop click and the close button', () => {
     for (const close of [
       () => fireEvent.keyDown(document, { key: 'Escape' }),
-      () => fireEvent.click(screen.getByRole('dialog').parentElement as HTMLElement),
+      () => {
+        const backdrop = screen.getByRole('dialog').parentElement;
+        if (!backdrop) throw new Error('dialog has no backdrop');
+        fireEvent.click(backdrop);
+      },
       () => fireEvent.click(screen.getByRole('button', { name: /close|סגירה/i })),
     ]) {
       const { onClose } = setup();

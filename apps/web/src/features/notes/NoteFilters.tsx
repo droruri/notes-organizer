@@ -104,6 +104,7 @@ export function NoteFilters({
           />
           <input
             type="search"
+            data-notes-search=""
             value={filter.text}
             onChange={(e) => set({ text: e.target.value })}
             aria-label={t('filters.search')}

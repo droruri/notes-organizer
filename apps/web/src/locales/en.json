@@ -76,7 +76,6 @@
       "todo": "To do",
       "in_progress": "In progress",
       "done": "Done",
-      "none": "No status",
       "label": "Status",
       "advance": "{{current}} — move to {{next}}"
     },
@@ -148,7 +147,8 @@
         "importance": "Importance",
         "urgency": "Urgency"
       }
-    }
+    },
+    "pick": "Pick a note or create one"
   },
   "filters": {
     "title": "Filter",
@@ -370,7 +370,6 @@
   "workspaces": {
     "menu": "Workspaces",
     "title": "Workspaces",
-    "close": "Close",
     "default": "Default",
     "nameLabel": "New workspace name",
     "add": "Add",
