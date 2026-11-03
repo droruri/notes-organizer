@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiRequestError } from '../../lib/api';
+import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
 import { ColorControl } from './ColorControl';
@@ -104,16 +105,8 @@ export function TaxonomyScreen({
     editing?.type === 'rename' && editing.kind === kind && editing.id === id;
 
   return (
-    <section className="enter-rise flex flex-col gap-5">
-      <div className="flex flex-col items-start gap-2">
-        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm -ms-3 text-muted">
-          <Icon name="back" size={16} />
-          {t('taxonomy.back')}
-        </button>
-        <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
-          {t('taxonomy.title')}
-        </h2>
-      </div>
+    <section className="enter-rise detail-screen flex flex-col gap-5">
+      <NavBar title={t('taxonomy.title')} onBack={onBack} />
 
       <form
         className="card flex flex-wrap items-center gap-3 p-3"
@@ -153,11 +146,11 @@ export function TaxonomyScreen({
       )}
 
       {taxonomy.data && (
-        <ul className="flex flex-col gap-3">
+        <ul className="group-list">
           {taxonomy.data.categories.map((c) => (
             <li
               key={c.id}
-              className={`card flex flex-col gap-3 p-4 ${c.deleted ? 'text-muted opacity-70' : ''}`}
+              className={`flex flex-col gap-3 p-4 ${c.deleted ? 'text-muted opacity-70' : ''}`}
             >
               <div className="flex flex-wrap items-center gap-2">
                 {isRename('category', c.id) ? (

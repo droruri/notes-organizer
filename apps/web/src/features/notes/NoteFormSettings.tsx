@@ -87,12 +87,12 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
     <Sheet title={t('notes.formSettings.title')} onClose={onClose} dirty={dirty}>
       {(close) => (
         <>
-          <ul className="flex flex-col px-5 py-2">
+          <ul className="group-list m-4">
             {ROWS.map((row) => {
               const name = t(`notes.formSettings.fields.${row}`);
               if (row === 'body') {
                 return (
-                  <li key={row} className="flex items-center gap-3 py-3 text-muted">
+                  <li key={row} className="flex items-center gap-3 px-4 py-3 text-muted">
                     <span>{name}</span>
                     <span className="ms-auto text-sm">{t('notes.formSettings.always')}</span>
                   </li>
@@ -102,7 +102,7 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
               return (
                 <li
                   key={row}
-                  className={`flex flex-wrap items-center gap-x-3 py-3 ${shown ? '' : 'text-muted'}`}
+                  className={`flex flex-wrap items-center gap-x-3 px-4 py-3 ${shown ? '' : 'text-muted'}`}
                 >
                   <label className="flex w-full items-center gap-3">
                     <span>{name}</span>
@@ -163,14 +163,14 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
                 </li>
               );
             })}
-            <li className="mt-2 border-t border-line pt-3 text-sm font-bold text-muted">
+            <li className="bg-bg px-4 pt-3 pb-2 text-sm font-bold text-muted">
               {t('notes.formSettings.statusesTitle')}
             </li>
             {HideableStatus.options.map((s) => {
               const name = t(`notes.status.${s}`);
               const on = !statusHidden.includes(s);
               return (
-                <li key={s} className={`flex items-center py-3 ${on ? '' : 'text-muted'}`}>
+                <li key={s} className={`flex items-center px-4 py-3 ${on ? '' : 'text-muted'}`}>
                   <label className="flex w-full items-center gap-3">
                     <span>{name}</span>
                     <input
@@ -191,14 +191,14 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
                 </li>
               );
             })}
-            <li className="mt-2 border-t border-line pt-3 text-sm font-bold text-muted">
+            <li className="bg-bg px-4 pt-3 pb-2 text-sm font-bold text-muted">
               {t('notes.formSettings.quickActionsTitle')}
             </li>
             {QuickAction.options.map((a) => {
               const name = t(`notes.formSettings.quickAction.${a}`);
               const on = quick.includes(a);
               return (
-                <li key={a} className={`flex items-center py-3 ${on ? '' : 'text-muted'}`}>
+                <li key={a} className={`flex items-center px-4 py-3 ${on ? '' : 'text-muted'}`}>
                   <label className="flex w-full items-center gap-3">
                     <span>{name}</span>
                     <input

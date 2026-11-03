@@ -53,21 +53,28 @@ export function AppMenu({ onPick, onSignOut, onDone, isAdmin = false, autoFocus 
     run();
   };
   return (
-    <div ref={panel} role="menu" aria-label={t('app.menu')} onKeyDown={onMenuKey}>
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          role="menuitem"
-          onClick={pick(() => onPick(item.id))}
-          className="menu-item"
-        >
-          <Icon name={item.icon} size={18} className="text-muted" />
-          {t(item.label)}
-        </button>
-      ))}
-      <div role="separator" className="menu-sep" />
-      <div role="group" aria-label={t('language.label')} className="menu-lang">
+    <div
+      ref={panel}
+      role="menu"
+      aria-label={t('app.menu')}
+      onKeyDown={onMenuKey}
+      className="menu-groups"
+    >
+      <div role="presentation" className="group-list">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="menuitem"
+            onClick={pick(() => onPick(item.id))}
+            className="menu-item"
+          >
+            <Icon name={item.icon} size={18} className="text-muted" />
+            {t(item.label)}
+          </button>
+        ))}
+      </div>
+      <div role="group" aria-label={t('language.label')} className="menu-lang group-list">
         <span aria-hidden="true" className="menu-lang-label">
           <Icon name="globe" size={18} className="text-muted" />
           {t('language.label')}
@@ -88,16 +95,17 @@ export function AppMenu({ onPick, onSignOut, onDone, isAdmin = false, autoFocus 
           ))}
         </span>
       </div>
-      <div role="separator" className="menu-sep" />
-      <button
-        type="button"
-        role="menuitem"
-        onClick={pick(onSignOut)}
-        className="menu-item menu-item-danger"
-      >
-        <Icon name="logout" size={18} />
-        {t('auth.signOut')}
-      </button>
+      <div role="presentation" className="group-list">
+        <button
+          type="button"
+          role="menuitem"
+          onClick={pick(onSignOut)}
+          className="menu-item menu-item-danger"
+        >
+          <Icon name="logout" size={18} />
+          {t('auth.signOut')}
+        </button>
+      </div>
     </div>
   );
 }

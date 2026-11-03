@@ -11,6 +11,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { useEscape } from '../../ui/useEscape';
 import { ImportReview } from './ImportReview';
@@ -62,20 +63,10 @@ export function ImportDialog({
       role="dialog"
       aria-modal="true"
       aria-label={t('import.title')}
-      className="screen enter-rise text-fg"
+      className="screen enter-rise text-fg lg:start-64"
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 text-start">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">{t('import.title')}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t('import.cancel')}
-            className="btn btn-ghost btn-icon"
-          >
-            <Icon name="close" size={20} />
-          </button>
-        </div>
+        <NavBar title={t('import.title')} onBack={onClose} />
         {workspaces.length > 1 && (
           <label className="label">
             {t('import.workspace')}

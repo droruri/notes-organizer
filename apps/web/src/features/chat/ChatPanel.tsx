@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { ActionGroup } from './ActionGroup';
 import { ChatAnswer } from './ChatAnswer';
 import { api } from '../../lib/api';
+import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
 import { useEscape } from '../../ui/useEscape';
@@ -94,22 +95,24 @@ export function ChatPanel({
       role="dialog"
       aria-label={t('chat.title')}
       onTransitionEnd={onTransitionEnd}
-      className={`enter-drawer ${closing ? 'closing ' : ''}fixed inset-0 z-30 flex flex-col bg-surface pt-[env(safe-area-inset-top)] md:inset-y-0 md:start-auto md:end-0 md:w-[26rem] md:shadow-[0_0_0_1px_rgb(var(--shadow-rgb)/0.08),0_24px_64px_-16px_rgb(var(--shadow-rgb)/0.35)]`}
+      className={`enter-drawer ${closing ? 'closing ' : ''}fixed inset-0 z-30 flex flex-col bg-surface pt-[env(safe-area-inset-top)] lg:static lg:z-auto lg:h-[calc(100dvh-3rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:pt-0`}
     >
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-        <span className="grid size-8 place-items-center rounded-full bg-marker text-marker-fg">
-          <Icon name="spark" size={16} />
-        </span>
-        <h2 className="font-semibold">{t('chat.title')}</h2>
-        <button
-          type="button"
-          onClick={close}
-          aria-label={t('chat.close')}
-          className="btn btn-ghost btn-icon btn-sm ms-auto"
-        >
-          <Icon name="close" size={18} />
-        </button>
-      </header>
+      <div className="px-4 pt-4">
+        <NavBar
+          title={t('chat.title')}
+          onBack={close}
+          action={
+            <button
+              type="button"
+              onClick={close}
+              aria-label={t('chat.close')}
+              className="btn btn-ghost btn-icon btn-sm max-lg:hidden"
+            >
+              <Icon name="close" size={18} />
+            </button>
+          }
+        />
+      </div>
       <div
         className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4"
         aria-live="polite"
