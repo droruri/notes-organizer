@@ -32,7 +32,7 @@ export function useGoBack() {
 
 /** Screens pushed over the shell: the tab bar hides on them. */
 export const isPushedPath = (pathname: string) =>
-  ['/new', '/review', '/import', '/taxonomy', '/users'].includes(pathname) ||
+  ['/new', '/review', '/chat', '/import', '/taxonomy', '/users'].includes(pathname) ||
   pathname.startsWith('/notes/');
 
 export type NavId =

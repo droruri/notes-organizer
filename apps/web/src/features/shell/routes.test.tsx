@@ -28,14 +28,14 @@ const renderAt = (entries: string[]) =>
   );
 
 describe('isPushedPath', () => {
-  it.each(['/new', '/review', '/import', '/taxonomy', '/users', '/notes/abc'])(
+  it.each(['/new', '/review', '/chat', '/import', '/taxonomy', '/users', '/notes/abc'])(
     'hides the tab bar on %s',
     (path) => {
       expect(isPushedPath(path)).toBe(true);
     },
   );
 
-  it.each(['/', '/chat', '/workspaces'])('keeps the tab bar on %s', (path) => {
+  it.each(['/', '/workspaces'])('keeps the tab bar on %s', (path) => {
     expect(isPushedPath(path)).toBe(false);
   });
 });
