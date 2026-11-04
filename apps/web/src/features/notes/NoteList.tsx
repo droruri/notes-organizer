@@ -1,7 +1,10 @@
 import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCard } from './NoteCard';
+
+const PAGE = 50;
 
 export function NoteList({
   notes,
@@ -34,6 +37,21 @@ export function NoteList({
   selectedId?: string | undefined;
 }) {
   const { t } = useTranslation();
+  const [shown, setShown] = useState(PAGE);
+  const sentinel = useRef<HTMLLIElement>(null);
+  const more = shown < notes.length;
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!more || !el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setShown((n) => n + PAGE);
+      },
+      { rootMargin: '800px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more, shown]);
   if (notes.length === 0) {
     return (
       <div className="enter-fade flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong/60 px-6 py-14 text-center">
@@ -53,7 +71,7 @@ export function NoteList({
   }
   return (
     <ul className="flex flex-col gap-3">
-      {notes.map((n) => (
+      {notes.slice(0, shown).map((n) => (
         <NoteCard
           key={n.id}
           note={n}
@@ -67,6 +85,7 @@ export function NoteList({
           selected={selectedId === n.id}
         />
       ))}
+      {more && <li ref={sentinel} aria-hidden className="h-px" />}
     </ul>
   );
 }
