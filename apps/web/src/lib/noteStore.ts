@@ -55,13 +55,21 @@ async function readCursor(): Promise<string | undefined> {
 
 /** Download what changed since the stored cursor, persist it and return the merged list. */
 export async function syncNotes(current: Note[] | undefined): Promise<Note[]> {
-  const cursor = current ? await readCursor().catch(() => undefined) : undefined;
+  const cursor = current
+    ? await readCursor().catch((err: unknown) => {
+        console.warn('note store: could not read cursor', err);
+        return undefined;
+      })
+    : undefined;
   const changes: NoteChanges = await api.noteChanges(cursor);
   const merged = new Map<string, Note>(cursor && current ? current.map((n) => [n.id, n]) : []);
   for (const n of changes.notes) merged.set(n.id, n);
   for (const id of changes.deletedIds) merged.delete(id);
   try {
     if (!cursor) await clearNotes();
+    // Deletions first, and the cursor last: if anything fails, the cursor stays behind and the
+    // next sync re-sends the same delta instead of skipping it.
+    if (changes.deletedIds.length > 0) await delMany(changes.deletedIds, db());
     await setMany(
       [
         ...changes.notes.map((n): [string, unknown] => [n.id, n]),
@@ -69,7 +77,6 @@ export async function syncNotes(current: Note[] | undefined): Promise<Note[]> {
       ],
       db(),
     );
-    if (changes.deletedIds.length > 0) await delMany(changes.deletedIds, db());
   } catch (err) {
     console.warn('note store: could not save', err);
   }

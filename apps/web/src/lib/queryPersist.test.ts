@@ -61,8 +61,9 @@ describe('query cache persistence', () => {
   });
 
   it('clearCache empties the note store', async () => {
+    cleared.length = 0;
     await clearCache(new QueryClient());
-    expect(cleared.length).toBeGreaterThan(0);
+    expect(cleared).toHaveLength(1);
   });
 
   it('returns nothing for garbage', async () => {
