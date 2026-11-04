@@ -283,6 +283,10 @@
     "deleteItem": "Delete {{name}}",
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
+    "pin": {
+      "pin": "Pin {{name}}",
+      "unpin": "Unpin {{name}}"
+    },
     "color": {
       "labelFor": "Color of {{name}}",
       "names": {

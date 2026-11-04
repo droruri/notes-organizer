@@ -2,12 +2,13 @@ import type { Category, Note } from '@notes/shared';
 import { describe, expect, it } from 'vite-plus/test';
 import { rankCategories } from './categoryRank';
 
-const cat = (id: string, name: string, deleted = false): Category => ({
+const cat = (id: string, name: string, deleted = false, pinned = false): Category => ({
   id,
   name,
   deleted,
   importance: null,
   color: 'blue',
+  pinned,
 });
 const WORKSPACE_ID = '00000000-0000-4000-8000-000000000001';
 const note = (categoryIds: string[], updatedAt: string, status: Note['status'] = 'todo'): Note => ({
@@ -57,5 +58,11 @@ describe('rankCategories', () => {
     expect(rankCategories([note(['a'], '2026-11-01T00:00:00Z')], [cat('a', 'A', true)])).toEqual(
       [],
     );
+  });
+
+  it('puts pinned categories first by name, even with no notes', () => {
+    const cats = [cat('a', 'A'), cat('z', 'Z', false, true), cat('m', 'M', false, true)];
+    const ranked = rankCategories([note(['a'], '2026-01-01T00:00:00Z')], cats);
+    expect(ranked.map((r) => r.category.id)).toEqual(['m', 'z', 'a']);
   });
 });

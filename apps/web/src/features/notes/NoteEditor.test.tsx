@@ -185,6 +185,7 @@ describe('NoteEditor category importance', () => {
         deleted: false,
         importance: 'important',
         color: 'slate' as const,
+        pinned: false,
         tags: [{ id: TAG, categoryId: HI, name: 'Urgent', deleted: false }],
       },
       {
@@ -193,6 +194,7 @@ describe('NoteEditor category importance', () => {
         deleted: false,
         importance: 'not_important',
         color: 'slate' as const,
+        pinned: false,
         tags: [],
       },
     ],
@@ -400,6 +402,7 @@ describe('NoteEditor choice display', () => {
             deleted: false,
             importance: 'important',
             color: 'slate' as const,
+            pinned: false,
             tags: [],
           },
         ],

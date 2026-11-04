@@ -3,7 +3,7 @@ import type { Category, Note } from '@notes/shared';
 export type RankedCategory = { category: Category; count: number; latest: number };
 
 /**
- * Usable (not deleted) categories ordered by their most recent note activity. Rank = latest
+ * Usable (not deleted) categories: pinned first (by name), then ordered by their most recent note activity. Rank = latest
  * `updatedAt` among the notes in that category; ties → open-note count, then name. Categories
  * with no notes go last. `count` is the number of open (not done) notes. Pass the notes already
  * scoped to the workspace.
@@ -27,6 +27,8 @@ export function rankCategories(notes: Note[], categories: Category[]): RankedCat
     })
     .sort(
       (a, b) =>
+        Number(b.category.pinned) - Number(a.category.pinned) ||
+        (a.category.pinned ? a.category.name.localeCompare(b.category.name) : 0) ||
         (b.latest === a.latest ? 0 : b.latest > a.latest ? 1 : -1) ||
         b.count - a.count ||
         a.category.name.localeCompare(b.category.name),

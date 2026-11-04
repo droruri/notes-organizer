@@ -9,7 +9,15 @@ import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 const C = '11111111-1111-4111-8111-111111111111';
 const taxonomy: Taxonomy = {
   categories: [
-    { id: C, name: 'עבודה', deleted: false, importance: null, color: 'slate' as const, tags: [] },
+    {
+      id: C,
+      name: 'עבודה',
+      deleted: false,
+      importance: null,
+      color: 'slate' as const,
+      pinned: false,
+      tags: [],
+    },
   ],
 };
 afterEach(cleanup);
@@ -36,6 +44,7 @@ describe('TaxonomyPicker', () => {
       dueDate: null,
       importance: null,
       color: 'slate' as const,
+      pinned: false,
       urgency: null,
       title: null,
       workspaceId: null,
@@ -95,6 +104,7 @@ describe('TaxonomyPicker', () => {
           deleted: false,
           importance: null,
           color: 'slate' as const,
+          pinned: false,
           tags: [{ id: T, categoryId: C, name: 'דחוף', deleted: false }],
         },
       ],
@@ -155,6 +165,7 @@ describe('TaxonomyPicker', () => {
         deleted: false,
         importance: null,
         color: 'slate' as const,
+        pinned: false,
         tags: name === 'אוכל' ? [tag('t1', 'תה'), tag('t2', 'אורז')] : [],
       })),
     };
@@ -188,6 +199,7 @@ describe('TaxonomyPicker on small screens', () => {
     deleted: false,
     importance: null,
     color: 'slate' as const,
+    pinned: false,
     tags: tags.map((tg) => ({ ...tg, categoryId: id, deleted: false })),
   });
   const tax: Taxonomy = {

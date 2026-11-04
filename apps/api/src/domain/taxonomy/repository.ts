@@ -3,8 +3,9 @@ import type { Queryable } from '../../tx';
 
 // SQL for categories and tags. Tags have no user_id: ownership is checked through the category.
 
-const CATEGORY_COLS = 'c.id, c.name, c.deleted_at is not null as deleted, c.importance, c.color';
-const CATEGORY_RETURNING = 'id, name, deleted_at is not null as deleted, importance, color';
+const CATEGORY_COLS =
+  'c.id, c.name, c.deleted_at is not null as deleted, c.importance, c.color, c.pinned';
+const CATEGORY_RETURNING = 'id, name, deleted_at is not null as deleted, importance, color, pinned';
 const TAG_COLS = 't.id, t.category_id as "categoryId", t.name, t.deleted_at is not null as deleted';
 
 export async function listCategories(db: Queryable, userId: string): Promise<Category[]> {
@@ -118,6 +119,18 @@ export async function updateCategoryColor(
   const { rows } = await db.query<Category>(
     `update categories set color = $2 where id = $1 returning ${CATEGORY_RETURNING}`,
     [id, color],
+  );
+  return rowOrThrow(rows);
+}
+
+export async function updateCategoryPinned(
+  db: Queryable,
+  id: string,
+  pinned: boolean,
+): Promise<Category> {
+  const { rows } = await db.query<Category>(
+    `update categories set pinned = $2 where id = $1 returning ${CATEGORY_RETURNING}`,
+    [id, pinned],
   );
   return rowOrThrow(rows);
 }
