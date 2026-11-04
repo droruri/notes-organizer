@@ -28,11 +28,12 @@ export function ContinueRow({
   );
   if (items.length === 0) return null;
   return (
-    <section aria-labelledby="continue-title" className="flex flex-col gap-2">
+    <section aria-labelledby="continue-title" className="@container flex flex-col gap-2">
       <h3 id="continue-title" className="text-sm font-semibold text-muted">
         {t('notes.continue.title')}
       </h3>
-      <ul className="grid grid-cols-1 gap-2 lg:grid-cols-4">
+      {/* Desktop columns follow the list pane width, not the viewport: the pane can be narrow. */}
+      <ul className="grid grid-cols-1 gap-2 lg:@md:grid-cols-2 lg:@3xl:grid-cols-4">
         {items.map((note, i) => {
           const color = note.categoryIds.map((id) => colors.get(id)).find((c) => c !== undefined);
           const label = note.title?.trim() || note.body.trim().split('\n')[0] || '';
