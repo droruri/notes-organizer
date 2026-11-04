@@ -78,7 +78,8 @@
       "in_progress": "בתהליך",
       "done": "הושלם",
       "label": "סטטוס",
-      "advance": "{{current}} — העבר ל{{next}}"
+      "advance": "{{current}} — העבר ל{{next}}",
+      "markDone": "סמן כהושלם"
     },
     "picker": {
       "categories": "קטגוריות",
