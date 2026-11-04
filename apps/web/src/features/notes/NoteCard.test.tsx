@@ -174,6 +174,36 @@ describe('NoteCard collapse', () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole('button', { name: /move to/ })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Mark done' })).toHaveProperty('disabled', true);
+  });
+
+  it('marks an open note done in one tap', () => {
+    const onStatus = vi.fn();
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <NoteCard
+            note={{ ...note, status: 'in_progress' }}
+            taxonomy={taxonomy}
+            today="2026-10-25"
+            onOpen={vi.fn()}
+            onStatus={onStatus}
+            hiddenStatuses={[]}
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+    expect(onStatus).toHaveBeenCalledWith({ ...note, status: 'in_progress' }, 'done');
+  });
+
+  it('shows no done button on done, draft or untracked notes', () => {
+    for (const status of ['done', 'draft', null] as const) {
+      renderCard(vi.fn(), { ...note, status });
+      expect(screen.queryByRole('button', { name: 'Mark done' })).toBeNull();
+      cleanup();
+    }
   });
 
   it('makes no link-preview request while collapsed', () => {

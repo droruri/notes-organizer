@@ -78,7 +78,8 @@
       "in_progress": "In progress",
       "done": "Done",
       "label": "Status",
-      "advance": "{{current}} — move to {{next}}"
+      "advance": "{{current}} — move to {{next}}",
+      "markDone": "Mark done"
     },
     "picker": {
       "categories": "Categories",

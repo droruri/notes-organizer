@@ -91,9 +91,21 @@ export function NoteCard({
             })}
             disabled={statusPending}
             onClick={() => onStatus(note, nextStatus(tracked, hiddenStatuses))}
-            className={`pill pill-dot ${statusClass(tracked)} cursor-pointer`}
+            className={`btn btn-sm pill-dot ${statusClass(tracked)}`}
           >
             {t(`notes.status.${tracked}`)}
+          </button>
+        )}
+        {tracked !== null && tracked !== 'done' && !hiddenStatuses.includes('done') && (
+          <button
+            type="button"
+            aria-label={t('notes.status.markDone')}
+            disabled={statusPending}
+            onClick={() => onStatus(note, 'done')}
+            className="btn btn-sm text-ok"
+          >
+            <Icon name="check" size={16} />
+            {t('notes.status.done')}
           </button>
         )}
         {note.status === 'draft' && (
