@@ -70,7 +70,10 @@ export function NoteFilters({
   const { t } = useTranslation();
   const [localOpen, setLocalOpen] = useState(false);
   const open = sheetOpen ?? localOpen;
-  const setOpen = onSheetOpenChange ?? setLocalOpen;
+  const setOpen = (next: boolean) => {
+    setLocalOpen(next);
+    onSheetOpenChange?.(next);
+  };
   const online = useOnline();
   const isDefault = savedDefault !== null && matchesDefault(filter, savedDefault);
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });

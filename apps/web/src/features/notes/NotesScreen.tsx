@@ -397,13 +397,13 @@ export function NotesScreen({
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const rankScope = notes.data;
-  const rankingNotes = useMemo(
-    () =>
-      rankScope && workspace && !(allWorkspaces && (workspaces.data?.length ?? 0) > 1)
-        ? rankScope.filter((n) => n.workspaceId === workspace.id)
-        : (rankScope ?? []),
-    [rankScope, workspace, allWorkspaces, workspaces.data],
-  );
+  const rankAll = allWorkspaces && (workspaces.data?.length ?? 0) > 1;
+  const rankingNotes = useMemo(() => {
+    const all = rankScope ?? [];
+    if (rankAll) return all;
+    if (!workspace) return [];
+    return all.filter((n) => n.workspaceId === workspace.id);
+  }, [rankScope, workspace, rankAll]);
   const rankCats = taxonomy.data?.categories;
   const ranked = useMemo(
     () => rankCategories(rankingNotes, rankCats ?? []),

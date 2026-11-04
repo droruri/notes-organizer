@@ -9,8 +9,26 @@ const cat = (id: string, name: string, deleted = false): Category => ({
   importance: null,
   color: 'blue',
 });
-const note = (categoryIds: string[], updatedAt: string, status: Note['status'] = 'todo'): Note =>
-  ({ categoryIds, updatedAt, status }) as Note;
+const WORKSPACE_ID = '00000000-0000-4000-8000-000000000001';
+const note = (categoryIds: string[], updatedAt: string, status: Note['status'] = 'todo'): Note => ({
+  id: '00000000-0000-4000-8000-0000000000aa',
+  clientId: '00000000-0000-4000-8000-0000000000bb',
+  title: null,
+  body: '',
+  status,
+  workspaceId: WORKSPACE_ID,
+  importance: null,
+  urgency: null,
+  dueDate: null,
+  proposed: null,
+  unreadLinks: [],
+  categoryIds,
+  tagIds: [],
+  hasAudio: false,
+  attachments: [],
+  createdAt: updatedAt,
+  updatedAt,
+});
 
 describe('rankCategories', () => {
   const a = cat('a', 'Alpha');
