@@ -149,7 +149,12 @@
         "urgency": "Urgency"
       }
     },
-    "pick": "Pick a note or create one"
+    "pick": "Pick a note or create one",
+    "continue": {
+      "title": "Continue",
+      "more": "More",
+      "less": "Less"
+    }
   },
   "categoryStrip": {
     "all": "All ›"
