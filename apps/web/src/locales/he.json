@@ -163,6 +163,11 @@
     "status": "סטטוס",
     "from": "מתאריך",
     "to": "עד תאריך",
+    "remove": "הסר סינון: {{name}}",
+    "clearAll": "נקה הכל",
+    "active": "סינונים פעילים",
+    "chipFrom": "מ-{{date}}",
+    "chipTo": "עד {{date}}",
     "clear": "נקה סינון",
     "saveDefault": "שמור כברירת מחדל",
     "isDefault": "✓ ברירת מחדל"

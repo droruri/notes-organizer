@@ -42,7 +42,7 @@ describe('NoteFilters', () => {
       />,
     );
     expect(screen.queryByLabelText('sort-test')).toBeNull();
-    const button = screen.getByRole('button', { name: /סינון/ });
+    const button = screen.getByRole('button', { name: /^סינון/ });
     expect(button.textContent).toContain('2');
     fireEvent.click(button);
     const dialog = screen.getByRole('dialog');
