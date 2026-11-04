@@ -16,7 +16,7 @@ import {
   type Workspace,
   suggestionOf,
 } from '@notes/shared';
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useDeferredValue, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
@@ -132,6 +132,8 @@ export function NotesScreen({
       ? { ...EMPTY_FILTER, ...workspace?.defaultFilter }
       : { ...EMPTY_FILTER, tagIds: [initialTagId] },
   );
+  // Search text lags the input so typing stays responsive while every body is scanned.
+  const deferredText = useDeferredValue(filter.text);
   // Apply a workspace's saved default when the workspace changes (adjusting state during render,
   // so open child routes are not remounted).
   const [appliedFor, setAppliedFor] = useState(workspace?.id);
@@ -474,7 +476,9 @@ export function NotesScreen({
   const workspaceNames = acrossWorkspaces
     ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name]))
     : undefined;
-  const visible = sortNotes(filterNotes(inWorkspace, filter, today), sort, today);
+  const deferredFilter = { ...filter, text: deferredText };
+  const visible = sortNotes(filterNotes(inWorkspace, deferredFilter, today), sort, today);
+  const listKey = JSON.stringify([deferredFilter, sort, workspace?.id, acrossWorkspaces]);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return slots(
     <section className="flex flex-col gap-5">
@@ -620,6 +624,7 @@ export function NotesScreen({
       {waiting}
       <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
         <NoteList
+          key={listKey}
           notes={visible}
           filtered={inWorkspace.length > 0}
           workspaceNames={workspaceNames}
