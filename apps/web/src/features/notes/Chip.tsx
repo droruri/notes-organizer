@@ -1,4 +1,6 @@
+import type { CategoryColor } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '../../ui/Icon';
 
 /** A toggle chip; `isNew` adds the "new" badge for names Claude proposed. */
 export function Chip({
@@ -7,6 +9,7 @@ export function Chip({
   isNew = false,
   deleted = false,
   tag = false,
+  color,
   disabled = false,
   className = '',
   onClick,
@@ -18,6 +21,8 @@ export function Chip({
   deleted?: boolean;
   /** Tag look: square corners and a CSS-drawn `#`; categories stay round pills. */
   tag?: boolean;
+  /** Category palette key: the chip takes the category's colors, and a ring plus a check when selected. */
+  color?: CategoryColor;
   disabled?: boolean;
   className?: string;
   onClick: () => void;
@@ -29,8 +34,10 @@ export function Chip({
       aria-pressed={selected}
       disabled={disabled}
       onClick={onClick}
+      {...(color && { 'data-color': color })}
       className={`chip ${tag ? 'chip-tag ' : ''}${deleted ? 'text-muted line-through opacity-60 ' : ''}${className}`}
     >
+      {color && selected && <Icon name="check" size={14} />}
       {label}
       {isNew && (
         <span className="marker" aria-hidden={tag || undefined}>

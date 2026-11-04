@@ -48,6 +48,32 @@ describe('NoteFilters', () => {
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTER, categoryIds: [D] });
   });
 
+  it('colors category chips and marks the selected one, in a sheet outside the sticky header', () => {
+    const { container } = render(
+      <NoteFilters
+        filter={{ ...EMPTY_FILTER, categoryIds: [C] }}
+        onChange={vi.fn()}
+        taxonomy={{
+          categories: taxonomy.categories.map((c) =>
+            c.id === D ? { ...c, color: 'green' as const } : c,
+          ),
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { expanded: false, name: /^סינון/ }));
+    const sheet = screen.getByRole('dialog');
+    // Portaled to <body>, so no blurred ancestor can clip it.
+    expect(container.contains(sheet)).toBe(false);
+    const selected = screen.getByRole('button', { name: 'עבודה' });
+    expect(selected.dataset.color).toBe('slate');
+    expect(selected.getAttribute('aria-pressed')).toBe('true');
+    expect(selected.querySelector('svg')).not.toBeNull();
+    const other = screen.getByRole('button', { name: 'ישן' });
+    expect(other.dataset.color).toBe('green');
+    expect(other.getAttribute('aria-pressed')).toBe('false');
+    expect(other.querySelector('svg')).toBeNull();
+  });
+
   it('puts the filters and the sort in one sheet, with the active count on the button', () => {
     render(
       <NoteFilters

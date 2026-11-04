@@ -170,7 +170,7 @@ export function NoteFilters({
       </div>
       {open && (
         <Sheet title={t('filters.sheetTitle')} onClose={() => setOpen(false)}>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 p-4">
             {sort}
             {group(
               t('notes.picker.categories'),
@@ -178,6 +178,7 @@ export function NoteFilters({
                 <Chip
                   key={c.id}
                   label={c.name}
+                  color={c.color}
                   deleted={c.deleted}
                   selected={filter.categoryIds.includes(c.id)}
                   onClick={() => set({ categoryIds: toggle(filter.categoryIds, c.id) })}
