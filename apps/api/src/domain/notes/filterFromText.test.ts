@@ -16,6 +16,7 @@ const taxonomy: Taxonomy = {
       deleted: false,
       importance: null,
       color: 'slate',
+      pinned: false,
       tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
     },
   ],

@@ -397,4 +397,64 @@ describe.skipIf(!databaseUrl)('taxonomy routes against the local stack', () => {
       await logged.close();
     });
   });
+
+  describe('PUT /categories/:id/pinned', () => {
+    const put = (id: string, payload: object, headers = mine) =>
+      as(headers, 'PUT', `/categories/${id}/pinned`, payload);
+
+    it('toggles pinned, returns the category, and works on deleted ones', async () => {
+      const cat = await newCategory(`pin-${randomUUID()}`);
+      expect(cat.pinned).toBe(false);
+      const res = await put(cat.id, { pinned: true });
+      expect(res.statusCode).toBe(200);
+      expect(Category.parse(res.json()).pinned).toBe(true);
+      const listed = Taxonomy.parse((await call('GET', '/taxonomy')).json());
+      expect(listed.categories.find((c) => c.id === cat.id)?.pinned).toBe(true);
+      await call('DELETE', `/categories/${cat.id}`);
+      const again = await put(cat.id, { pinned: false });
+      expect(again.statusCode).toBe(200);
+      expect(Category.parse(again.json())).toMatchObject({ deleted: true, pinned: false });
+    });
+
+    it("404s for another user's category and 400s on a bad body", async () => {
+      const cat = await newCategory(`pin-own-${randomUUID()}`);
+      const res = await put(cat.id, { pinned: true }, theirs);
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toEqual({ error: 'not_found' });
+      for (const body of [{ pinned: 'yes' }, {}]) {
+        const bad = await put(cat.id, body);
+        expect(bad.statusCode).toBe(400);
+        expect(bad.json()).toEqual({ error: 'invalid_body' });
+      }
+    });
+
+    it('logs the outcome and the not-found warning', async () => {
+      const { app: logged, lines } = captureLogs({
+        db: pool,
+        verifyToken: fakeVerifyToken,
+        allowedEmails: new Set([ALLOWED_USER.email, OTHER_USER.email]),
+      });
+      const cat = await newCategory(`pin-log-${randomUUID()}`);
+      const send = (headers: typeof mine) =>
+        logged.inject({
+          method: 'PUT',
+          url: `/categories/${cat.id}/pinned`,
+          headers,
+          payload: { pinned: true },
+        });
+      expect((await send(mine)).statusCode).toBe(200);
+      expect(lines.find((l) => l.msg === 'category pinned set')).toMatchObject({
+        level: 30,
+        categoryId: cat.id,
+        pinned: true,
+      });
+      expect((await send(theirs)).statusCode).toBe(404);
+      expect(lines.find((l) => l.msg === 'category pinned failed')).toMatchObject({
+        level: 40,
+        categoryId: cat.id,
+        error: 'not_found',
+      });
+      await logged.close();
+    });
+  });
 });

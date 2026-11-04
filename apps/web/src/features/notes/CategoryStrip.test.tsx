@@ -17,7 +17,7 @@ const mm = (matches: boolean) =>
   }));
 const ids = Array.from({ length: 10 }, (_, i) => `00000000-0000-4000-8000-00000000000${i}`);
 const ranked: RankedCategory[] = ids.map((id, i) => ({
-  category: { id, name: `Cat${i}`, deleted: false, importance: null, color: 'blue' },
+  category: { id, name: `Cat${i}`, deleted: false, importance: null, color: 'blue', pinned: false },
   count: i,
   latest: 0,
 }));

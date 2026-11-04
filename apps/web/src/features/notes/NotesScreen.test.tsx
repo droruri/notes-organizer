@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {
   DEFAULT_NOTE_FORM,
   EMPTY_FILTER,
@@ -19,6 +19,7 @@ import { i18n } from '../../lib/i18n';
 import { readOutbox } from '../offline/outbox';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { NotesScreen } from './NotesScreen';
+import { parseRecent, recordOpen } from './recent';
 
 beforeEach(async () => {
   await i18n.changeLanguage('en');
@@ -27,6 +28,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', () => Promise.reject(new TypeError('offline')));
 });
 afterEach(() => {
+  localStorage.clear();
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -89,6 +91,7 @@ describe('NotesScreen opened from a tag', () => {
           deleted: false,
           importance: null,
           color: 'slate' as const,
+          pinned: false,
           tags: [{ id: T1, categoryId: C, name: 'urgent', deleted: false }],
         },
       ],
@@ -343,6 +346,19 @@ describe('NotesScreen across workspaces', () => {
     expect(screen.queryByText('home note')).toBeNull();
   });
 
+  it('continue row shows only this workspace recents and hides with search text', async () => {
+    recordOpen(note(2, '', []).id, 2);
+    recordOpen(note(1, '', []).id, 1);
+    setup(two);
+    const row = await screen.findByRole('region', { name: 'Continue' });
+    expect(within(row).getByText('home note')).toBeTruthy();
+    expect(within(row).queryByText('garden note')).toBeNull();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search notes' }), {
+      target: { value: 'home' },
+    });
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Continue' })).toBeNull());
+  });
+
   it('has no toggle with a single workspace', async () => {
     setup([home]);
     await screen.findByText('home note');
@@ -477,6 +493,7 @@ describe('NotesScreen default filter', () => {
           deleted: false,
           importance: null,
           color: 'slate',
+          pinned: false,
           tags: [{ id: TAG, categoryId: C, name: 'Tg', deleted: false }],
         },
       ],
@@ -667,5 +684,28 @@ describe('NotesScreen smart search', () => {
     await waitFor(() => expect(box.getAttribute('aria-busy')).toBe('true'));
     resolve({ filter: EMPTY_FILTER });
     await waitFor(() => expect(box.getAttribute('aria-busy')).toBe('false'));
+  });
+});
+
+describe('NotesScreen recent opens', () => {
+  it('records a note as opened when its route is shown', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockResolvedValue([note(1, 'opened note', [])]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const id = note(1, '', []).id;
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[`/notes/${id}`]}>
+          <NotesScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(parseRecent(localStorage.getItem('recentNotes'))[0]?.id).toBe(id));
   });
 });

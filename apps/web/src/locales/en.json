@@ -149,7 +149,12 @@
         "urgency": "Urgency"
       }
     },
-    "pick": "Pick a note or create one"
+    "pick": "Pick a note or create one",
+    "continue": {
+      "title": "Continue",
+      "more": "More",
+      "less": "Less"
+    }
   },
   "categoryStrip": {
     "all": "All ›"
@@ -295,6 +300,10 @@
     "deleteItem": "Delete {{name}}",
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
+    "pin": {
+      "pin": "Pin {{name}}",
+      "unpin": "Unpin {{name}}"
+    },
     "color": {
       "labelFor": "Color of {{name}}",
       "names": {

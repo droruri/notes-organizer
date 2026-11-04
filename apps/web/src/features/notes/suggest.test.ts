@@ -13,6 +13,7 @@ const cat = (id: string, name: string, deleted = false) => ({
   deleted,
   importance: null,
   color: 'slate' as const,
+  pinned: false,
   tags: [] as Taxonomy['categories'][number]['tags'],
 });
 const taxonomy: Taxonomy = {

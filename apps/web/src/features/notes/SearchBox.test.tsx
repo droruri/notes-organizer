@@ -11,13 +11,22 @@ const C2 = '22222222-2222-4222-8222-222222222222';
 const T1 = '44444444-4444-4444-8444-444444444444';
 const taxonomy: Taxonomy = {
   categories: [
-    { id: C1, name: 'לקוחות', deleted: false, importance: null, color: 'blue', tags: [] },
+    {
+      id: C1,
+      name: 'לקוחות',
+      deleted: false,
+      importance: null,
+      color: 'blue',
+      pinned: false,
+      tags: [],
+    },
     {
       id: C2,
       name: 'מלקחיים',
       deleted: false,
       importance: null,
       color: 'green',
+      pinned: false,
       tags: [{ id: T1, categoryId: C2, name: 'לקוח חדש', deleted: false }],
     },
   ],

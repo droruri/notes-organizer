@@ -230,6 +230,8 @@ export const api = {
     request('PATCH', `/categories/${id}`, Category, { name }),
   setCategoryColor: (id: string, color: CategoryColor) =>
     request('PUT', `/categories/${id}/color`, Category, { color }),
+  setCategoryPinned: (id: string, pinned: boolean) =>
+    request('PUT', `/categories/${id}/pinned`, Category, { pinned }),
   setCategoryImportance: (id: string, importance: Importance | null) =>
     request('PUT', `/categories/${id}/importance`, Category, { importance }),
   deleteCategory: (id: string) => request('DELETE', `/categories/${id}`, NoContent),

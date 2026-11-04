@@ -142,7 +142,7 @@ erDiagram
   notes ||--o{ note_attachments : ""
   auth_users ||--o{ allowed_users : "added_by"
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" jsonb note_form "nullable, null = defaults" }
-  categories { uuid id PK uuid user_id FK text name importance importance "optional default" category_color color timestamptz deleted_at timestamptz created_at }
+  categories { uuid id PK uuid user_id FK text name importance importance "optional default" category_color color boolean pinned timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
   notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
   note_categories { uuid note_id PK uuid category_id PK }
@@ -219,6 +219,7 @@ caller's `user_id`; another user's id behaves as not found.
 | PATCH | `/categories/:id` | `{name}` | `Category` · `409 name_taken` |
 | DELETE | `/categories/:id` | — | `204` (soft) |
 | PUT | `/categories/:id/color` | `{color: blue\|green\|purple\|amber\|teal\|pink\|red\|slate}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
+| PUT | `/categories/:id/pinned` | `{pinned: boolean}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | PUT | `/categories/:id/importance` | `{importance: important\|not_important\|null}` | `200 Category` · `400 invalid_body` · `404` (also another user's); allowed on deleted categories |
 | POST | `/categories/:id/restore` | — | `Category` · `409 name_taken` if an active one has the name |
 | POST | `/categories/:id/tags` | `{name}` | `201 Tag` · `409 name_taken` · `422 category_deleted` |
