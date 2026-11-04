@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { Sheet } from '../../ui/Sheet';
 import { useOnline } from '../offline/useOnline';
+import { ActiveFilters } from './ActiveFilters';
 import { Chip } from './Chip';
 
 const toggle = <T,>(list: T[], x: T): T[] =>
@@ -136,6 +137,13 @@ export function NoteFilters({
           )}
         </button>
       </div>
+      <ActiveFilters
+        filter={filter}
+        taxonomy={taxonomy}
+        onChange={onChange}
+        allWorkspaces={allWorkspaces}
+        {...(onAllWorkspaces && { onAllWorkspaces })}
+      />
       {open && (
         <Sheet title={t('filters.sheetTitle')} onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-4">

@@ -162,6 +162,13 @@
     "status": "Status",
     "from": "from",
     "to": "to",
+    "remove": "Remove filter: {{name}}",
+    "clearAll": "Clear all",
+    "showLess": "Show less",
+    "active": "Active filters",
+    "chipRange": "{{label}}: {{from}}–{{to}}",
+    "chipFrom": "from {{date}}",
+    "chipTo": "until {{date}}",
     "clear": "Clear filters",
     "saveDefault": "Save as default",
     "isDefault": "✓ Default"
