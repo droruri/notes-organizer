@@ -405,6 +405,7 @@ export function NotesScreen({
     return all.filter((n) => n.workspaceId === workspace.id);
   }, [rankScope, workspace, rankAll]);
   const rankCats = taxonomy.data?.categories;
+  const inWorkspaceForSearch = rankingNotes;
   const ranked = useMemo(
     () => rankCategories(rankingNotes, rankCats ?? []),
     [rankingNotes, rankCats],
@@ -608,6 +609,9 @@ export function NotesScreen({
           allWorkspaces={acrossWorkspaces}
           sheetOpen={filtersOpen}
           onSheetOpenChange={setFiltersOpen}
+          notes={inWorkspaceForSearch}
+          ranked={ranked}
+          onOpenNote={(id) => open(notePath(id))}
           onAllWorkspaces={setAllWorkspaces}
           showAllWorkspaces={showAllWorkspaces}
           savedDefault={workspace?.defaultFilter ?? null}
