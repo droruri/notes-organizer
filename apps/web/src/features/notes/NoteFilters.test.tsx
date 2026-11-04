@@ -18,7 +18,7 @@ describe('NoteFilters', () => {
   it('reports search text', () => {
     const onChange = vi.fn();
     render(<NoteFilters filter={EMPTY_FILTER} onChange={onChange} taxonomy={taxonomy} />);
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'חלב' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'חלב' } });
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTER, text: 'חלב' });
   });
 
