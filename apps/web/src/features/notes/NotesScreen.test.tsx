@@ -211,11 +211,11 @@ describe('NotesScreen modes from the URL', () => {
   it('keeps the search field visible and moves sort into the filters sheet', async () => {
     setup('/');
     await screen.findByText('first note');
-    expect(screen.getByRole('searchbox')).toBeTruthy();
-    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.getByRole('combobox', { name: 'Search notes' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Sort' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
     expect(screen.getByRole('dialog')).toBeTruthy();
-    expect(screen.getByRole('combobox')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeTruthy();
   });
 
   it('shows the editor on /notes/:id', async () => {
@@ -336,7 +336,9 @@ describe('NotesScreen across workspaces', () => {
     await screen.findByText('home note');
     expect(screen.queryByText('garden note')).toBeNull();
     fireEvent.click(await screen.findByRole('button', { name: 'All workspaces' }));
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'garden' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search notes' }), {
+      target: { value: 'garden' },
+    });
     await screen.findByText('garden note');
     expect(screen.getByText('Garden')).toBeTruthy();
     expect(screen.queryByText('home note')).toBeNull();
@@ -538,7 +540,9 @@ describe('NotesScreen default filter', () => {
     await openSheet();
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
     fireEvent.click(screen.getByRole('button', { name: 'Tg' }));
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzz' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search notes' }), {
+      target: { value: 'zzz' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save as default' }));
     await waitFor(() => expect(edit).toHaveBeenCalled());
     expect(edit).toHaveBeenCalledWith(W1, { defaultFilter: saved });

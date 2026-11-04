@@ -1,6 +1,7 @@
 import { type PointerEvent, type ReactNode, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
+import { useBackClose } from './useBackClose';
 import { useEscape } from './useEscape';
 import { useExit } from './useExit';
 
@@ -20,8 +21,8 @@ type Drag = { x: number; y: number; t: number; axis: 'none' | 'y'; dy: number };
 
 /**
  * The one sheet: a bottom sheet under 640px (grabber, swipe-down to dismiss), a centered
- * dialog above. Closes on Esc, backdrop click, the close button or a swipe. With `dirty`,
- * closing asks first. `children` may be a function receiving `close(force)`, where
+ * dialog above with a close button. Closes on Esc, backdrop click, the close button, a swipe
+ * or the browser / Android Back button. With `dirty`, closing asks first. `children` may be a function receiving `close(force)`, where
  * `force` skips the confirmation (e.g. after a successful save).
  */
 export function Sheet({
@@ -44,10 +45,17 @@ export function Sheet({
   const drag = useRef<Drag | null>(null);
   const pointers = useRef(new Set<number>());
 
-  const close = (force = false) => {
-    if (!force && dirty && !window.confirm(t('sheet.discardConfirm'))) return;
+  const release = useBackClose(() => close());
+  function leave() {
+    release();
     exit(onClose);
-  };
+  }
+  /** Returns false when the user chose to keep their unsaved changes. */
+  function close(force = false) {
+    if (!force && dirty && !window.confirm(t('sheet.discardConfirm'))) return false;
+    leave();
+    return true;
+  }
   useEscape(() => close());
 
   // Move focus into the sheet so keyboard users don't stay on the trigger behind it.
@@ -106,7 +114,7 @@ export function Sheet({
     drag.current = null;
     el.style.transition = '';
     el.style.translate = reducedMotion() ? '' : '0 100%';
-    exit(onClose);
+    leave();
   };
 
   const onCancel = (e: PointerEvent<HTMLDivElement>) => {
@@ -138,12 +146,13 @@ export function Sheet({
           <div aria-hidden="true" className="sheet-grabber sm:hidden" />
           <div className="flex items-center gap-2 border-b border-line px-5 py-2">
             <h2 className="text-lg font-bold">{title}</h2>
+            {/* The bottom sheet closes by swipe, so only the dialog shows a close button. */}
             <button
               type="button"
               onClick={() => close()}
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={t('sheet.close')}
-              className="btn btn-ghost btn-icon min-h-11 min-w-11 ms-auto"
+              className="btn btn-ghost btn-icon min-h-11 min-w-11 ms-auto max-sm:hidden"
             >
               <Icon name="close" size={18} />
             </button>

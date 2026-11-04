@@ -39,17 +39,20 @@ export function Screens() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const workspace = workspaces.data ? resolveWorkspace(workspaces.data, currentId) : undefined;
+  // A pick made inside an open sheet replaces the sheet's history entry, so Back from the
+  // new screen returns to the page under the sheet (see useBackClose).
   const pick = (id: NavId) => {
-    if (id === 'notes') void navigate(ROUTES.notes);
-    else if (id === 'chat') void navigate(ROUTES.chat);
+    const options = { replace: moreOpen };
+    if (id === 'notes') void navigate(ROUTES.notes, options);
+    else if (id === 'chat') void navigate(ROUTES.chat, options);
     else if (id === 'workspaces') setPicking(true);
     else if (id === 'more') setMoreOpen(true);
     else if (id === 'settings') setSettingsOpen(true);
-    else void navigate(ROUTES[id]);
+    else void navigate(ROUTES[id], options);
   };
   const switchTo = (id: string) => {
     setCurrentId(id);
-    void navigate(ROUTES.notes);
+    void navigate(ROUTES.notes, { replace: picking });
   };
   return (
     <>
