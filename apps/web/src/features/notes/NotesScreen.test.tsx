@@ -579,3 +579,86 @@ describe('NotesScreen default filter', () => {
     expect(screen.queryByRole('button', { name: /default/i })).toBeNull();
   });
 });
+
+describe('NotesScreen smart search', () => {
+  const W = '00000000-0000-4000-8000-0000000000f1';
+  const workspace = { id: W, name: 'Home', isDefault: true, defaultFilter: null };
+  const setup = () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockResolvedValue([
+      { ...note(1, 'done thing', []), status: 'done' },
+      note(2, 'todo plain', []),
+    ]);
+    vi.spyOn(api, 'workspaces').mockResolvedValue([workspace]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen workspace={workspace} initialTagId={null} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+  const sentence = async (text: string) => {
+    const box = await screen.findByRole('combobox');
+    fireEvent.change(box, { target: { value: text } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    return box;
+  };
+
+  it('turns a sentence into chips, labels them, announces the count and keeps focus', async () => {
+    setup();
+    const spy = vi
+      .spyOn(api, 'filterFromText')
+      .mockResolvedValue({ filter: { ...EMPTY_FILTER, statuses: ['done'] } });
+    const box = await sentence('show me finished things');
+    expect(box.getAttribute('enterkeyhint')).toBe('search');
+    await waitFor(() => expect(screen.getByText('Understood:')).toBeTruthy());
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ text: 'show me finished things' }));
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('');
+    expect(screen.getAllByRole('status').some((s) => s.textContent === 'Found 1 note')).toBe(true);
+    // editing the filter drops the label
+    fireEvent.click(screen.getByRole('button', { name: /^Clear all/ }));
+    await waitFor(() => expect(screen.queryByText('Understood:')).toBeNull());
+  });
+
+  it('keeps the text search and shows a notice when the API fails', async () => {
+    setup();
+    vi.spyOn(api, 'filterFromText').mockRejectedValue(new Error('503'));
+    await sentence('show me finished things');
+    expect(await screen.findByText(/Smart search is unavailable/)).toBeTruthy();
+    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe(
+      'show me finished things',
+    );
+    expect(screen.getByRole('combobox').getAttribute('aria-busy')).toBe('false');
+  });
+
+  it('does not call the API offline and shows a notice', async () => {
+    setup();
+    const spy = vi.spyOn(api, 'filterFromText');
+    await screen.findByRole('combobox');
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    window.dispatchEvent(new Event('offline'));
+    await sentence('show me finished things');
+    expect((await screen.findAllByText(/needs a connection/)).length).toBeGreaterThan(0);
+    expect(spy).not.toHaveBeenCalled();
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    window.dispatchEvent(new Event('online'));
+  });
+
+  it('sets aria-busy while waiting', async () => {
+    setup();
+    let resolve: (v: { filter: typeof EMPTY_FILTER }) => void = () => undefined;
+    vi.spyOn(api, 'filterFromText').mockReturnValue(new Promise((r) => (resolve = r)));
+    const box = await sentence('show me finished things');
+    await waitFor(() => expect(box.getAttribute('aria-busy')).toBe('true'));
+    resolve({ filter: EMPTY_FILTER });
+    await waitFor(() => expect(box.getAttribute('aria-busy')).toBe('false'));
+  });
+});

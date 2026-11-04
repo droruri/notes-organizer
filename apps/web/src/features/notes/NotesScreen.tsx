@@ -144,6 +144,33 @@ export function NotesScreen({
   );
   // Search text lags the input so typing stays responsive while every body is scanned.
   const deferredText = useDeferredValue(filter.text);
+  // Smart search: the sentence becomes a filter. `understood` is that filter object, so any edit
+  // (a new object) drops the "הבנתי:" label; the notice belongs to the text it was raised for.
+  const [smartPending, setSmartPending] = useState(false);
+  const [understood, setUnderstood] = useState<NoteFilter | null>(null);
+  const [smartNotice, setSmartNotice] = useState<{
+    kind: 'offline' | 'failed';
+    text: string;
+  } | null>(null);
+  const smartSearch = (text: string) => {
+    if (!online) {
+      setSmartNotice({ kind: 'offline', text: filter.text });
+      return;
+    }
+    setSmartNotice(null);
+    setSmartPending(true);
+    api
+      .filterFromText({ text, today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' })
+      .then((res) => {
+        setFilter(res.filter);
+        setUnderstood(res.filter);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof ApiNetworkError) reportNetworkFailure();
+        setSmartNotice({ kind: 'failed', text: filter.text });
+      })
+      .finally(() => setSmartPending(false));
+  };
   // Apply a workspace's saved default when the workspace changes (adjusting state during render,
   // so open child routes are not remounted).
   const [appliedFor, setAppliedFor] = useState(workspace?.id);
@@ -612,6 +639,9 @@ export function NotesScreen({
           notes={inWorkspaceForSearch}
           ranked={ranked}
           onOpenNote={(id) => open(notePath(id))}
+          onSmartSearch={smartSearch}
+          smartPending={smartPending}
+          understood={understood === filter}
           onAllWorkspaces={setAllWorkspaces}
           showAllWorkspaces={showAllWorkspaces}
           savedDefault={workspace?.defaultFilter ?? null}
@@ -642,6 +672,14 @@ export function NotesScreen({
           }
         />
       </div>
+      <p role="status" className="sr-only">
+        {understood === filter ? t('filters.found', { count: visible.length }) : ''}
+      </p>
+      {smartNotice !== null && smartNotice.text === filter.text && (
+        <p role="status" className="notice notice-info">
+          {smartNotice.kind === 'offline' ? t('filters.smartOffline') : t('filters.smartFailed')}
+        </p>
+      )}
       <CategoryStrip
         ranked={ranked}
         filter={filter}

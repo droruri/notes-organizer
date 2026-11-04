@@ -15,6 +15,8 @@ import {
   HealthResponse,
   type ImportAnalyze,
   type Importance,
+  type FilterFromTextBody,
+  FilterFromTextResponse,
   type ImportConfirm,
   ImportCreated,
   ImportProposal,
@@ -262,6 +264,8 @@ export const api = {
     request('POST', '/imports/analyze', ImportProposal, input),
   confirmImport: (input: ImportConfirm) =>
     request('POST', '/imports/confirm', ImportCreated, input),
+  filterFromText: (input: FilterFromTextBody) =>
+    request('POST', '/notes/filter-from-text', FilterFromTextResponse, input),
   analyzeNote: (id: string, input: NoteAnalyze) =>
     request('POST', `/notes/${id}/analyze`, Suggestion, input),
 };

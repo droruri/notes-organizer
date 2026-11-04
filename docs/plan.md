@@ -230,6 +230,7 @@ caller's `user_id`; another user's id behaves as not found.
 | DELETE | `/notes/:id` | — | `204` (soft) |
 | POST | `/notes/:id/restore` | — | `Note` |
 | POST | `/notes/:id/analyze` | `{today, locale}` | `Suggestion` — writes nothing |
+| POST | `/notes/filter-from-text` | `{text (1–300), today, locale}` | `{filter: NoteFilter}` — LLM maps a sentence to a filter, unknown ids dropped; writes nothing · `400 invalid_body` · `400 invalid_today` · `503 ai_unavailable` |
 | GET | `/notes/:id/audio` | — | audio bytes, stored mime |
 | POST | `/notes/:id/attachments` | multipart, exactly one `file` part | `201 Attachment {id, name, mime, size, createdAt}` · `404` · `400 invalid_body` · `413 attachment_too_large` · `415 unsupported_type` · `422 too_many_attachments` · `422 quota_exceeded` |
 | GET | `/notes/:id/attachments/:attachmentId` | — | the bytes, stored mime, `X-Content-Type-Options: nosniff` · `404` |

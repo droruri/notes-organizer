@@ -581,6 +581,41 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
       await silent.close();
     });
   });
+
+  it('filter-from-text returns the model filter for my own category and drops others', async () => {
+    const mineId = await category(mine, 'FilterMine');
+    const theirId = await category(theirs, 'FilterTheirs');
+    const scripted = buildServer({
+      db: pool,
+      ai: createFakeAi([
+        {
+          value: {
+            categoryIds: [mineId, theirId],
+            createdFrom: '2026-10-01',
+            createdTo: '2026-10-31',
+          },
+        },
+      ]),
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const res = await scripted.inject({
+      method: 'POST',
+      url: '/notes/filter-from-text',
+      headers: mine,
+      payload: { text: 'work last month', today, locale: 'en' },
+    });
+    await scripted.close();
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      filter: {
+        categoryIds: [mineId],
+        createdFrom: '2026-10-01',
+        createdTo: '2026-10-31',
+        text: '',
+      },
+    });
+  });
 });
 
 describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () => {

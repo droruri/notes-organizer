@@ -56,6 +56,9 @@ export function NoteFilters({
   notes = [],
   ranked = [],
   onOpenNote,
+  onSmartSearch,
+  smartPending = false,
+  understood = false,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
@@ -76,6 +79,10 @@ export function NoteFilters({
   notes?: Note[];
   ranked?: RankedCategory[];
   onOpenNote?: (id: string) => void;
+  onSmartSearch?: (text: string) => void;
+  smartPending?: boolean;
+  /** The filter was just produced from a sentence; label the chips until it is edited. */
+  understood?: boolean;
 }) {
   const { t } = useTranslation();
   const [localOpen, setLocalOpen] = useState(false);
@@ -125,6 +132,8 @@ export function NoteFilters({
           notes={notes}
           ranked={ranked}
           {...(onOpenNote && { onOpenNote })}
+          {...(onSmartSearch && { onSmartSearch })}
+          pending={smartPending}
         />
         {showAllWorkspaces && onAllWorkspaces && (
           <Chip
@@ -149,13 +158,16 @@ export function NoteFilters({
           )}
         </button>
       </div>
-      <ActiveFilters
-        filter={filter}
-        taxonomy={taxonomy}
-        onChange={onChange}
-        allWorkspaces={allWorkspaces}
-        {...(onAllWorkspaces && { onAllWorkspaces })}
-      />
+      <div className="flex flex-wrap items-center gap-x-2">
+        {understood && <span className="text-sm text-muted">{t('filters.understood')}</span>}
+        <ActiveFilters
+          filter={filter}
+          taxonomy={taxonomy}
+          onChange={onChange}
+          allWorkspaces={allWorkspaces}
+          {...(onAllWorkspaces && { onAllWorkspaces })}
+        />
+      </div>
       {open && (
         <Sheet title={t('filters.sheetTitle')} onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-4">
