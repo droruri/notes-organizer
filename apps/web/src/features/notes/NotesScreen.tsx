@@ -16,7 +16,15 @@ import {
   type Workspace,
   suggestionOf,
 } from '@notes/shared';
-import { lazy, Suspense, useDeferredValue, useEffect, useState, type ReactNode } from 'react';
+import {
+  lazy,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
@@ -41,6 +49,8 @@ import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
+import { CategoryStrip } from './CategoryStrip';
+import { rankCategories } from './categoryRank';
 import { NoteList } from './NoteList';
 import { ComposeForm } from './ComposeForm';
 import { useEscape } from '../../ui/useEscape';
@@ -385,6 +395,21 @@ export function NotesScreen({
     </div>
   );
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const rankScope = notes.data;
+  const rankAll = allWorkspaces && (workspaces.data?.length ?? 0) > 1;
+  const rankingNotes = useMemo(() => {
+    const all = rankScope ?? [];
+    if (rankAll) return all;
+    if (!workspace) return [];
+    return all.filter((n) => n.workspaceId === workspace.id);
+  }, [rankScope, workspace, rankAll]);
+  const rankCats = taxonomy.data?.categories;
+  const ranked = useMemo(
+    () => rankCategories(rankingNotes, rankCats ?? []),
+    [rankingNotes, rankCats],
+  );
+
   useNoteShortcuts({
     onNew: () => {
       if (pathname !== ROUTES.compose) open(ROUTES.compose);
@@ -581,6 +606,8 @@ export function NotesScreen({
           onChange={setFilter}
           taxonomy={taxonomy.data}
           allWorkspaces={acrossWorkspaces}
+          sheetOpen={filtersOpen}
+          onSheetOpenChange={setFiltersOpen}
           onAllWorkspaces={setAllWorkspaces}
           showAllWorkspaces={showAllWorkspaces}
           savedDefault={workspace?.defaultFilter ?? null}
@@ -611,6 +638,12 @@ export function NotesScreen({
           }
         />
       </div>
+      <CategoryStrip
+        ranked={ranked}
+        filter={filter}
+        onChange={setFilter}
+        onOpenAll={() => setFiltersOpen(true)}
+      />
       {saveSort.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}

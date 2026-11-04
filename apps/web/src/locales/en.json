@@ -151,6 +151,9 @@
     },
     "pick": "Pick a note or create one"
   },
+  "categoryStrip": {
+    "all": "All ›"
+  },
   "filters": {
     "title": "Filter",
     "sheetTitle": "Filters and sort",
