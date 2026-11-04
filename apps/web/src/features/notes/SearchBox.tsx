@@ -95,7 +95,8 @@ export function SearchBox({
     if (!vv || !input) return;
     const update = () => {
       const bottom = input.getBoundingClientRect().bottom;
-      setMaxHeight(Math.max(120, vv.height - bottom - 2));
+      // visible area ends at offsetTop + height; the page may be scrolled under the keyboard
+      setMaxHeight(Math.max(44, vv.offsetTop + vv.height - bottom - 2));
     };
     update();
     vv.addEventListener('resize', update);
