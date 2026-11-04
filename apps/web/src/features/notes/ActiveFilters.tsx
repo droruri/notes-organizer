@@ -1,21 +1,12 @@
 import { EMPTY_FILTER, type NoteFilter, type Taxonomy } from '@notes/shared';
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { useIsWide } from '../../ui/useIsWide';
 import { describeFilter } from './describeFilter';
 
 /** Chips kept visible below `lg` before the "+N" disclosure; one chip keeps the row on one line at 390px. */
 const NARROW_VISIBLE = 1;
-
-const query = '(min-width: 1024px)';
-const subscribe = (cb: () => void) => {
-  if (typeof window.matchMedia !== 'function') return () => {};
-  const mq = window.matchMedia(query);
-  if (typeof mq.addEventListener !== 'function') return () => {};
-  mq.addEventListener('change', cb);
-  return () => mq.removeEventListener('change', cb);
-};
-const isWide = () => typeof window.matchMedia !== 'function' || window.matchMedia(query).matches;
 
 /** One removable chip per active filter value, plus "clear all". Hidden when nothing is active. */
 export function ActiveFilters({
@@ -32,7 +23,7 @@ export function ActiveFilters({
   onAllWorkspaces?: (next: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const wide = useSyncExternalStore(subscribe, isWide, () => true);
+  const wide = useIsWide();
   const [expanded, setExpanded] = useState(false);
 
   const chips = describeFilter(filter, taxonomy, t).map((c) => ({

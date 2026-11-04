@@ -152,6 +152,9 @@
     },
     "pick": "בחרו הערה או צרו חדשה"
   },
+  "categoryStrip": {
+    "all": "הכל ›"
+  },
   "filters": {
     "title": "סינון",
     "sheetTitle": "סינון ומיון",

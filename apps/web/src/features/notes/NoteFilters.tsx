@@ -48,6 +48,8 @@ export function NoteFilters({
   showAllWorkspaces = false,
   onSaveDefault,
   savedDefault = null,
+  sheetOpen,
+  onSheetOpenChange,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
@@ -61,9 +63,14 @@ export function NoteFilters({
   /** Saves the current filter (minus the text) as the workspace's default. */
   onSaveDefault?: () => void;
   savedDefault?: SavedFilter | null;
+  /** Controlled sheet state, so other UI (the category strip) can open the sheet. */
+  sheetOpen?: boolean;
+  onSheetOpenChange?: (open: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = sheetOpen ?? localOpen;
+  const setOpen = onSheetOpenChange ?? setLocalOpen;
   const online = useOnline();
   const isDefault = savedDefault !== null && matchesDefault(filter, savedDefault);
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });
