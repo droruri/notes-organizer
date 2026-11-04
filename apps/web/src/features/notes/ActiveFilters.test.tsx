@@ -70,9 +70,14 @@ describe('ActiveFilters', () => {
   it('below lg caps the row and expands in place with +N', () => {
     matchMedia(false);
     render(<ActiveFilters filter={many} taxonomy={taxonomy} onChange={vi.fn()} />);
-    expect(screen.getAllByRole('button', { name: /הסר סינון/ })).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: '+4' }));
+    expect(screen.getAllByRole('button', { name: /הסר סינון/ })).toHaveLength(1);
+    const more = screen.getByRole('button', { name: '+5' });
+    expect(more.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(more);
     expect(screen.getAllByRole('button', { name: /הסר סינון/ })).toHaveLength(6);
+    expect(screen.getByRole('button', { name: 'הצג פחות' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
   });
 
   it('at lg+ shows every chip', () => {

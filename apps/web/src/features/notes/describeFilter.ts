@@ -19,7 +19,7 @@ const short = (iso: string) => {
 };
 
 const range = (label: string, from: string, to: string, t: TFunction) => {
-  if (from && to) return `${label}: ${short(from)}–${short(to)}`;
+  if (from && to) return t('filters.chipRange', { label, from: short(from), to: short(to) });
   if (from) return `${label}: ${t('filters.chipFrom', { date: short(from) })}`;
   return `${label}: ${t('filters.chipTo', { date: short(to) })}`;
 };

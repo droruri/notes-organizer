@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { describeFilter } from './describeFilter';
 
-/** Chips kept visible below `lg` before the "+N" disclosure. */
-const NARROW_VISIBLE = 2;
+/** Chips kept visible below `lg` before the "+N" disclosure; one chip keeps the row on one line at 390px. */
+const NARROW_VISIBLE = 1;
 
 const query = '(min-width: 1024px)';
 const subscribe = (cb: () => void) => {
@@ -64,7 +64,7 @@ export function ActiveFilters({
             type="button"
             aria-label={t('filters.remove', { name: c.label })}
             onClick={c.remove}
-            className="inline-flex min-h-11 items-center"
+            className="inline-flex min-h-11 min-w-11 items-center"
           >
             <span
               className={`cat-pill gap-1.5 ${c.deleted ? 'text-muted line-through opacity-60' : ''}`}
@@ -76,15 +76,15 @@ export function ActiveFilters({
           </button>
         </li>
       ))}
-      {capped && (
+      {!wide && chips.length > NARROW_VISIBLE + 1 && (
         <li>
           <button
             type="button"
-            aria-expanded={false}
-            onClick={() => setExpanded(true)}
-            className="btn btn-ghost min-h-11"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            className="btn btn-ghost min-h-11 min-w-11"
           >
-            +{hidden}
+            {expanded ? t('filters.showLess') : `+${hidden}`}
           </button>
         </li>
       )}
