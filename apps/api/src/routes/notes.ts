@@ -1,5 +1,6 @@
 import {
   AUDIO_MIMES,
+  FilterFromTextBody,
   MAX_AUDIO_BYTES,
   NoteAnalyze,
   NoteChangesQuery,
@@ -12,7 +13,9 @@ import type { Ai } from '../ai/provider';
 import { currentUser } from '../auth';
 import type { Db } from '../db';
 import type { LinkReader } from '../domain/links/preview';
+import { filterFromText } from '../domain/notes/filterFromText';
 import { isTodayPlausible } from '../domain/notes/note';
+import { getTaxonomy } from '../domain/taxonomy/service';
 import { llmRateLimit } from './rateLimit';
 import { readUpload } from './upload';
 import * as service from '../domain/notes/service';
@@ -115,6 +118,16 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkRea
     const result = await service.restoreNote(db, currentUser(req).id, params.data.id);
     if (!result.ok) return reply.code(STATUS[result.error]).send({ error: result.error });
     return result.value;
+  });
+
+  app.post('/notes/filter-from-text', { config: llmRateLimit }, async (req, reply) => {
+    const body = FilterFromTextBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
+    if (!isTodayPlausible(body.data.today)) return reply.code(400).send({ error: 'invalid_today' });
+    const taxonomy = await getTaxonomy(db, currentUser(req).id);
+    const result = await filterFromText(ai, { ...body.data, taxonomy });
+    if (!result.ok) return reply.code(503).send({ error: result.error });
+    return { filter: result.value };
   });
 
   app.post('/notes/:id/analyze', { config: llmRateLimit }, async (req, reply) => {

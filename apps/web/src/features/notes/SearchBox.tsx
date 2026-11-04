@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { useIsWide } from '../../ui/useIsWide';
+import { useOnline } from '../offline/useOnline';
 import type { RankedCategory } from './categoryRank';
 import { MIN_QUERY, buildTitleIndex, suggest } from './suggest';
 
@@ -16,6 +17,8 @@ export function SearchBox({
   notes = [],
   ranked = [],
   onOpenNote,
+  onSmartSearch,
+  pending = false,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
@@ -23,9 +26,14 @@ export function SearchBox({
   notes?: Note[];
   ranked?: RankedCategory[];
   onOpenNote?: (id: string) => void;
+  /** Enter on a sentence: the parent turns it into a filter. */
+  onSmartSearch?: (text: string) => void;
+  /** A smart search is waiting for the API. */
+  pending?: boolean;
 }) {
   const { t } = useTranslation();
   const wide = useIsWide();
+  const online = useOnline();
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -125,21 +133,40 @@ export function SearchBox({
     } else if (e.key === 'Enter' && showPanel && activeRow) {
       e.preventDefault();
       pick(activeRow);
+    } else if (e.key === 'Enter' && onSmartSearch && enabled && !e.nativeEvent.isComposing) {
+      // No highlighted row: a sentence (3+ words) or text with no local match goes to the LLM.
+      const words = query.trim().split(/\s+/).length;
+      if (words >= 3 || rows.length === 0) {
+        e.preventDefault();
+        if (pending) return;
+        setOpen(false);
+        setActive(-1);
+        onSmartSearch(query.trim());
+      }
     }
   };
 
   return (
     <div className="relative min-w-48 flex-1">
-      <Icon
-        name="search"
-        size={18}
-        className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted"
-      />
+      {pending ? (
+        <span
+          aria-hidden="true"
+          className="spinner pointer-events-none absolute start-3 top-1/2 -translate-y-1/2"
+        />
+      ) : (
+        <Icon
+          name="search"
+          size={18}
+          className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted"
+        />
+      )}
       <input
         ref={inputRef}
         type="search"
         role="combobox"
         aria-expanded={showPanel}
+        aria-busy={pending}
+        enterKeyHint="search"
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={showPanel && activeRow ? `${listId}-${active}` : undefined}
@@ -188,7 +215,7 @@ export function SearchBox({
         ))}
         {rows.length === 0 && (
           <li role="presentation" className="flex min-h-11 items-center px-3 text-sm text-muted">
-            {t('filters.suggestEmpty')}
+            {online ? t('filters.suggestEmpty') : t('filters.suggestOffline')}
           </li>
         )}
       </ul>

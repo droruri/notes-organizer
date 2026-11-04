@@ -1,6 +1,6 @@
 import { isOpen, sortBand } from './noteStatus';
 import { z } from 'zod';
-import { Importance, NoteStatus, Urgency } from './notes';
+import { DateString, Importance, Locale, NoteStatus, Urgency } from './notes';
 import type { Note, NoteSort } from './index';
 
 // One implementation of "which notes, in what order" for the web list and the agent's tools.
@@ -24,6 +24,17 @@ export const NoteFilter = z.object({
   unreadLinksOnly: z.boolean(),
 });
 export type NoteFilter = z.infer<typeof NoteFilter>;
+
+/** Body of `POST /notes/filter-from-text`. */
+export const FilterFromTextBody = z.object({
+  text: z.string().trim().min(1).max(300),
+  today: DateString,
+  locale: Locale,
+});
+export type FilterFromTextBody = z.infer<typeof FilterFromTextBody>;
+
+export const FilterFromTextResponse = z.object({ filter: NoteFilter });
+export type FilterFromTextResponse = z.infer<typeof FilterFromTextResponse>;
 
 /** The part of a filter that is saved per workspace: everything but the search text. */
 export const SavedFilter = NoteFilter.omit({ text: true });

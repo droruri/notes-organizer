@@ -118,3 +118,36 @@ describe('SearchBox', () => {
     expect(screen.getByText(/Enter יחפש לפי משפט/)).toBeTruthy();
   });
 });
+
+describe('SearchBox smart search', () => {
+  const renderIt = (onSmartSearch: (t: string) => void, pending = false) =>
+    render(
+      <SearchBox
+        filter={{ ...EMPTY_FILTER, text: 'zzz qqq www' }}
+        onChange={() => undefined}
+        taxonomy={taxonomy}
+        notes={notes}
+        ranked={ranked}
+        onSmartSearch={onSmartSearch}
+        pending={pending}
+      />,
+    );
+
+  it('runs on Enter with no highlighted row, and ignores IME composition', () => {
+    const run = vi.fn();
+    renderIt(run);
+    const box = screen.getByRole('combobox');
+    expect(box.getAttribute('enterkeyhint')).toBe('search');
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(run).toHaveBeenCalledWith('zzz qqq www');
+  });
+
+  it('does not run twice while pending, and marks the input busy', () => {
+    const run = vi.fn();
+    renderIt(run, true);
+    const box = screen.getByRole('combobox');
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(run).not.toHaveBeenCalled();
+    expect(box.getAttribute('aria-busy')).toBe('true');
+  });
+});
