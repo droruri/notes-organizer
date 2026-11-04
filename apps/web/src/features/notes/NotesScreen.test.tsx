@@ -27,6 +27,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', () => Promise.reject(new TypeError('offline')));
 });
 afterEach(() => {
+  localStorage.clear();
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();

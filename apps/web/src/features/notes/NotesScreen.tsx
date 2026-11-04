@@ -41,7 +41,9 @@ import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
 import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
+import { ContinueRow } from './ContinueRow';
 import { NoteList } from './NoteList';
+import { recordOpen } from './recent';
 import { ComposeForm } from './ComposeForm';
 import { useEscape } from '../../ui/useEscape';
 import { shouldCloseOnEscape, useNoteShortcuts } from './useNoteShortcuts';
@@ -87,6 +89,9 @@ export function NotesScreen({
   const chatOpen = pathname === ROUTES.chat;
   const importing = pathname === ROUTES.import;
   const editId = useMatch('/notes/:id')?.params.id;
+  useEffect(() => {
+    if (editId !== undefined) recordOpen(editId);
+  }, [editId]);
   const detailOpen =
     pathname === ROUTES.compose || pathname === ROUTES.review || editId !== undefined;
   // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
@@ -478,6 +483,9 @@ export function NotesScreen({
     : undefined;
   const deferredFilter = { ...filter, text: deferredText };
   const visible = sortNotes(filterNotes(inWorkspace, deferredFilter, today), sort, today);
+  const showContinue =
+    filter.text === '' &&
+    JSON.stringify(filter) === JSON.stringify({ ...EMPTY_FILTER, ...workspace?.defaultFilter });
   const listKey = JSON.stringify([deferredFilter, sort, workspace?.id, acrossWorkspaces]);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return slots(
@@ -622,6 +630,17 @@ export function NotesScreen({
         </p>
       )}
       {waiting}
+      {showContinue && (
+        <ContinueRow
+          notes={inWorkspace}
+          taxonomy={taxonomy.data}
+          today={today}
+          onOpen={(note) => {
+            clearErrors();
+            open(notePath(note.id));
+          }}
+        />
+      )}
       <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
         <NoteList
           key={listKey}
