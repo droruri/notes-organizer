@@ -1,34 +1,23 @@
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
+const cleared = vi.hoisted(() => [] as number[]);
 const store = vi.hoisted(() => new Map<string, unknown>());
 vi.mock('idb-keyval', () => ({
+  createStore: () => undefined,
+  entries: async () => [],
+  clear: async () => {},
   get: async (k: string) => store.get(k),
   set: async (k: string, v: unknown) => void store.set(k, v),
   del: async (k: string) => void store.delete(k),
 }));
 
-import { clearCache, persister, shouldDehydrateQuery } from './queryPersist';
+vi.mock('./noteStore', () => ({
+  loadNotes: async () => [{ id: 'n1' }],
+  clearNotes: async () => void cleared.push(1),
+}));
 
-const note = {
-  id: '11111111-1111-4111-8111-111111111111',
-  clientId: '22222222-2222-4222-8222-222222222222',
-  title: null,
-  body: 'hello',
-  status: 'todo',
-  workspaceId: '00000000-0000-4000-8000-0000000000f1',
-  importance: null,
-  urgency: null,
-  dueDate: null,
-  proposed: null,
-  unreadLinks: [],
-  categoryIds: [],
-  tagIds: [],
-  hasAudio: false,
-  attachments: [],
-  createdAt: '2026-10-25T10:00:00.000Z',
-  updatedAt: '2026-10-25T10:00:00.000Z',
-};
+import { clearCache, persister, shouldDehydrateQuery } from './queryPersist';
 
 const persisted = (queries: unknown[]) => ({
   timestamp: Date.now(),
@@ -51,7 +40,6 @@ describe('query cache persistence', () => {
     store.set(
       'notes-query-cache-v1',
       persisted([
-        q(['notes'], [note]),
         q(['taxonomy'], { categories: 'nope' }),
         q(['settings'], { noteSort: 'newest' }),
         q(['users'], []),
@@ -61,19 +49,31 @@ describe('query cache persistence', () => {
     const keys = restored?.clientState.queries.map((x) => x.queryKey[0]);
     expect(keys).not.toContain('taxonomy');
     expect(keys).not.toContain('users');
-    expect(keys).toContain('notes');
     // A settings cache saved before noteForm existed still restores.
     expect(keys).toContain('settings');
   });
 
-  it('returns nothing for garbage', async () => {
-    store.set('notes-query-cache-v1', 'garbage');
-    expect(await persister.restoreClient()).toBeUndefined();
-    store.set('notes-query-cache-v1', { timestamp: 1, buster: '', clientState: {} });
-    expect(await persister.restoreClient()).toBeUndefined();
+  it('adds the device notes as a stale notes query on restore', async () => {
+    const restored = await persister.restoreClient();
+    const notes = restored?.clientState.queries.find((x) => x.queryKey[0] === 'notes');
+    expect(notes?.state.dataUpdatedAt).toBe(0);
+    expect(notes?.state.data).toEqual([{ id: 'n1' }]);
   });
 
-  it('persists only notes, taxonomy and settings', () => {
+  it('clearCache empties the note store', async () => {
+    cleared.length = 0;
+    await clearCache(new QueryClient());
+    expect(cleared).toHaveLength(1);
+  });
+
+  it('returns nothing for garbage', async () => {
+    store.set('notes-query-cache-v1', 'garbage');
+    expect(
+      (await persister.restoreClient())?.clientState.queries.map((x) => x.queryKey[0]),
+    ).toEqual(['notes']);
+  });
+
+  it('persists no notes in the blob, only taxonomy, settings, workspaces', () => {
     const qc = new QueryClient();
     qc.setQueryData(['notes'], []);
     qc.setQueryData(['audio', 'x'], 1);
@@ -82,7 +82,7 @@ describe('query cache persistence', () => {
       .getAll()
       .filter((x) => shouldDehydrateQuery(x))
       .map((x) => x.queryKey[0]);
-    expect(keep).toEqual(['notes']);
+    expect(keep).toEqual([]);
   });
 
   it('clearCache removes the persisted cache and empties memory', async () => {

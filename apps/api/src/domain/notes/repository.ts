@@ -65,7 +65,9 @@ export async function listNoteChanges(
   since?: string,
 ): Promise<{ notes: Note[]; deletedIds: string[]; cursor: string }> {
   const clock = await db.query<{ cursor: Date }>('select now() as cursor');
-  const cursor = (clock.rows[0]?.cursor ?? new Date()).toISOString();
+  const clockRow = clock.rows[0];
+  if (!clockRow) throw new Error('expected a clock row');
+  const cursor = clockRow.cursor.toISOString();
   if (since === undefined) {
     return { notes: await listNotes(db, userId), deletedIds: [], cursor };
   }

@@ -10,6 +10,11 @@ import {
 } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../../lib/api';
+
+vi.mock('../../lib/noteStore', async () => {
+  const { api } = await import('../../lib/api');
+  return { syncNotes: () => api.notes() };
+});
 import { i18n } from '../../lib/i18n';
 import { readOutbox } from '../offline/outbox';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
@@ -103,6 +108,28 @@ describe('NotesScreen opened from a tag', () => {
     );
     await screen.findByText('tagged note');
     expect(screen.queryByText('other note')).toBeNull();
+  });
+
+  it('renders restored notes while the sync request is still pending', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['notes'], [note(1, 'restored note', [])], { updatedAt: 0 });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByText('restored note');
+    expect(api.notes).toHaveBeenCalled();
   });
 });
 

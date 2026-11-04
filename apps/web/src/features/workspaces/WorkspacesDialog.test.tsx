@@ -4,6 +4,11 @@ import { DEFAULT_NOTE_FORM, type Note, type Workspace } from '@notes/shared';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api, ApiRequestError } from '../../lib/api';
+
+vi.mock('../../lib/noteStore', async () => {
+  const { api } = await import('../../lib/api');
+  return { syncNotes: () => api.notes() };
+});
 import { i18n } from '../../lib/i18n';
 import { AuthContext } from '../auth/authContext';
 import { Screens } from '../shell/Screens';

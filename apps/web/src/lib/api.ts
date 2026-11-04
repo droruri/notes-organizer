@@ -22,6 +22,7 @@ import {
   Me,
   Note,
   NoteAnalyze,
+  NoteChanges,
   NoteCreate,
   NoteCreated,
   NoteEdit,
@@ -207,6 +208,10 @@ export const api = {
     request('PATCH', `/users/${encodeURIComponent(email)}`, AllowedUser, { isAdmin }),
   removeUser: (email: string) =>
     request('DELETE', `/users/${encodeURIComponent(email)}`, NoContent),
+  noteChanges: (since?: string) => {
+    const query = since ? `?${new URLSearchParams({ since })}` : '';
+    return request('GET', `/notes/changes${query}`, NoteChanges);
+  },
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
   saveSettings: (patch: SettingsPatch) => request('PUT', '/settings', Settings, patch),

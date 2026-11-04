@@ -1,8 +1,9 @@
 import type { PersistedClient, Persister } from '@tanstack/react-query-persist-client';
-import type { Query } from '@tanstack/react-query';
-import { NoteList, Settings, Taxonomy, WorkspaceList } from '@notes/shared';
+import { dehydrate, QueryClient, type Query } from '@tanstack/react-query';
+import { Settings, Taxonomy, WorkspaceList } from '@notes/shared';
 import { del, get, set } from 'idb-keyval';
 import { z, type ZodType } from 'zod';
+import { clearNotes, loadNotes } from './noteStore';
 
 const KEY = 'notes-query-cache-v1';
 
@@ -11,7 +12,6 @@ export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 /** The only queries worth persisting, each with the schema its data must match on restore. */
 const SCHEMAS: Record<string, ZodType> = {
-  notes: NoteList,
   taxonomy: Taxonomy,
   settings: Settings,
   workspaces: WorkspaceList,
@@ -75,7 +75,19 @@ export const persister: Persister = {
   },
   restoreClient: async () => {
     try {
-      return parsePersisted(await get(KEY));
+      const saved = parsePersisted(await get(KEY));
+      const notes = await loadNotes();
+      if (!notes) return saved;
+      const client: PersistedClient = saved ?? {
+        timestamp: Date.now(),
+        buster: '',
+        clientState: { mutations: [], queries: [] },
+      };
+      // dataUpdatedAt 0 makes it stale, so it syncs right after first paint.
+      const qc = new QueryClient();
+      qc.setQueryData(['notes'], notes, { updatedAt: 0 });
+      client.clientState.queries.push(...dehydrate(qc).queries);
+      return client;
     } catch (err) {
       console.warn('query cache: could not read', err);
       return undefined;
@@ -94,4 +106,5 @@ export const persister: Persister = {
 export async function clearCache(queryClient: { clear: () => void }) {
   queryClient.clear();
   await persister.removeClient();
+  await clearNotes().catch((err) => console.warn('note store: could not clear', err));
 }
