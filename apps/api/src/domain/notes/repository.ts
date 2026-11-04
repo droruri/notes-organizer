@@ -55,6 +55,32 @@ export async function listNotes(db: Queryable, userId: string): Promise<Note[]> 
   return rows.map(toNote);
 }
 
+/**
+ * Notes changed since `since` (minus a one-minute overlap for late commits) and ids soft-deleted
+ * in that window. Without `since`: every live note. `cursor` is the database clock.
+ */
+export async function listNoteChanges(
+  db: Queryable,
+  userId: string,
+  since?: string,
+): Promise<{ notes: Note[]; deletedIds: string[]; cursor: string }> {
+  const clock = await db.query<{ cursor: Date }>('select now() as cursor');
+  const cursor = (clock.rows[0]?.cursor ?? new Date()).toISOString();
+  if (since === undefined) {
+    return { notes: await listNotes(db, userId), deletedIds: [], cursor };
+  }
+  const window = "n.updated_at > $2::timestamptz - interval '1 minute'";
+  const { rows } = await db.query<NoteRow>(
+    `${NOTE_SELECT} where n.user_id = $1 and n.deleted_at is null and ${window} order by n.created_at desc, n.id`,
+    [userId, since],
+  );
+  const deleted = await db.query<{ id: string }>(
+    `select n.id from notes n where n.user_id = $1 and n.deleted_at is not null and ${window} order by n.id`,
+    [userId, since],
+  );
+  return { notes: rows.map(toNote), deletedIds: deleted.rows.map((r) => r.id), cursor };
+}
+
 /** `lock` takes a row lock for the rest of the transaction. */
 export async function findNote(
   db: Queryable,

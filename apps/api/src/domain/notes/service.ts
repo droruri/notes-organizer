@@ -6,6 +6,7 @@ import {
   type Note,
   type NoteAnalyze,
   NoteCreate,
+  NoteChanges,
   NoteEdit,
   Suggestion,
   suggestionOf,
@@ -193,6 +194,22 @@ export async function listNotes(db: Db, userId: string): Promise<Note[]> {
   // Seeds the default workspace, which notes without one resolve to.
   await ensureDefaultWorkspace(db, userId);
   return repo.listNotes(db, userId);
+}
+
+export function listNoteChanges(db: Db, userId: string, since?: string): Promise<NoteChanges> {
+  return timed('listNoteChanges', {}, async () => {
+    await ensureDefaultWorkspace(db, userId);
+    const changes = await repo.listNoteChanges(db, userId, since);
+    log().info(
+      {
+        full: since === undefined,
+        changed: changes.notes.length,
+        deleted: changes.deletedIds.length,
+      },
+      'note changes listed',
+    );
+    return changes;
+  });
 }
 
 /** Apply an edit. `status: 'todo'` on a draft submits it. All or nothing. */

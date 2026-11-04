@@ -17,6 +17,7 @@ export async function insertAttachment(
      returning id, name, mime, size, created_at as "createdAt"`,
     [noteId, file.name, file.mime, file.data.length, file.data],
   );
+  await db.query('update notes set updated_at = now() where id = $1', [noteId]);
   const row = rows[0];
   if (!row) throw new Error('expected an attachment row');
   return { ...row, createdAt: row.createdAt.toISOString() };
@@ -76,5 +77,7 @@ export async function deleteAttachment(
      where a.id = $1 and a.note_id = $2 and n.id = a.note_id and n.user_id = $3 and n.deleted_at is null`,
     [id, noteId, userId],
   );
-  return (rowCount ?? 0) > 0;
+  if ((rowCount ?? 0) === 0) return false;
+  await db.query('update notes set updated_at = now() where id = $1', [noteId]);
+  return true;
 }

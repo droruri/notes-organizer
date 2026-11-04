@@ -94,7 +94,7 @@ export async function makeDefault(db: Queryable, userId: string, id: string): Pr
 /** Moves every note of `fromId` (soft-deleted too) to `toId`; returns how many. */
 export async function moveNotes(db: Queryable, fromId: string, toId: string): Promise<number> {
   const { rowCount } = await db.query(
-    'update notes set workspace_id = $2 where workspace_id = $1',
+    'update notes set workspace_id = $2, updated_at = now() where workspace_id = $1',
     [fromId, toId],
   );
   return rowCount ?? 0;
