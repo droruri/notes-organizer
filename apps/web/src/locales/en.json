@@ -165,7 +165,7 @@
     "smartFailed": "Smart search is unavailable right now. Searching by text.",
     "found_one": "Found 1 note",
     "found_other": "Found {{count}} notes",
-    "found_zero": "No notes found",
+    "foundNone": "No notes found",
     "suggestEmpty": "Nothing found. Enter searches by sentence",
     "suggestCategory": "Category",
     "suggestTag": "Tag",

@@ -581,6 +581,11 @@ describe('NotesScreen default filter', () => {
 });
 
 describe('NotesScreen smart search', () => {
+  const searchInput = () => {
+    const input = screen.getByRole('combobox');
+    if (!(input instanceof HTMLInputElement)) throw new Error('search combobox is not an input');
+    return input;
+  };
   const W = '00000000-0000-4000-8000-0000000000f1';
   const workspace = { id: W, name: 'Home', isDefault: true, defaultFilter: null };
   const setup = () => {
@@ -621,8 +626,12 @@ describe('NotesScreen smart search', () => {
     expect(box.getAttribute('enterkeyhint')).toBe('search');
     await waitFor(() => expect(screen.getByText('Understood:')).toBeTruthy());
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ text: 'show me finished things' }));
-    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe('');
-    expect(screen.getAllByRole('status').some((s) => s.textContent === 'Found 1 note')).toBe(true);
+    expect(searchInput().value).toBe('');
+    await waitFor(() =>
+      expect(screen.getAllByRole('status').some((s) => s.textContent === 'Found 1 note')).toBe(
+        true,
+      ),
+    );
     // editing the filter drops the label
     fireEvent.click(screen.getByRole('button', { name: /^Clear all/ }));
     await waitFor(() => expect(screen.queryByText('Understood:')).toBeNull());
@@ -633,9 +642,7 @@ describe('NotesScreen smart search', () => {
     vi.spyOn(api, 'filterFromText').mockRejectedValue(new Error('503'));
     await sentence('show me finished things');
     expect(await screen.findByText(/Smart search is unavailable/)).toBeTruthy();
-    expect((screen.getByRole('combobox') as HTMLInputElement).value).toBe(
-      'show me finished things',
-    );
+    expect(searchInput().value).toBe('show me finished things');
     expect(screen.getByRole('combobox').getAttribute('aria-busy')).toBe('false');
   });
 

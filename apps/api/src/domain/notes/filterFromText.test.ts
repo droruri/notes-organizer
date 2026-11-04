@@ -65,18 +65,18 @@ describe('POST /notes/filter-from-text', () => {
     today: new Date().toISOString().slice(0, 10),
     locale: 'en',
   };
-  const post = (app: ReturnType<typeof captureLogs>['app'], body: unknown) =>
+  const post = (app: ReturnType<typeof captureLogs>['app'], body: object) =>
     app.inject({
       method: 'POST',
       url: '/notes/filter-from-text',
       headers,
-      payload: body as object,
+      payload: body,
     });
 
   it('logs the outcome with dropped ids and never the sentence', async () => {
     const { app, lines } = captureLogs({
       db: allowListDb,
-      turns: [{ value: { categoryIds: [GONE], text: 'rent' } }],
+      turns: [{ value: { categoryIds: [GONE], createdFrom: 'last week', text: 'rent' } }],
     });
     const res = await post(app, payload);
     await app.close();

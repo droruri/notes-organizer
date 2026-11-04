@@ -673,7 +673,11 @@ export function NotesScreen({
         />
       </div>
       <p role="status" className="sr-only">
-        {understood === filter ? t('filters.found', { count: visible.length }) : ''}
+        {understood === filter
+          ? visible.length === 0
+            ? t('filters.foundNone')
+            : t('filters.found', { count: visible.length })
+          : ''}
       </p>
       {smartNotice !== null && smartNotice.text === filter.text && (
         <p role="status" className="notice notice-info">

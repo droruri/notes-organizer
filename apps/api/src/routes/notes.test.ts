@@ -607,12 +607,19 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     });
     await scripted.close();
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toMatchObject({
+    expect(res.json()).toEqual({
       filter: {
+        text: '',
         categoryIds: [mineId],
+        tagIds: [],
+        statuses: [],
+        importances: [],
+        urgencies: [],
         createdFrom: '2026-10-01',
         createdTo: '2026-10-31',
-        text: '',
+        dueFrom: '',
+        dueTo: '',
+        unreadLinksOnly: false,
       },
     });
   });
