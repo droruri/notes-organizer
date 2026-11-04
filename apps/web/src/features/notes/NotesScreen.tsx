@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
 import { api, ApiNetworkError } from '../../lib/api';
+import { syncNotes } from '../../lib/noteStore';
 import type { ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
 import {
@@ -99,7 +100,10 @@ export function NotesScreen({
   const autoRecord = z.object({ record: z.literal(true) }).safeParse(state).success;
   const [text, setText] = useState(shared ?? '');
   const [title, setTitle] = useState('');
-  const notes = useQuery({ queryKey: ['notes'], queryFn: api.notes });
+  const notes = useQuery({
+    queryKey: ['notes'],
+    queryFn: () => syncNotes(queryClient.getQueryData<Note[]>(['notes'])),
+  });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
