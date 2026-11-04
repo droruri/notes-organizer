@@ -1,4 +1,4 @@
-import { NoteChanges, NoteList } from '@notes/shared';
+import { Attachment, NoteChanges, NoteList } from '@notes/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vite-plus/test';
 import type { VerifyToken } from '../auth';
 import { createPool } from '../db';
@@ -145,7 +145,9 @@ describe.skipIf(!databaseUrl)('GET /notes/changes against the local stack', () =
     expect(added.statusCode).toBe(201);
     expect((await changes(mine, stale)).notes.map((n) => n.id)).toContain(id);
     await backdate();
-    const attId = (added.json() as { id: string }).id;
+    const addedBody = Attachment.safeParse(added.json());
+    if (!addedBody.success) throw new Error('attachment response did not parse');
+    const attId = addedBody.data.id;
     expect((await send(mine, 'DELETE', `/notes/${id}/attachments/${attId}`)).statusCode).toBe(204);
     expect((await changes(mine, stale)).notes.map((n) => n.id)).toContain(id);
     await backdate();

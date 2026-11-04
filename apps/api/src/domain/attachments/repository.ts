@@ -72,12 +72,17 @@ export async function deleteAttachment(
   noteId: string,
   id: string,
 ): Promise<boolean> {
-  const { rowCount } = await db.query(
-    `delete from note_attachments a using notes n
-     where a.id = $1 and a.note_id = $2 and n.id = a.note_id and n.user_id = $3 and n.deleted_at is null`,
+  // One statement: the delete and the note's updated_at bump commit together.
+  const { rows } = await db.query<{ removed: number }>(
+    `with gone as (
+       delete from note_attachments a using notes n
+       where a.id = $1 and a.note_id = $2 and n.id = a.note_id and n.user_id = $3 and n.deleted_at is null
+       returning a.note_id
+     ), bumped as (
+       update notes set updated_at = now() where id in (select note_id from gone)
+     )
+     select count(*)::int as removed from gone`,
     [id, noteId, userId],
   );
-  if ((rowCount ?? 0) === 0) return false;
-  await db.query('update notes set updated_at = now() where id = $1', [noteId]);
-  return true;
+  return (rows[0]?.removed ?? 0) > 0;
 }
