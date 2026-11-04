@@ -1,4 +1,5 @@
 import { type PointerEvent, type ReactNode, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { useBackClose } from './useBackClose';
@@ -122,7 +123,9 @@ export function Sheet({
     reset();
   };
 
-  return (
+  // Portaled to <body>: an ancestor with a transform or backdrop-filter (the sticky, blurred
+  // notes header) would otherwise trap the fixed backdrop inside its own box and clip it.
+  return createPortal(
     <div
       className={`backdrop enter-fade ${closing ? 'closing ' : ''}flex items-end justify-center sm:items-center sm:p-6`}
       onTransitionEnd={onTransitionEnd}
@@ -162,6 +165,7 @@ export function Sheet({
           {typeof children === 'function' ? children(close) : children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

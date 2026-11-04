@@ -487,35 +487,43 @@
     background: var(--cat-tint);
     color: var(--cat-ink);
   }
-  .cat-pill[data-color='blue'] {
+  .cat-pill[data-color='blue'],
+  .chip[data-color='blue'] {
     --cat-tint: var(--cat-blue-tint);
     --cat-ink: var(--cat-blue-ink);
   }
-  .cat-pill[data-color='green'] {
+  .cat-pill[data-color='green'],
+  .chip[data-color='green'] {
     --cat-tint: var(--cat-green-tint);
     --cat-ink: var(--cat-green-ink);
   }
-  .cat-pill[data-color='purple'] {
+  .cat-pill[data-color='purple'],
+  .chip[data-color='purple'] {
     --cat-tint: var(--cat-purple-tint);
     --cat-ink: var(--cat-purple-ink);
   }
-  .cat-pill[data-color='amber'] {
+  .cat-pill[data-color='amber'],
+  .chip[data-color='amber'] {
     --cat-tint: var(--cat-amber-tint);
     --cat-ink: var(--cat-amber-ink);
   }
-  .cat-pill[data-color='teal'] {
+  .cat-pill[data-color='teal'],
+  .chip[data-color='teal'] {
     --cat-tint: var(--cat-teal-tint);
     --cat-ink: var(--cat-teal-ink);
   }
-  .cat-pill[data-color='pink'] {
+  .cat-pill[data-color='pink'],
+  .chip[data-color='pink'] {
     --cat-tint: var(--cat-pink-tint);
     --cat-ink: var(--cat-pink-ink);
   }
-  .cat-pill[data-color='red'] {
+  .cat-pill[data-color='red'],
+  .chip[data-color='red'] {
     --cat-tint: var(--cat-red-tint);
     --cat-ink: var(--cat-red-ink);
   }
-  .cat-pill[data-color='slate'] {
+  .cat-pill[data-color='slate'],
+  .chip[data-color='slate'] {
     --cat-tint: var(--cat-slate-tint);
     --cat-ink: var(--cat-slate-ink);
   }
@@ -584,6 +592,27 @@
     }
     .chip[aria-pressed='true']:hover {
       background: var(--accent-soft);
+    }
+  }
+  /* Category chip in the filter sheet: the category's own colors; selected adds a ring. */
+  .chip[data-color] {
+    border-color: transparent;
+    border-inline-start: 3px solid var(--cat-ink);
+    background: var(--cat-tint);
+    color: var(--cat-ink);
+  }
+  .chip[data-color][aria-pressed='true'],
+  .chip[data-color][aria-pressed='true']:hover {
+    border-color: var(--cat-ink);
+    background: var(--cat-tint);
+    color: var(--cat-ink);
+    font-weight: 700;
+    box-shadow: 0 0 0 2px var(--cat-ink);
+  }
+  @media (hover: hover) {
+    .chip[data-color]:hover {
+      background: var(--cat-tint);
+      filter: brightness(1.08);
     }
   }
   @media (prefers-reduced-motion: no-preference) {
