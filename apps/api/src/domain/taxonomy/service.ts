@@ -97,6 +97,24 @@ export function setCategoryColor(
   });
 }
 
+/** Pin or unpin a category. Allowed on deleted categories too. */
+export function setCategoryPinned(
+  db: Db,
+  userId: string,
+  id: string,
+  pinned: boolean,
+): Promise<Result<Category>> {
+  return timed('setCategoryPinned', { categoryId: id }, async () => {
+    if (!(await repo.findCategory(db, userId, id))) {
+      log().warn({ categoryId: id, error: 'not_found' }, 'category pinned failed');
+      return fail('not_found');
+    }
+    const category = await repo.updateCategoryPinned(db, id, pinned);
+    log().info({ categoryId: id, pinned }, 'category pinned set');
+    return ok(category);
+  });
+}
+
 export async function createTag(
   db: Db,
   userId: string,

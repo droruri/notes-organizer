@@ -7,7 +7,17 @@ import { describeFilter } from './describeFilter';
 const C = '11111111-1111-4111-8111-111111111111';
 const G = '33333333-3333-4333-8333-333333333333';
 const taxonomy: Taxonomy = {
-  categories: [{ id: C, name: 'עבודה', deleted: true, importance: null, color: 'blue', tags: [] }],
+  categories: [
+    {
+      id: C,
+      name: 'עבודה',
+      deleted: true,
+      importance: null,
+      color: 'blue',
+      pinned: false,
+      tags: [],
+    },
+  ],
 };
 const t = i18n.t.bind(i18n);
 

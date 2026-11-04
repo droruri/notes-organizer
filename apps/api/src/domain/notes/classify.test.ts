@@ -15,6 +15,7 @@ const taxonomy: Taxonomy = {
       deleted: false,
       importance: null,
       color: 'slate',
+      pinned: false,
       tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
     },
     {
@@ -23,6 +24,7 @@ const taxonomy: Taxonomy = {
       deleted: true,
       importance: null,
       color: 'slate',
+      pinned: false,
       tags: [{ id: T2, categoryId: C2, name: 'x', deleted: false }],
     },
   ],
@@ -164,6 +166,7 @@ describe('classify importance inheritance', () => {
         deleted: false,
         importance: 'important',
         color: 'slate',
+        pinned: false,
         tags: [{ id: T1, categoryId: C1, name: 'Urgent', deleted: false }],
       },
     ],

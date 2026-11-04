@@ -25,12 +25,21 @@ const taxonomy = (color1: CategoryColor = 'slate') => ({
       deleted: false,
       importance: null,
       color: color1,
+      pinned: false,
       tags: [
         { id: T1, categoryId: C1, name: 'דחוף', deleted: false },
         { id: T2, categoryId: C1, name: 'ישן', deleted: true },
       ],
     },
-    { id: C2, name: 'בית', deleted: true, importance: null, color: 'slate' as const, tags: [] },
+    {
+      id: C2,
+      name: 'בית',
+      deleted: true,
+      importance: null,
+      color: 'slate' as const,
+      pinned: false,
+      tags: [],
+    },
   ],
 });
 
@@ -43,6 +52,7 @@ function setup(overrides: Record<string, unknown> = {}) {
       deleted: false,
       importance: null,
       color: 'slate' as const,
+      pinned: false,
     })),
     renameCategory: vi.fn(async () => ({
       id: C1,
@@ -50,6 +60,15 @@ function setup(overrides: Record<string, unknown> = {}) {
       deleted: false,
       importance: null,
       color: 'slate' as const,
+      pinned: false,
+    })),
+    setCategoryPinned: vi.fn(async () => ({
+      id: C1,
+      name: 'עבודה',
+      deleted: false,
+      importance: null,
+      color: 'slate' as const,
+      pinned: true,
     })),
     setCategoryColor: vi.fn(async () => ({
       id: C1,
@@ -57,6 +76,7 @@ function setup(overrides: Record<string, unknown> = {}) {
       deleted: false,
       importance: null,
       color: 'red' as const,
+      pinned: false,
     })),
     setCategoryImportance: vi.fn(async () => ({
       id: C1,
@@ -64,6 +84,7 @@ function setup(overrides: Record<string, unknown> = {}) {
       deleted: false,
       importance: null,
       color: 'slate' as const,
+      pinned: false,
     })),
     deleteCategory: vi.fn(async () => undefined),
     restoreCategory: vi.fn(async () => ({
@@ -72,6 +93,7 @@ function setup(overrides: Record<string, unknown> = {}) {
       deleted: false,
       importance: null,
       color: 'slate' as const,
+      pinned: false,
     })),
     createTag: vi.fn(async () => ({ id: T1, categoryId: C1, name: 'x', deleted: false })),
     renameTag: vi.fn(async () => ({ id: T1, categoryId: C1, name: 'x', deleted: false })),
@@ -188,6 +210,15 @@ describe('TaxonomyScreen', () => {
     );
   });
 
+  it('toggles a category pin with aria-pressed', async () => {
+    const { taxonomyApi } = setup();
+    await screen.findByText('עבודה');
+    const pin = screen.getByRole('button', { name: 'נעיצת עבודה' });
+    expect(pin.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(pin);
+    await waitFor(() => expect(taxonomyApi.setCategoryPinned).toHaveBeenCalledWith(C1, true));
+  });
+
   it('sets, changes and clears a category importance with one tap', async () => {
     const { taxonomyApi } = setup();
     await screen.findByText('עבודה');
@@ -215,6 +246,7 @@ describe('TaxonomyScreen', () => {
             deleted: false,
             importance: 'important',
             color: 'slate' as const,
+            pinned: false,
             tags: [],
           },
           {
@@ -223,6 +255,7 @@ describe('TaxonomyScreen', () => {
             deleted: true,
             importance: 'not_important',
             color: 'slate' as const,
+            pinned: false,
             tags: [],
           },
         ],

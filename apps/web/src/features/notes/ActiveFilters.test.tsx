@@ -6,7 +6,17 @@ import { ActiveFilters } from './ActiveFilters';
 
 const C = '11111111-1111-4111-8111-111111111111';
 const taxonomy: Taxonomy = {
-  categories: [{ id: C, name: 'עבודה', deleted: false, importance: null, color: 'blue', tags: [] }],
+  categories: [
+    {
+      id: C,
+      name: 'עבודה',
+      deleted: false,
+      importance: null,
+      color: 'blue',
+      pinned: false,
+      tags: [],
+    },
+  ],
 };
 afterEach(() => {
   cleanup();

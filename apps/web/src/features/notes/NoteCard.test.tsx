@@ -28,7 +28,15 @@ const note: Note = {
 };
 const taxonomy = {
   categories: [
-    { id: CAT, name: 'Home', deleted: false, importance: null, color: 'blue' as const, tags: [] },
+    {
+      id: CAT,
+      name: 'Home',
+      deleted: false,
+      importance: null,
+      color: 'blue' as const,
+      pinned: false,
+      tags: [],
+    },
   ],
 };
 
@@ -98,6 +106,7 @@ describe('NoteCard collapse', () => {
                   deleted: false,
                   importance: null,
                   color: 'blue' as const,
+                  pinned: false,
                   tags: [{ id: TAG, categoryId: CAT, name: 'urgent-fix', deleted: false }],
                 },
               ],
@@ -192,6 +201,7 @@ describe('NoteCard chips', () => {
                   deleted: false,
                   importance: null,
                   color: 'slate' as const,
+                  pinned: false,
                   tags: [{ id: TAG, categoryId: CAT, name: 'urgent-fix', deleted: false }],
                 },
               ],
