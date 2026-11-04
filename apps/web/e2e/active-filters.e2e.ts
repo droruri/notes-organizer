@@ -40,7 +40,7 @@ test('category chip and date range chip remove only their own value', async ({ p
 for (const width of [390, 1280]) {
   test.describe(`${width}px`, () => {
     test.use({ viewport: { width, height: 800 } });
-    test('six values: capped to 2 + "+4" below lg, all shown on desktop, clear all', async ({
+    test('six values: capped to 1 + "+5" below lg, all shown on desktop, clear all', async ({
       page,
     }) => {
       await signIn(page);
@@ -56,10 +56,10 @@ for (const width of [390, 1280]) {
       const wide = (page.viewportSize()?.width ?? 0) >= 1024;
       if (wide) {
         await expect(removers(page)).toHaveCount(6);
-        await expect(page.getByRole('button', { name: '+4' })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: '+5' })).toHaveCount(0);
       } else {
-        await expect(removers(page)).toHaveCount(2);
-        await page.getByRole('button', { name: '+4' }).click();
+        await expect(removers(page)).toHaveCount(1);
+        await page.getByRole('button', { name: '+5' }).click();
         await expect(removers(page)).toHaveCount(6);
       }
       await page.getByRole('button', { name: 'נקה הכל' }).click();
