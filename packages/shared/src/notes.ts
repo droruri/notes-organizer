@@ -262,3 +262,13 @@ export type ChatPart = z.infer<typeof ChatPart>;
 
 /** An answer cites a note as `[[note:<id>]]`. */
 export const NOTE_CITATION = /\[\[note:([0-9a-f-]{36})\]\]/;
+
+export const NoteChangesQuery = z.object({ since: z.iso.datetime({ offset: true }).optional() });
+export type NoteChangesQuery = z.infer<typeof NoteChangesQuery>;
+
+export const NoteChanges = z.object({
+  notes: NoteList,
+  deletedIds: z.array(z.uuid()),
+  cursor: z.string(),
+});
+export type NoteChanges = z.infer<typeof NoteChanges>;

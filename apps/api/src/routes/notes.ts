@@ -1,4 +1,11 @@
-import { AUDIO_MIMES, MAX_AUDIO_BYTES, NoteAnalyze, NoteCreate, NoteEdit } from '@notes/shared';
+import {
+  AUDIO_MIMES,
+  MAX_AUDIO_BYTES,
+  NoteAnalyze,
+  NoteChangesQuery,
+  NoteCreate,
+  NoteEdit,
+} from '@notes/shared';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { Ai } from '../ai/provider';
@@ -54,6 +61,12 @@ export function notesRoutes(app: FastifyInstance, db: Db, ai: Ai, links: LinkRea
   }
 
   app.get('/notes', async (req) => service.listNotes(db, currentUser(req).id));
+
+  app.get('/notes/changes', async (req, reply) => {
+    const query = NoteChangesQuery.safeParse(req.query);
+    if (!query.success) return reply.code(400).send({ error: 'invalid_query' });
+    return service.listNoteChanges(db, currentUser(req).id, query.data.since);
+  });
 
   app.post('/notes', { config: llmRateLimit }, async (req, reply) => {
     if (req.isMultipart()) return voiceNote(req, reply);
