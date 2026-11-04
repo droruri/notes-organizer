@@ -1,5 +1,5 @@
 #!/bin/bash
-# Refuses the push unless lint, typecheck, unit tests and the DB-backed API tests all pass.
+# Refuses the push unless lint, typecheck, build, unit tests and the DB-backed API tests all pass.
 # The API tests run against this worktree's own test database (scripts/test-env.sh), so they
 # never skip and never touch another project's or worktree's DB. Installed by `pnpm install`
 # (the root `prepare` script sets core.hooksPath to .githooks).
@@ -16,6 +16,8 @@ echo "pre-push: lint" >&2
 $pnpm lint >&2 || refuse lint
 echo "pre-push: typecheck" >&2
 $pnpm typecheck >&2 || refuse typecheck
+echo "pre-push: build" >&2
+$pnpm -r build >&2 || refuse build
 echo "pre-push: test environment" >&2
 scripts/test-env.sh up >/dev/null || refuse "test environment (scripts/test-env.sh up)"
 echo "pre-push: tests (unit + DB-backed API)" >&2

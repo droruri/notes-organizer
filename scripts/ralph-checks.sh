@@ -1,5 +1,5 @@
 #!/bin/bash
-# Local checks for a ralph build: lint, typecheck, and only the tests related to files changed
+# Local checks for a ralph build: lint, typecheck, build, and only the tests related to files changed
 # against origin/main (per package). CI runs the full suite before the merge, so it is not
 # repeated here.
 #
@@ -17,6 +17,10 @@ pnpm lint 2>&1 | tail -30
 echo "== typecheck =="
 pnpm typecheck 2>&1 | tail -30
 [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "typecheck FAILED"; exit 1; }
+
+echo "== build =="
+pnpm -r build 2>&1 | tail -30
+[ "${PIPESTATUS[0]}" -eq 0 ] || { echo "build FAILED"; exit 1; }
 
 # Committed, staged, unstaged and untracked changes against origin/main.
 changed=$( { git diff --name-only --diff-filter=d origin/main; git ls-files --others --exclude-standard; } | sort -u)

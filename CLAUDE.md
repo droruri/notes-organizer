@@ -41,8 +41,8 @@ DB-backed tests (`describe.skipIf(!databaseUrl)`) run against this worktree's ow
 `scripts/test-env.sh up` starts it (ports and Docker project derived from the worktree path) and
 writes `.env.test`, which `apps/api/vite.config.ts` loads over any shell `DATABASE_URL`. CI has no
 `.env.test` and uses its own `DATABASE_URL`. The `pre-push` git hook (`.githooks/pre-push`,
-installed by `pnpm install`) runs lint, typecheck and the full suite and refuses a failing push.
-Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralph builds run `scripts/ralph-checks.sh` instead — related tests only; the pre-push hook runs the full suite.)
+installed by `pnpm install`) runs lint, typecheck, build and the full suite and refuses a failing push.
+Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm -r build && pnpm test`. (Ralph builds run `scripts/ralph-checks.sh` instead — related tests only; the pre-push hook runs the full suite.)
 
 ## Local Test Environment
 
