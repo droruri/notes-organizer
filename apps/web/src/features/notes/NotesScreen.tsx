@@ -65,6 +65,13 @@ const isPushed = (to: string) =>
 /** The client's local date as YYYY-MM-DD. */
 const localToday = () => new Date().toLocaleDateString('en-CA');
 
+/** Key-order-independent equality for two filters (their values are plain JSON). */
+function sameFilter(a: NoteFilter, b: NoteFilter): boolean {
+  const canon = (f: NoteFilter) =>
+    JSON.stringify(Object.entries(f).sort(([x], [y]) => x.localeCompare(y)));
+  return canon(a) === canon(b);
+}
+
 export function NotesScreen({
   initialTagId = null,
   workspace,
@@ -484,8 +491,7 @@ export function NotesScreen({
   const deferredFilter = { ...filter, text: deferredText };
   const visible = sortNotes(filterNotes(inWorkspace, deferredFilter, today), sort, today);
   const showContinue =
-    filter.text === '' &&
-    JSON.stringify(filter) === JSON.stringify({ ...EMPTY_FILTER, ...workspace?.defaultFilter });
+    filter.text === '' && sameFilter(filter, { ...EMPTY_FILTER, ...workspace?.defaultFilter });
   const listKey = JSON.stringify([deferredFilter, sort, workspace?.id, acrossWorkspaces]);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return slots(

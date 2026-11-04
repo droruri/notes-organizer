@@ -1,5 +1,5 @@
 import { isOverdue, type Note, type Taxonomy } from '@notes/shared';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from './formatDate';
 import { continueNotes, useRecentNoteIds } from './recent';
@@ -19,6 +19,7 @@ export function ContinueRow({
   onOpen: (note: Note) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const titleId = useId();
   const recentIds = useRecentNoteIds();
   const [expanded, setExpanded] = useState(false);
   const items = useMemo(() => continueNotes(notes, recentIds, today), [notes, recentIds, today]);
@@ -28,8 +29,8 @@ export function ContinueRow({
   );
   if (items.length === 0) return null;
   return (
-    <section aria-labelledby="continue-title" className="@container flex flex-col gap-2">
-      <h3 id="continue-title" className="text-sm font-semibold text-muted">
+    <section aria-labelledby={titleId} className="@container flex flex-col gap-2">
+      <h3 id={titleId} className="text-sm font-semibold text-muted">
         {t('notes.continue.title')}
       </h3>
       {/* Desktop columns follow the list pane width, not the viewport: the pane can be narrow. */}

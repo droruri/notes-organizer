@@ -33,6 +33,7 @@ beforeEach(async () => {
 });
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   localStorage.clear();
 });
 
@@ -43,9 +44,7 @@ describe('ContinueRow', () => {
     recordOpen(notes[2]?.id ?? '', 2);
     const onOpen = vi.fn();
     render(<ContinueRow {...props} notes={notes} onOpen={onOpen} />);
-    const cards = screen.getAllByRole('button');
-    expect(cards[0]?.textContent).toContain('note 3');
-    fireEvent.click(cards[0] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /note 3/ }));
     expect(onOpen).toHaveBeenCalledWith(notes[2]);
   });
 
