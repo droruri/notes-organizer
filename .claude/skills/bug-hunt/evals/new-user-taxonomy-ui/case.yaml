@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: new-user-taxonomy-ui
+expected_outcome: |
+  Hunt scoped to the taxonomy feature: inventory of its buttons/inputs reached via the UI, brutal probes on each, first-time-user missions, report.md with findings and coverage.

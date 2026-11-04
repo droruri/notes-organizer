@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: scoped-workspaces-api
+expected_outcome: |
+  A report.md under logs/bug-hunt/ covering only the workspace routes (GET/POST/PATCH/DELETE /workspaces) and the workspace UI, with numbered curl/click repro steps and a verdict.
