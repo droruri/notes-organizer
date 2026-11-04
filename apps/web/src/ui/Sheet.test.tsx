@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { Sheet } from './Sheet';
 
 beforeEach(() => {
+  // Start every test on a plain entry, not one left by an earlier test's sheet.
+  window.history.replaceState(null, '');
   vi.useFakeTimers();
   vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(400);
 });
@@ -12,6 +14,20 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
+
+const sheetDepth = () =>
+  (window.history.state as { overlay?: { depth: number } } | null)?.overlay?.depth ?? 0;
+/** Presses Back and lets jsdom fire `popstate`. */
+const pressBack = async () => {
+  const popped = new Promise((resolve) =>
+    window.addEventListener('popstate', resolve, { once: true }),
+  );
+  window.history.back();
+  await act(async () => {
+    vi.advanceTimersByTime(10);
+    await popped;
+  });
+};
 
 const setup = (dirty = false) => {
   const onClose = vi.fn();
@@ -124,6 +140,79 @@ describe('Sheet', () => {
     fireEvent.pointerUp(handle, ptr(3, 100, 300));
     settle();
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the close button on phones, where the sheet closes by swipe', () => {
+    setup();
+    expect(screen.getByRole('button', { name: /close|סגירה/i }).className).toContain(
+      'max-sm:hidden',
+    );
+  });
+
+  it('closes on Back instead of leaving the page', async () => {
+    const before = window.history.length;
+    const { onClose } = setup();
+    expect(window.history.length).toBe(before + 1);
+    expect(sheetDepth()).toBe(1);
+    await pressBack();
+    settle();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(sheetDepth()).toBe(0);
+  });
+
+  it('pops its history entry when closed another way', async () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <Sheet title="Demo" onClose={onClose}>
+        <p>body</p>
+      </Sheet>,
+    );
+    expect(sheetDepth()).toBe(1);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    settle();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    const popped = new Promise((resolve) =>
+      window.addEventListener('popstate', resolve, { once: true }),
+    );
+    rerender(<></>);
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+      await popped;
+    });
+    expect(sheetDepth()).toBe(0);
+  });
+
+  it('Back closes only the top sheet of a stack', async () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    const { rerender } = render(
+      <Sheet title="Outer" onClose={outer}>
+        {null}
+      </Sheet>,
+    );
+    rerender(
+      <Sheet title="Outer" onClose={outer}>
+        <Sheet title="Inner" onClose={inner}>
+          {null}
+        </Sheet>
+      </Sheet>,
+    );
+    expect(sheetDepth()).toBe(2);
+    await pressBack();
+    settle();
+    expect(inner).toHaveBeenCalledTimes(1);
+    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it('stays open on Back when the user keeps unsaved changes', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { onClose } = setup(true);
+    await pressBack();
+    settle();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    // The entry is back, so the next Back can close the sheet again.
+    expect(sheetDepth()).toBe(1);
   });
 
   it('asks before closing when dirty', () => {
