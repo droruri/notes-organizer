@@ -83,6 +83,8 @@ export const Category = z.object({
   /** Optional default importance for notes in this category. */
   importance: Importance.nullable(),
   color: CategoryColor,
+  /** Pinned categories lead the category strip. */
+  pinned: z.boolean(),
 });
 export type Category = z.infer<typeof Category>;
 
@@ -103,6 +105,10 @@ export type ImportanceBody = z.infer<typeof ImportanceBody>;
 /** Body of `PUT /categories/:id/color`. */
 export const ColorBody = z.object({ color: CategoryColor });
 export type ColorBody = z.infer<typeof ColorBody>;
+
+/** Body of `PUT /categories/:id/pinned`. */
+export const PinnedBody = z.object({ pinned: z.boolean() });
+export type PinnedBody = z.infer<typeof PinnedBody>;
 
 export * from './attachments';
 export * from './notes';

@@ -9,6 +9,7 @@ const cat = (id: string, name: string) => ({
   deleted: false,
   importance: null,
   color: 'slate',
+  pinned: false,
 });
 const C1 = 'c1111111-1111-4111-8111-111111111111';
 const C2 = 'c2222222-2222-4222-8222-222222222222';

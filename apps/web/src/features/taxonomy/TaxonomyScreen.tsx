@@ -17,6 +17,7 @@ type TaxonomyApi = Pick<
   | 'restoreCategory'
   | 'setCategoryImportance'
   | 'setCategoryColor'
+  | 'setCategoryPinned'
   | 'createTag'
   | 'renameTag'
   | 'deleteTag'
@@ -217,6 +218,19 @@ export function TaxonomyScreen({
                   onChange={(next) => write(() => taxonomyApi.setCategoryImportance(c.id, next))}
                 />
               )}
+
+              <button
+                type="button"
+                aria-pressed={c.pinned}
+                disabled={run.isPending}
+                className="btn btn-ghost min-h-11 min-w-11 self-start"
+                onClick={() => write(() => taxonomyApi.setCategoryPinned(c.id, !c.pinned))}
+              >
+                <Icon name="pin" aria-hidden="true" />
+                {c.pinned
+                  ? t('taxonomy.pin.unpin', { name: c.name })
+                  : t('taxonomy.pin.pin', { name: c.name })}
+              </button>
 
               {!c.deleted && (
                 <ColorControl

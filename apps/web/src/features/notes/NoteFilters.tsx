@@ -3,6 +3,7 @@ import {
   Importance,
   NoteStatus,
   Urgency,
+  type Note,
   type NoteFilter,
   type SavedFilter,
   type Taxonomy,
@@ -12,7 +13,10 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { Sheet } from '../../ui/Sheet';
 import { useOnline } from '../offline/useOnline';
+import { ActiveFilters } from './ActiveFilters';
 import { Chip } from './Chip';
+import type { RankedCategory } from './categoryRank';
+import { SearchBox } from './SearchBox';
 
 const toggle = <T,>(list: T[], x: T): T[] =>
   list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
@@ -47,6 +51,11 @@ export function NoteFilters({
   showAllWorkspaces = false,
   onSaveDefault,
   savedDefault = null,
+  sheetOpen,
+  onSheetOpenChange,
+  notes = [],
+  ranked = [],
+  onOpenNote,
 }: {
   filter: NoteFilter;
   onChange: (next: NoteFilter) => void;
@@ -60,9 +69,21 @@ export function NoteFilters({
   /** Saves the current filter (minus the text) as the workspace's default. */
   onSaveDefault?: () => void;
   savedDefault?: SavedFilter | null;
+  /** Controlled sheet state, so other UI (the category strip) can open the sheet. */
+  sheetOpen?: boolean;
+  onSheetOpenChange?: (open: boolean) => void;
+  /** Feed the search suggestions. */
+  notes?: Note[];
+  ranked?: RankedCategory[];
+  onOpenNote?: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = sheetOpen ?? localOpen;
+  const setOpen = (next: boolean) => {
+    setLocalOpen(next);
+    onSheetOpenChange?.(next);
+  };
   const online = useOnline();
   const isDefault = savedDefault !== null && matchesDefault(filter, savedDefault);
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });
@@ -97,22 +118,14 @@ export function NoteFilters({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-48 flex-1">
-          <Icon
-            name="search"
-            size={18}
-            className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <input
-            type="search"
-            data-notes-search=""
-            value={filter.text}
-            onChange={(e) => set({ text: e.target.value })}
-            aria-label={t('filters.search')}
-            placeholder={t('filters.search')}
-            className="field min-h-11 ps-10"
-          />
-        </div>
+        <SearchBox
+          filter={filter}
+          onChange={onChange}
+          taxonomy={taxonomy}
+          notes={notes}
+          ranked={ranked}
+          {...(onOpenNote && { onOpenNote })}
+        />
         {showAllWorkspaces && onAllWorkspaces && (
           <Chip
             label={t('filters.allWorkspaces')}
@@ -136,6 +149,13 @@ export function NoteFilters({
           )}
         </button>
       </div>
+      <ActiveFilters
+        filter={filter}
+        taxonomy={taxonomy}
+        onChange={onChange}
+        allWorkspaces={allWorkspaces}
+        {...(onAllWorkspaces && { onAllWorkspaces })}
+      />
       {open && (
         <Sheet title={t('filters.sheetTitle')} onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-4">

@@ -91,6 +91,7 @@ describe('NotesScreen opened from a tag', () => {
           deleted: false,
           importance: null,
           color: 'slate' as const,
+          pinned: false,
           tags: [{ id: T1, categoryId: C, name: 'urgent', deleted: false }],
         },
       ],
@@ -212,11 +213,11 @@ describe('NotesScreen modes from the URL', () => {
   it('keeps the search field visible and moves sort into the filters sheet', async () => {
     setup('/');
     await screen.findByText('first note');
-    expect(screen.getByRole('searchbox')).toBeTruthy();
-    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.getByRole('combobox', { name: 'Search notes' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Sort' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
     expect(screen.getByRole('dialog')).toBeTruthy();
-    expect(screen.getByRole('combobox')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toBeTruthy();
   });
 
   it('shows the editor on /notes/:id', async () => {
@@ -337,7 +338,9 @@ describe('NotesScreen across workspaces', () => {
     await screen.findByText('home note');
     expect(screen.queryByText('garden note')).toBeNull();
     fireEvent.click(await screen.findByRole('button', { name: 'All workspaces' }));
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'garden' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search notes' }), {
+      target: { value: 'garden' },
+    });
     await screen.findByText('garden note');
     expect(screen.getByText('Garden')).toBeTruthy();
     expect(screen.queryByText('home note')).toBeNull();
@@ -350,7 +353,9 @@ describe('NotesScreen across workspaces', () => {
     const row = await screen.findByRole('region', { name: 'Continue' });
     expect(within(row).getByText('home note')).toBeTruthy();
     expect(within(row).queryByText('garden note')).toBeNull();
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'home' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search notes' }), {
+      target: { value: 'home' },
+    });
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Continue' })).toBeNull());
   });
 
@@ -488,6 +493,7 @@ describe('NotesScreen default filter', () => {
           deleted: false,
           importance: null,
           color: 'slate',
+          pinned: false,
           tags: [{ id: TAG, categoryId: C, name: 'Tg', deleted: false }],
         },
       ],
@@ -549,7 +555,9 @@ describe('NotesScreen default filter', () => {
     await openSheet();
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
     fireEvent.click(screen.getByRole('button', { name: 'Tg' }));
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzz' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search notes' }), {
+      target: { value: 'zzz' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Save as default' }));
     await waitFor(() => expect(edit).toHaveBeenCalled());
     expect(edit).toHaveBeenCalledWith(W1, { defaultFilter: saved });

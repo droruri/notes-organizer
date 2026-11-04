@@ -156,10 +156,18 @@
       "less": "Less"
     }
   },
+  "categoryStrip": {
+    "all": "All ›"
+  },
   "filters": {
     "title": "Filter",
     "sheetTitle": "Filters and sort",
     "done": "Show results",
+    "suggestions": "Suggestions",
+    "suggestEmpty": "Nothing found. Enter searches by sentence",
+    "suggestCategory": "Category",
+    "suggestTag": "Tag",
+    "suggestNote": "Note",
     "search": "Search notes",
     "allWorkspaces": "All workspaces",
     "workspace": "Workspace",
@@ -167,6 +175,13 @@
     "status": "Status",
     "from": "from",
     "to": "to",
+    "remove": "Remove filter: {{name}}",
+    "clearAll": "Clear all",
+    "showLess": "Show less",
+    "active": "Active filters",
+    "chipRange": "{{label}}: {{from}}–{{to}}",
+    "chipFrom": "from {{date}}",
+    "chipTo": "until {{date}}",
     "clear": "Clear filters",
     "saveDefault": "Save as default",
     "isDefault": "✓ Default"
@@ -278,6 +293,10 @@
     "deleteItem": "Delete {{name}}",
     "restore": "Restore",
     "restoreItem": "Restore {{name}}",
+    "pin": {
+      "pin": "Pin {{name}}",
+      "unpin": "Unpin {{name}}"
+    },
     "color": {
       "labelFor": "Color of {{name}}",
       "names": {

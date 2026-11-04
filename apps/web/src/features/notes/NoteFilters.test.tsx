@@ -8,8 +8,24 @@ const C = '11111111-1111-4111-8111-111111111111';
 const D = '22222222-2222-4222-8222-222222222222';
 const taxonomy: Taxonomy = {
   categories: [
-    { id: C, name: 'עבודה', deleted: false, importance: null, color: 'slate' as const, tags: [] },
-    { id: D, name: 'ישן', deleted: true, importance: null, color: 'slate' as const, tags: [] },
+    {
+      id: C,
+      name: 'עבודה',
+      deleted: false,
+      importance: null,
+      color: 'slate' as const,
+      pinned: false,
+      tags: [],
+    },
+    {
+      id: D,
+      name: 'ישן',
+      deleted: true,
+      importance: null,
+      color: 'slate' as const,
+      pinned: false,
+      tags: [],
+    },
   ],
 };
 afterEach(cleanup);
@@ -18,7 +34,7 @@ describe('NoteFilters', () => {
   it('reports search text', () => {
     const onChange = vi.fn();
     render(<NoteFilters filter={EMPTY_FILTER} onChange={onChange} taxonomy={taxonomy} />);
-    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'חלב' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'חלב' } });
     expect(onChange).toHaveBeenCalledWith({ ...EMPTY_FILTER, text: 'חלב' });
   });
 
@@ -42,7 +58,7 @@ describe('NoteFilters', () => {
       />,
     );
     expect(screen.queryByLabelText('sort-test')).toBeNull();
-    const button = screen.getByRole('button', { name: /סינון/ });
+    const button = screen.getByRole('button', { name: /^סינון/ });
     expect(button.textContent).toContain('2');
     fireEvent.click(button);
     const dialog = screen.getByRole('dialog');
