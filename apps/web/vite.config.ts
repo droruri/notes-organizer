@@ -9,6 +9,8 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // main.tsx registers the worker itself (virtual:pwa-register), so it can reload on update.
+      injectRegister: false,
       // Keep the Google Font (IBM Plex Sans Hebrew) available offline. The lazy screen chunks
       // are precached by the default globPatterns.
       workbox: {

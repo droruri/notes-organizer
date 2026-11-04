@@ -149,7 +149,7 @@ export function Sheet({
             </button>
           </div>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain [&>*]:shrink-0">
           {typeof children === 'function' ? children(close) : children}
         </div>
       </div>

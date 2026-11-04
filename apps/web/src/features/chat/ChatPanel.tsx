@@ -114,7 +114,7 @@ export function ChatPanel({
         />
       </div>
       <div
-        className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-4 [&>*]:shrink-0"
         aria-live="polite"
       >
         {messages.length === 0 && (
