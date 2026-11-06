@@ -604,7 +604,7 @@ describe('NoteEditor Claude checklist', () => {
         onReanalyze={() => new Promise<Suggestion>(() => undefined)}
       />,
     );
-    const body = () => screen.getByLabelText<HTMLTextAreaElement>('Note');
+    const body = () => screen.getByLabelText<HTMLTextAreaElement>('Text');
     expect(body().value).toBe('pay rent');
     fireEvent.click(screen.getByRole('button', { name: 'Make checklist (3 items)' }));
     expect(body().value).toBe('- [ ] milk\n- [ ] Dan\n- [ ] bill');
