@@ -37,6 +37,15 @@ const note = (o: Partial<Note> = {}): Note => {
 const ids = (ns: Note[]) => ns.map((n) => n.id);
 const f = (o: Partial<typeof EMPTY_FILTER>) => ({ ...EMPTY_FILTER, ...o });
 
+describe('noteHeading checklist prefix', () => {
+  it('strips a leading checkbox from the fallback line', () => {
+    expect(noteHeading(note({ title: null, body: '- [x] buy milk\n- [ ] b' })).text).toBe(
+      'buy milk',
+    );
+    expect(noteHeading(note({ title: null, body: '* [ ] קנה' })).text).toBe('קנה');
+  });
+});
+
 describe('noteHeading', () => {
   it('uses the title, else the first non-empty body line', () => {
     expect(noteHeading(note({ title: ' Hi ', body: 'a\nb' }))).toEqual({

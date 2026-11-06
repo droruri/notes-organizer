@@ -45,6 +45,12 @@ overdue, due today, in progress, or due within 7 days, grouped in that order. A 
 first group it matches.
 _Avoid_: Dashboard, agenda
 
+**Checklist**:
+A note body whose lines start with `- [ ]` / `- [x]`. Each such line is an item shown as a
+checkbox on the expanded card; the collapsed card shows a done/total pill. Stored as plain text in
+`body`, so it needs no schema.
+_Avoid_: Todo list, task list
+
 **Unread link**:
 A link in a note's body that Claude could not read (paywall, blocked site, private video), so
 the note was classified from the URL alone. Shown with a "link not read" chip until a Re-analyze

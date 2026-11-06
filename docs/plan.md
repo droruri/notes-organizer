@@ -19,7 +19,7 @@ status steps · notes list with free-text search, filters and a saved sort · ch
 questions + propose-only taxonomy changes) · import of old notes · offline outbox ·
 Web Share Target · Android app via TWA · hosted deploy.
 
-**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders.
+**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders (being added; see Checklists/Snooze/Reminders epic).
 
 Decisions taken with the user:
 
@@ -334,6 +334,13 @@ and Re-analyze are the safety net.
 
 ## Web behaviour
 
+- **Checklists:** a body line matching `^\s*[-*] \[( |x|X)\] (.*)$` is an item. The expanded
+  `NoteCard` renders items as checkboxes (44px target); a tap saves `PATCH /notes/:id { body }`
+  optimistically with rollback on error, and boxes are disabled while that save is pending. The
+  collapsed card shows a `done/total` pill (muted when all done). The editor's "Make checklist"
+  turns body lines into `- [ ]` items; "Undo checklist" restores the previous body for that session.
+  Rules live in `features/notes/checklist.ts`; the item grammar and `noteHeading` prefix strip use
+  `CHECKLIST_LINE` from `@notes/shared`.
 - **Main screen:** header (language toggle, menu: notes, import, categories & tags, users (admin), sign out), search box, filter sheet
   (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
   deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating

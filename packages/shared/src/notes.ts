@@ -161,6 +161,9 @@ export const NoteEdit = z.object({
 });
 export type NoteEdit = z.infer<typeof NoteEdit>;
 
+/** A checklist line: `- [ ] text` / `* [x] text` (indent allowed). Groups: prefix, mark, close, text. */
+export const CHECKLIST_LINE = /^(\s*[-*] \[)( |x|X)(\] )(.*)$/;
+
 /** The heading a card shows: the title, else the first non-empty body line (`fallback`). */
 export function noteHeading(note: Pick<Note, 'title' | 'body'>): {
   text: string;
@@ -169,7 +172,8 @@ export function noteHeading(note: Pick<Note, 'title' | 'body'>): {
   const title = note.title?.trim();
   if (title) return { text: title, fallback: false };
   const line = note.body.split('\n').find((l) => l.trim() !== '');
-  return { text: line?.trim() ?? '', fallback: true };
+  const item = CHECKLIST_LINE.exec(line ?? '');
+  return { text: (item ? (item[4] ?? '') : (line ?? '')).trim(), fallback: true };
 }
 
 export const NoteList = z.array(Note);

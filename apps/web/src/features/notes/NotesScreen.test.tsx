@@ -780,3 +780,54 @@ describe('NotesScreen recent opens', () => {
     await waitFor(() => expect(parseRecent(localStorage.getItem('recentNotes'))[0]?.id).toBe(id));
   });
 });
+
+describe('NotesScreen checklist toggle', () => {
+  const body = '- [ ] milk\n- [ ] Dan';
+  function setup(update: typeof api.updateNote) {
+    let server = body;
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    vi.spyOn(api, 'notes').mockImplementation(() => Promise.resolve([note(1, server, [])]));
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    vi.spyOn(api, 'updateNote').mockImplementation(async (id, patch) => {
+      const saved = await update(id, patch);
+      server = saved.body;
+      return saved;
+    });
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <MemoryRouter>
+          <NotesScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('saves the toggled body optimistically', async () => {
+    setup((id, patch) => Promise.resolve({ ...note(1, patch.body ?? '', []), id }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Expand' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'milk' }));
+    await waitFor(() => {
+      const box = screen.getByRole('checkbox', { name: 'milk' });
+      expect(box instanceof HTMLInputElement && box.checked).toBe(true);
+    });
+    expect(api.updateNote).toHaveBeenCalledWith(note(1, body, []).id, {
+      body: '- [x] milk\n- [ ] Dan',
+    });
+  });
+
+  it('rolls back and shows an error when the save fails', async () => {
+    setup(() => Promise.reject(new Error('boom')));
+    fireEvent.click(await screen.findByRole('button', { name: 'Expand' }));
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'milk' }));
+    await screen.findByRole('alert');
+    const box = screen.getByRole('checkbox', { name: 'milk' });
+    expect(box instanceof HTMLInputElement && box.checked).toBe(false);
+  });
+});

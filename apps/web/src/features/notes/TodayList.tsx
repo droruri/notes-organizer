@@ -10,6 +10,7 @@ type ListProps = {
   today: string;
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
+  onToggleItem?: ((note: Note, index: number) => void) | undefined;
   hiddenStatuses: readonly NoteStatus[];
   statusPendingId?: string | undefined;
   workspaceNames?: Map<string, string> | undefined;
