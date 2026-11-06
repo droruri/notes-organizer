@@ -90,4 +90,17 @@ describe('todayGroups', () => {
     const g = todayGroups([jan, late], '2026-12-28', 'newest');
     expect(g.upcoming.map((u) => u.date)).toEqual(['2027-01-04']);
   });
+
+  it('puts a null-status note with a past due date in overdue', () => {
+    const a = note({ status: null, dueDate: '2026-11-01' });
+    const g = todayGroups([a], TODAY, 'newest');
+    expect(ids(g.overdue)).toEqual([a.id]);
+  });
+
+  it('keeps an in-progress note with a future due date in in progress, not upcoming', () => {
+    const a = note({ status: 'in_progress', dueDate: '2026-11-12' });
+    const g = todayGroups([a], TODAY, 'newest');
+    expect(ids(g.inProgress)).toEqual([a.id]);
+    expect(g.upcoming).toEqual([]);
+  });
 });

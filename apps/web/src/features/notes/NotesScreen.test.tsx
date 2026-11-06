@@ -269,7 +269,19 @@ describe('NotesScreen Today view', () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     const due: Note = { ...note(1, 'overdue note', []), dueDate: '2020-01-01' };
     vi.spyOn(api, 'notes').mockResolvedValue([due, note(2, 'plain note', [])]);
-    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({
+      categories: [
+        {
+          id: C,
+          name: 'work',
+          deleted: false,
+          importance: null,
+          color: 'slate',
+          pinned: false,
+          tags: [],
+        },
+      ],
+    });
     vi.spyOn(api, 'settings').mockResolvedValue({
       noteSort: 'newest',
       noteForm: DEFAULT_NOTE_FORM,
@@ -299,7 +311,8 @@ describe('NotesScreen Today view', () => {
     await screen.findByText('overdue note');
     expect(screen.queryByText('plain note')).toBeNull();
     expect(screen.queryByRole('searchbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: /filters/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^filter/i })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Categories' })).toBeNull();
     expect(screen.queryByLabelText('Sort')).toBeNull();
     screen.getByRole('heading', { name: 'Today' });
   });
@@ -308,6 +321,9 @@ describe('NotesScreen Today view', () => {
     setup('/?view=bogus');
     await screen.findByText('plain note');
     expect(screen.getAllByText('overdue note').length).toBeGreaterThan(0);
+    // Control assertions: the controls the Today test expects to hide are present here.
+    screen.getByRole('button', { name: /^filter/i });
+    screen.getByRole('list', { name: 'Categories' });
   });
 
   it('keeps view=today in the URL when a card is opened', async () => {
