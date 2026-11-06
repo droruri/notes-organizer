@@ -4,6 +4,7 @@ import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
+import { parseBody } from './checklist';
 import { formatDate, updatedDate } from './formatDate';
 
 export function NoteCardDetails({
@@ -11,11 +12,15 @@ export function NoteCardDetails({
   taxonomy,
   showBody,
   id,
+  onToggleItem,
+  togglePending = false,
 }: {
   note: Note;
   taxonomy: Taxonomy;
   showBody: boolean;
   id: string;
+  onToggleItem?: ((note: Note, index: number) => void) | undefined;
+  togglePending?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const urgent = note.urgency === 'urgent' || note.urgency === 'critical';
@@ -26,12 +31,34 @@ export function NoteCardDetails({
   return (
     <div id={id} className="flex flex-col gap-3">
       {showBody && (
-        <span
-          dir="auto"
-          className="block leading-relaxed break-words whitespace-pre-wrap text-muted"
-        >
-          {note.body}
-        </span>
+        <div className="flex flex-col">
+          {parseBody(note.body).map((line, i) =>
+            line.kind === 'item' ? (
+              <label
+                key={i}
+                dir="auto"
+                className="flex min-h-11 items-center gap-3 leading-relaxed break-words"
+              >
+                <input
+                  type="checkbox"
+                  checked={line.checked}
+                  disabled={togglePending || !onToggleItem}
+                  onChange={() => onToggleItem?.(note, line.index)}
+                  className="size-5 shrink-0"
+                />
+                <span className={line.checked ? 'text-muted line-through' : ''}>{line.text}</span>
+              </label>
+            ) : (
+              <span
+                key={i}
+                dir="auto"
+                className="block min-h-[1lh] leading-relaxed break-words whitespace-pre-wrap text-muted"
+              >
+                {line.text}
+              </span>
+            ),
+          )}
+        </div>
       )}
       <LinkPreviews body={note.body} />
       {note.hasAudio && <AudioPlayer noteId={note.id} />}

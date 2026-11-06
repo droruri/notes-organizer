@@ -19,7 +19,7 @@ status steps · notes list with free-text search, filters and a saved sort · ch
 questions + propose-only taxonomy changes) · import of old notes · offline outbox ·
 Web Share Target · Android app via TWA · hosted deploy.
 
-**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders.
+**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders (being added; see Checklists/Snooze/Reminders epic).
 
 Decisions taken with the user:
 

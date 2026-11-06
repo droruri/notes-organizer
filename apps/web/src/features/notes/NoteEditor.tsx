@@ -21,6 +21,7 @@ import { NavBar } from '../../ui/NavBar';
 import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
+import { checklistProgress, linesToItems, toChecklist } from './checklist';
 import { ChoiceField } from './ChoiceField';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -64,6 +65,10 @@ export function NoteEditor({
   const updated = updatedDate(note.createdAt, note.updatedAt, i18n.language);
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
+  const [undoBody, setUndoBody] = useState<string | null>(null);
+  const bodyItems = linesToItems(body);
+  const canChecklist =
+    undoBody === null && checklistProgress(body) === null && bodyItems.length >= 2;
   const slow = useSlow(busy);
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const noteForm = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
@@ -193,6 +198,25 @@ export function NoteEditor({
             className={`${field} text-fg`}
           />
         </label>
+      )}
+      {(canChecklist || undoBody !== null) && (
+        <button
+          type="button"
+          className="btn btn-sm self-start"
+          onClick={() => {
+            if (undoBody !== null) {
+              setBody(undoBody);
+              setUndoBody(null);
+            } else {
+              setUndoBody(body);
+              setBody(toChecklist(bodyItems));
+            }
+          }}
+        >
+          {undoBody !== null
+            ? t('notes.checklist.undo')
+            : t('notes.checklist.make', { count: bodyItems.length })}
+        </button>
       )}
       <label className="label">
         {t('notes.body')}

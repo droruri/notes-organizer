@@ -155,6 +155,11 @@
       "title": "Continue",
       "more": "More",
       "less": "Less"
+    },
+    "checklist": {
+      "progress": "Checklist progress",
+      "make": "Make checklist ({{count}} items)",
+      "undo": "Undo checklist"
     }
   },
   "categoryStrip": {

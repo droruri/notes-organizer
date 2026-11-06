@@ -10,6 +10,7 @@ import {
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { checklistProgress } from './checklist';
 import { NoteCardDetails } from './NoteCardDetails';
 import { formatDate } from './formatDate';
 
@@ -19,6 +20,7 @@ export function NoteCard({
   today,
   onOpen,
   onStatus,
+  onToggleItem,
   hiddenStatuses,
   statusPending = false,
   workspaceName,
@@ -30,6 +32,7 @@ export function NoteCard({
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
   /** Statuses the status button skips over. */
+  onToggleItem?: ((note: Note, index: number) => void) | undefined;
   hiddenStatuses: readonly NoteStatus[];
   /** This note's status save is in flight. */
   statusPending?: boolean;
@@ -42,6 +45,7 @@ export function NoteCard({
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
   const heading = noteHeading(note);
+  const progress = checklistProgress(note.body);
   const overdue = isOverdue(note, today);
   const tracked = note.status === null || note.status === 'draft' ? null : note.status;
   return (
@@ -113,6 +117,17 @@ export function NoteCard({
             {t(`notes.status.${note.status}`)}
           </span>
         )}
+        {progress && (
+          <span
+            className={`pill ${progress.done === progress.total ? 'bg-transparent text-muted' : ''}`}
+          >
+            <Icon name="check" size={13} />
+            <span className="sr-only">{t('notes.checklist.progress')}: </span>
+            <span className="tabular-nums">
+              {progress.done}/{progress.total}
+            </span>
+          </span>
+        )}
         {workspaceName && (
           <span className="pill bg-transparent text-muted">
             <Icon name="layers" size={13} />
@@ -146,8 +161,10 @@ export function NoteCard({
         <NoteCardDetails
           note={note}
           taxonomy={taxonomy}
-          showBody={!heading.fallback}
+          showBody={!heading.fallback || progress !== null}
           id={detailsId}
+          onToggleItem={onToggleItem}
+          togglePending={statusPending}
         />
       ) : null}
     </li>

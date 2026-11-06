@@ -54,6 +54,7 @@ import { CategoryStrip } from './CategoryStrip';
 import { TodayList } from './TodayList';
 import { todayCount, todayGroups } from './todayGroups';
 import { rankCategories } from './categoryRank';
+import { toggleItem } from './checklist';
 import { NoteList } from './NoteList';
 import { recordOpen } from './recent';
 import { ComposeForm } from './ComposeForm';
@@ -345,7 +346,33 @@ export function NotesScreen({
       await queryClient.invalidateQueries({ queryKey: ['notes'] });
     },
   });
+  const toggle = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: string }) => api.updateNote(id, { body }),
+    onMutate: async ({ id, body }) => {
+      await queryClient.cancelQueries({ queryKey: ['notes'] });
+      const previous = queryClient.getQueryData<Note[]>(['notes']);
+      queryClient.setQueryData<Note[]>(['notes'], (old) =>
+        old?.map((n) => (n.id === id ? { ...n, body } : n)),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['notes'], ctx.previous);
+    },
+    onSuccess: (saved) => {
+      queryClient.setQueryData<Note[]>(['notes'], (old) =>
+        old?.map((n) => (n.id === saved.id ? saved : n)),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
+  });
+  const pendingId = changeStatus.isPending
+    ? changeStatus.variables.id
+    : toggle.isPending
+      ? toggle.variables.id
+      : undefined;
   const clearErrors = () => {
+    toggle.reset();
     submit.reset();
     remove.reset();
     changeStatus.reset();
@@ -755,10 +782,13 @@ export function NotesScreen({
               open(notePath(note.id));
             }}
             onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+            onToggleItem={(note, index) =>
+              toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
+            }
             hiddenStatuses={
               settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
             }
-            statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
+            statusPendingId={pendingId}
           />
         ) : (
           <NoteList
@@ -774,15 +804,18 @@ export function NotesScreen({
               open(notePath(note.id));
             }}
             onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+            onToggleItem={(note, index) =>
+              toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
+            }
             hiddenStatuses={
               settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
             }
-            statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
+            statusPendingId={pendingId}
             onAdd={() => open(ROUTES.compose)}
           />
         )}
       </div>
-      {changeStatus.isError && (
+      {(changeStatus.isError || toggle.isError) && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>

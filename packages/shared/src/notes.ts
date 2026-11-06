@@ -169,7 +169,7 @@ export function noteHeading(note: Pick<Note, 'title' | 'body'>): {
   const title = note.title?.trim();
   if (title) return { text: title, fallback: false };
   const line = note.body.split('\n').find((l) => l.trim() !== '');
-  return { text: line?.trim() ?? '', fallback: true };
+  return { text: (line ?? '').replace(/^\s*[-*] \[[ xX]\] /, '').trim(), fallback: true };
 }
 
 export const NoteList = z.array(Note);

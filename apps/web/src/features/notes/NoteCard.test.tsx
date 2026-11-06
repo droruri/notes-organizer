@@ -282,3 +282,48 @@ describe('NoteCard updated date', () => {
     screen.getByText(/^עודכן /);
   });
 });
+
+describe('NoteCard checklist', () => {
+  const list: Note = { ...note, title: null, body: '- [x] milk\n- [ ] call Dan\nfree text' };
+  function renderList(onToggleItem = vi.fn(), pending = false) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ul>
+          <NoteCard
+            note={list}
+            taxonomy={taxonomy}
+            today="2026-10-25"
+            onOpen={vi.fn()}
+            onStatus={vi.fn()}
+            onToggleItem={onToggleItem}
+            hiddenStatuses={[]}
+            statusPending={pending}
+          />
+        </ul>
+      </QueryClientProvider>,
+    );
+    return onToggleItem;
+  }
+
+  it('shows progress and a heading without the prefix', () => {
+    renderList();
+    expect(screen.getByText('1/2')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'milk' })).toBeTruthy();
+  });
+
+  it('toggles the tapped item when expanded', () => {
+    const onToggle = renderList();
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'call Dan' }));
+    expect(onToggle).toHaveBeenCalledWith(list, 1);
+  });
+
+  it('disables boxes while pending', () => {
+    renderList(vi.fn(), true);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    expect((screen.getByRole('checkbox', { name: 'call Dan' }) as HTMLInputElement).disabled).toBe(
+      true,
+    );
+  });
+});
