@@ -142,7 +142,7 @@ export function NoteCard({
             {t('snooze.until', { date: formatDate(note.snoozedUntil, i18n.language) })}
           </span>
         )}
-        {onSnooze && note.status !== 'done' && note.status !== 'draft' && (
+        {onSnooze && (snoozed || (note.status !== 'done' && note.status !== 'draft')) && (
           <button
             type="button"
             aria-label={t('snooze.button')}

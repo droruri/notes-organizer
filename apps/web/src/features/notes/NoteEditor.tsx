@@ -3,6 +3,7 @@ import {
   HideableField,
   Importance,
   MAX_TITLE_LENGTH,
+  isSnoozed,
   Urgency,
   raiseImportance,
   type Note,
@@ -355,7 +356,7 @@ export function NoteEditor({
         {today !== undefined && note.status !== 'draft' && (
           <button type="button" onClick={() => setSnoozing(true)} className="btn">
             <Icon name="clock" size={16} />
-            {snoozedUntil !== null && snoozedUntil > today
+            {snoozedUntil !== null && isSnoozed({ snoozedUntil }, today)
               ? t('snooze.until', { date: formatDate(snoozedUntil, i18n.language) })
               : t('snooze.button')}
           </button>

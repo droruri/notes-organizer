@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import { isOpen, type Note } from '@notes/shared';
+import { isOpen, isSnoozed, type Note } from '@notes/shared';
 import { z } from 'zod';
 
 const KEY = 'recentNotes';
@@ -62,13 +62,20 @@ export function continueNotes(notes: Note[], recentIds: string[], today: string)
   const seen = new Set<string>();
   for (const id of recentIds) {
     const n = byId.get(id);
-    if (!n || seen.has(id)) continue;
+    if (!n || seen.has(id) || isSnoozed(n, today)) continue;
     seen.add(id);
     picked.push(n);
     if (picked.length === RECENT) break;
   }
   const due = notes
-    .filter((n) => !seen.has(n.id) && n.dueDate !== null && n.dueDate <= today && isOpen(n.status))
+    .filter(
+      (n) =>
+        !seen.has(n.id) &&
+        n.dueDate !== null &&
+        n.dueDate <= today &&
+        isOpen(n.status) &&
+        !isSnoozed(n, today),
+    )
     .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
   return [...picked, ...due].slice(0, MAX);
 }
