@@ -25,7 +25,7 @@ export const PushEnv = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default('mailto:admin@example.com'),
-  PUSH_FAKE: z.string().optional(),
+  PUSH_FAKE: z.enum(['0', '1']).optional(),
 });
 export type PushEnv = z.infer<typeof PushEnv>;
 
@@ -44,7 +44,7 @@ export function withPushLogging(push: Push): Push {
 }
 
 export function createPush(env: PushEnv): Push {
-  if (env.PUSH_FAKE) return createFakePush();
+  if (env.PUSH_FAKE === '1') return createFakePush();
   const { VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: privateKey } = env;
   if (!publicKey || !privateKey) {
     return { enabled: false, send: async () => ({ ok: false, gone: false }) };

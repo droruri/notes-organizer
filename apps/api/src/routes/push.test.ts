@@ -138,6 +138,15 @@ describe.skipIf(!databaseUrl)('/push routes against the local stack', () => {
     expect(JSON.stringify(lines)).not.toContain('/send/dead');
   });
 
+  it('rate-limits /push/test to 5 a minute per user', async () => {
+    // OTHER_USER only: ALLOWED_USER's budget is spent by the tests above.
+    const statuses: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      statuses.push((await post('other', '/push/test', {})).statusCode);
+    }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+  });
+
   it('saves timezone and reminderHour, rejects an invalid timezone', async () => {
     const put = (payload: object) =>
       app.inject({ method: 'PUT', url: '/settings', headers: as('allowed'), payload });

@@ -15,6 +15,7 @@ describe('push port', () => {
   it('is disabled without VAPID keys and enabled with PUSH_FAKE', () => {
     expect(createPush(PushEnv.parse({})).enabled).toBe(false);
     expect(createPush(PushEnv.parse({ PUSH_FAKE: '1' })).enabled).toBe(true);
+    expect(createPush(PushEnv.parse({ PUSH_FAKE: '0' })).enabled).toBe(false);
   });
 
   it('the logging decorator passes results through', async () => {
