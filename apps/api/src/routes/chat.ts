@@ -2,6 +2,7 @@ import { ChatRequest } from '@notes/shared';
 import type { FastifyInstance } from 'fastify';
 import type { Ai } from '../ai/provider';
 import { currentUser } from '../auth';
+import { log } from '../requestLog';
 import type { Db } from '../db';
 import { llmRateLimit } from './rateLimit';
 import { chatArgs, proposedActions } from '../domain/chat/agent';
@@ -12,7 +13,13 @@ export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai, webOrigin: stri
     const body = ChatRequest.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
     if (!isTodayPlausible(body.data.today)) return reply.code(400).send({ error: 'invalid_today' });
-    const result = ai.chat(chatArgs({ db, userId: currentUser(req).id }, body.data));
+    let result: ReturnType<Ai['chat']>;
+    try {
+      result = ai.chat(await chatArgs({ db, userId: currentUser(req).id }, body.data));
+    } catch {
+      log().warn({ stage: 'chat_args' }, 'chat setup failed');
+      return reply.code(500).send({ error: 'chat_failed' });
+    }
     reply.hijack();
     const raw = reply.raw;
     raw.writeHead(200, {

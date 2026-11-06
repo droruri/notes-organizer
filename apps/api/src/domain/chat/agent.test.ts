@@ -5,6 +5,7 @@ import {
   MAX_MESSAGES,
   MAX_STEPS,
   chatArgs,
+  listTaxonomy,
   proposedActions,
   ProposeChangeInput,
 } from './agent';
@@ -136,8 +137,54 @@ describe('chat agent tools', () => {
     expect(row).toMatchObject({ id: N1, title: 'Dentist' });
   });
 
-  it('list_taxonomy returns usable categories with tags', async () => {
-    const list = await buildTools({ db, userId: ME, today }).listTaxonomy();
+  it('system prompt lists usable taxonomy with ids and colors, and nothing else', async () => {
+    const args = await chatArgs({ db, userId: ME }, { messages: [], today, locale: 'en' });
+    expect(args.system).toContain(`category ${C1} | Work | slate`);
+    expect(args.system).toContain(`${T1}: urgent-ish`);
+    const other = await chatArgs(
+      { db, userId: 'other-user' },
+      { messages: [], today, locale: 'en' },
+    );
+    expect(other.system).not.toContain(C1);
+    expect(Object.keys(args.tools)).not.toContain('list_taxonomy');
+  });
+
+  it('system prompt omits deleted categories, tags of deleted categories, and newlines', async () => {
+    const D = 'd3333333-3333-4333-8333-333333333333';
+    const db3 = fakeDb({
+      [ME]: {
+        notes: [],
+        cats: [
+          { ...cat(C1, 'Wo\nrk'), deleted: false },
+          { ...cat(D, 'Gone'), deleted: true },
+        ],
+        tags: [
+          { id: T1, categoryId: C1, name: 'ok', deleted: false },
+          {
+            id: 'e4444444-4444-4444-8444-444444444444',
+            categoryId: D,
+            name: 'orphan',
+            deleted: false,
+          },
+          {
+            id: 'f5555555-5555-4555-8555-555555555555',
+            categoryId: C1,
+            name: 'dead',
+            deleted: true,
+          },
+        ],
+      },
+    });
+    const { system } = await chatArgs(
+      { db: db3, userId: ME },
+      { messages: [], today, locale: 'en' },
+    );
+    expect(system).toContain(`category ${C1} | Wo rk | slate`);
+    for (const x of ['Gone', 'orphan', 'dead']) expect(system).not.toContain(x);
+  });
+
+  it('list taxonomy returns usable categories with tags', async () => {
+    const list = await listTaxonomy(db, ME);
     expect(list.map((c) => c.name).sort()).toEqual(['Home', 'Work']);
     expect(list.find((c) => c.id === C1)?.color).toBe('slate');
     expect(list.find((c) => c.id === C1)?.tags).toEqual([{ id: T1, name: 'urgent-ish' }]);
@@ -148,8 +195,8 @@ describe('chat agent tools', () => {
     expect(JSON.stringify(Object.values(tools).map((t) => t.inputSchema))).not.toMatch(/user_?id/i);
   });
 
-  it('keeps the last 20 messages, 6 steps, and the locale', () => {
-    const args = chatArgs(
+  it('keeps the last 20 messages, 6 steps, and the locale', async () => {
+    const args = await chatArgs(
       { db, userId: ME },
       {
         messages: Array.from({ length: 30 }, (_, i) => ({

@@ -283,7 +283,8 @@ Rules:
   across the split notes are deduped; the first 30 are read (5 at a time, 15 s budget for the
   whole import); the rest go to Claude as URLs and land in each note's `unreadLinks`.
 - **Agent** (`chat/agent.ts`), tools built per request with `userId` closed over:
-  - `list_taxonomy()` — usable categories with tags.
+  - No `list_taxonomy` tool: the system prompt lists the user's usable categories (id | name |
+    color) and their usable tags (`id: name`), built per request by async `chatArgs`.
   - `find_notes({categoryIds?, tagIds?, statuses?, overdue?, text?, dueBefore?, dueAfter?,
     createdFrom?, createdTo?, unreadLinksOnly?,
     limit ≤ 100})` — loads the user's notes and runs shared `filterNotes` + `sortNotes`; returns
