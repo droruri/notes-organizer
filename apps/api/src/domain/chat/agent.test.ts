@@ -54,15 +54,26 @@ const OTHER = '99999999-9999-4999-8999-999999999999';
 const N1 = 'b1111111-1111-4111-8111-111111111111';
 const N2 = 'b2222222-2222-4222-8222-222222222222';
 const N3 = 'b3333333-3333-4333-8333-333333333333';
+const N5 = 'b5555555-5555-4555-8555-555555555555';
 const N4 = 'b4444444-4444-4444-8444-444444444444';
 const db = fakeDb({
   [ME]: {
     cats: [cat(C1, 'Work'), cat(C2, 'Home')],
     tags: [{ id: T1, categoryId: C1, name: 'urgent-ish', deleted: false }],
     notes: [
-      note(N1, { dueDate: '2026-06-01', categoryIds: [C1], tagIds: [T1] }),
+      note(N1, {
+        dueDate: '2026-06-01',
+        categoryIds: [C1],
+        tagIds: [T1],
+        createdAt: new Date('2026-05-10T12:00:00.000Z'),
+      }),
       note(N2, { dueDate: '2026-06-01', status: 'done', categoryIds: [C1] }),
-      note(N3, { dueDate: '2026-07-01', categoryIds: [C2] }),
+      note(N3, {
+        dueDate: '2026-07-01',
+        categoryIds: [C2],
+        unreadLinks: [{ url: 'https://example.com', title: null }],
+      }),
+      note(N5, { createdAt: new Date('2026-03-10T12:00:00.000Z') }),
     ],
   },
   [OTHER]: { cats: [], tags: [], notes: [note(N4, {})] },
@@ -73,9 +84,30 @@ const ids = (rows: { id: string }[]) => rows.map((r) => r.id).sort();
 describe('chat agent tools', () => {
   it("find_notes only sees the caller's notes", async () => {
     const mine = await buildTools({ db, userId: ME, today }).findNotes({});
-    expect(ids(mine)).toEqual([N1, N2, N3].sort());
+    expect(ids(mine)).toEqual([N1, N2, N3, N5].sort());
     const theirs = await buildTools({ db, userId: OTHER, today }).findNotes({});
     expect(ids(theirs)).toEqual([N4]);
+  });
+
+  it('find_notes created range is inclusive', async () => {
+    const t = buildTools({ db, userId: ME, today });
+    expect(ids(await t.findNotes({ createdFrom: '2026-03-10', createdTo: '2026-03-10' }))).toEqual([
+      N5,
+    ]);
+    expect(ids(await t.findNotes({ createdFrom: '2026-05-10', createdTo: '2026-05-10' }))).toEqual([
+      N1,
+    ]);
+  });
+
+  it('find_notes unreadLinksOnly', async () => {
+    const t = buildTools({ db, userId: ME, today });
+    expect(ids(await t.findNotes({ unreadLinksOnly: true }))).toEqual([N3]);
+  });
+
+  it('find_notes due bounds exclude notes without a due date', async () => {
+    const t = buildTools({ db, userId: ME, today });
+    expect(ids(await t.findNotes({ dueBefore: '2026-06-30' }))).toEqual([N1, N2].sort());
+    expect(ids(await t.findNotes({ dueAfter: '2026-06-02' }))).toEqual([N3]);
   });
 
   it('find_notes overdue skips done notes and future dues', async () => {

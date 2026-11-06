@@ -285,6 +285,7 @@ Rules:
 - **Agent** (`chat/agent.ts`), tools built per request with `userId` closed over:
   - `list_taxonomy()` — usable categories with tags.
   - `find_notes({categoryIds?, tagIds?, statuses?, overdue?, text?, dueBefore?, dueAfter?,
+    createdFrom?, createdTo?, unreadLinksOnly?,
     limit ≤ 100})` — loads the user's notes and runs shared `filterNotes` + `sortNotes`; returns
     rows `id | status | due | importance | urgency | categories | tags | body (≤ 1 000 chars)`.
   - `propose_change(action)` — `create | rename | delete | restore` × `category | tag`, plus

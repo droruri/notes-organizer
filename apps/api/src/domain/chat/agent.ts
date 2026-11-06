@@ -33,6 +33,9 @@ const FindNotesInput = z.object({
   text: z.string().optional(),
   dueBefore: DateString.optional(),
   dueAfter: DateString.optional(),
+  createdFrom: DateString.optional(),
+  createdTo: DateString.optional(),
+  unreadLinksOnly: z.boolean().optional(),
   limit: z.number().int().min(1).max(MAX_FIND_LIMIT).optional(),
 });
 type FindNotesInput = z.infer<typeof FindNotesInput>;
@@ -85,13 +88,15 @@ export function buildTools({ db, userId, today }: { db: Db; userId: string; toda
         statuses: input.statuses ?? [],
         importances: input.importances ?? [],
         urgencies: input.urgencies ?? [],
+        dueFrom: input.dueAfter ?? '',
+        dueTo: input.dueBefore ?? '',
+        createdFrom: input.createdFrom ?? '',
+        createdTo: input.createdTo ?? '',
+        unreadLinksOnly: input.unreadLinksOnly ?? false,
       },
       today,
     );
-    const { dueBefore, dueAfter } = input;
     if (input.overdue) found = found.filter((n) => isOverdue(n, today));
-    if (dueBefore) found = found.filter((n) => n.dueDate !== null && n.dueDate <= dueBefore);
-    if (dueAfter) found = found.filter((n) => n.dueDate !== null && n.dueDate >= dueAfter);
     return sortNotes(found, 'urgency', today)
       .slice(0, input.limit ?? MAX_FIND_LIMIT)
       .map((n) => ({
@@ -192,7 +197,7 @@ export function buildTools({ db, userId, today }: { db: Db; userId: string; toda
     }),
     find_notes: tool({
       description:
-        "Find the user's notes by category, tag, status, importance, urgency, overdue, text or due date. Most urgent first.",
+        "Find the user's notes by category, tag, status, importance, urgency, overdue, text, due date (dueBefore/dueAfter), created date (createdFrom/createdTo, inclusive YYYY-MM-DD; the server's local day, so on a UTC server a note created just after midnight Israel time counts as the previous day) or unreadLinksOnly (notes with unread links). Most urgent first.",
       inputSchema: FindNotesInput,
       execute: findNotes,
     }),
