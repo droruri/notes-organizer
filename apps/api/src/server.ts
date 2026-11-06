@@ -121,7 +121,8 @@ const Env = AiEnv.and(LinkEnv)
       WEB_ORIGIN: z.url(),
       SUPABASE_URL: z.url(),
       ALLOWED_EMAILS: z.string().min(1),
-      CRON_SECRET: z.string().min(1).optional(),
+      // An empty line (`CRON_SECRET=`) means unset, not a failed boot.
+      CRON_SECRET: z.string().optional(),
       PORT: z.coerce.number().int().positive().default(3000),
     }),
   );
@@ -136,7 +137,7 @@ async function main(): Promise<void> {
   const app = buildServer({
     db: createPool(env.data.DATABASE_URL),
     push,
-    cronSecret: env.data.CRON_SECRET,
+    cronSecret: env.data.CRON_SECRET || undefined,
     ai: createAi(env.data),
     links: createLinkReader({ jinaApiKey: env.data.JINA_API_KEY }),
     verifyToken: createTokenVerifier(env.data.SUPABASE_URL),

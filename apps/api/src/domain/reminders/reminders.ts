@@ -28,7 +28,7 @@ const DUE_SQL = `
     from notes n
     join s on s.user_id = n.user_id
    where n.deleted_at is null
-     and n.status in ('todo', 'in_progress')
+     and (n.status is null or n.status in ('todo', 'in_progress'))
      and (n.snoozed_until is null or n.snoozed_until <= ($1::timestamptz at time zone s.timezone)::date)
      and n.due_date = ($1::timestamptz at time zone s.timezone)::date
      and extract(hour from ($1::timestamptz at time zone s.timezone)) >= coalesce(s.reminder_hour, 8)
@@ -61,17 +61,21 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
     let gone = 0;
     for (const c of due.rows) {
       if (sent >= MAX_SENDS_PER_RUN) break;
+      const subs = await db.query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
+        'select id, endpoint, p256dh, auth from push_subscriptions where user_id = $1',
+        [c.user_id],
+      );
+      // Check the cap before claiming: a claimed slot with no send would never be retried.
+      if (sent + subs.rows.length > MAX_SENDS_PER_RUN) break;
       const claim = await db.query(
         `insert into reminder_sends (note_id, kind, slot) values ($1, 'due', $2)
          on conflict do nothing returning note_id`,
         [c.note_id, c.slot],
       );
       if (claim.rowCount === 0) continue;
-      const subs = await db.query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
-        'select id, endpoint, p256dh, auth from push_subscriptions where user_id = $1',
-        [c.user_id],
-      );
-      const title = noteHeading({ title: c.title, body: c.body }).text.slice(0, MAX_TITLE);
+      const title = Array.from(noteHeading({ title: c.title, body: c.body }).text)
+        .slice(0, MAX_TITLE)
+        .join('');
       const goneIds: string[] = [];
       for (const sub of subs.rows) {
         const result = await push.send(sub, { kind: 'due', noteId: c.note_id, title });

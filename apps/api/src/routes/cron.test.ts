@@ -172,6 +172,20 @@ describe.skipIf(!databaseUrl)('due reminders against the local stack', () => {
     expect((await runReminders(pool, fake, AFTER)).sent).toBe(5);
   });
 
+  it('counts every device toward the 200 cap', async () => {
+    await pool.query(
+      `insert into push_subscriptions (user_id, endpoint, p256dh, auth) values ($1, $2, 'a', 'b')`,
+      [USER.id, 'https://cron-push.example.net/second-device'],
+    );
+    await pool.query(
+      `insert into notes (user_id, client_id, body, status, due_date, workspace_id)
+       select $1, gen_random_uuid(), 'n' || g, 'todo', $2, $3 from generate_series(1, 101) g`,
+      [USER.id, TODAY, workspaceId],
+    );
+    // Two devices per note: 100 notes fill the cap exactly; the 101st would exceed it.
+    expect((await runReminders(pool, fake, AFTER)).sent).toBe(MAX_SENDS_PER_RUN);
+  });
+
   it('logs the run', async () => {
     await addNote();
     await run();
