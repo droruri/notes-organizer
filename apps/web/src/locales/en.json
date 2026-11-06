@@ -444,5 +444,18 @@
     "invalidName": "The name can't be empty",
     "isDefault": "The default workspace can't be deleted",
     "notFound": "This workspace no longer exists"
+  },
+  "snooze": {
+    "title": "Not now",
+    "tomorrow": "Tomorrow",
+    "weekend": "Weekend",
+    "nextWeek": "Next week",
+    "pick": "Pick a date",
+    "wake": "Wake now",
+    "filter": "Snoozed",
+    "button": "Snooze",
+    "until": "Snoozed until {{date}}",
+    "toast": "Snoozed until {{date}}",
+    "woke": "Note is back"
   }
 }

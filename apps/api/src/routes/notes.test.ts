@@ -365,6 +365,28 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     expect(JSON.stringify(logged.lines)).not.toContain('very secret text');
   });
 
+  it('sets and clears snoozedUntil and logs it', async () => {
+    const id = await submitted('snooze me');
+    const logged = captureLogs({
+      db: pool,
+      verifyToken,
+      allowedEmails: new Set([ME.email, OTHER.email]),
+    });
+    const patch = (payload: object) =>
+      logged.app.inject({ method: 'PATCH', url: `/notes/${id}`, headers: mine, payload });
+    const set = await patch({ snoozedUntil: '2099-01-02' });
+    expect(Note.parse(set.json()).snoozedUntil).toBe('2099-01-02');
+    const list = NoteList.parse((await send(mine, 'GET', '/notes')).json());
+    expect(list.find((n) => n.id === id)?.snoozedUntil).toBe('2099-01-02');
+    const cleared = await patch({ snoozedUntil: null });
+    expect(Note.parse(cleared.json()).snoozedUntil).toBeNull();
+    expect((await patch({ snoozedUntil: 'tomorrow' })).statusCode).toBe(400);
+    await logged.app.close();
+    const updates = logged.lines.filter((l) => l.msg === 'note updated');
+    expect(updates.map((l) => l.snoozed)).toEqual([true, false]);
+    expect(JSON.stringify(logged.lines)).not.toContain('snooze me');
+  });
+
   it('soft-deletes, hides from the list, and restores', async () => {
     const id = await submitted('delete me');
     expect((await send(mine, 'DELETE', `/notes/${id}`)).statusCode).toBe(204);
@@ -620,6 +642,7 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
         dueFrom: '',
         dueTo: '',
         unreadLinksOnly: false,
+        snoozedOnly: false,
       },
     });
   });

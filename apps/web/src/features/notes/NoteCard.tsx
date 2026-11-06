@@ -1,5 +1,6 @@
 import {
   isOverdue,
+  isSnoozed,
   nextStatus,
   noteHeading,
   statusClass,
@@ -11,6 +12,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { checklistProgress } from './checklist';
+import { SnoozeSheet } from './SnoozeSheet';
 import { NoteCardDetails } from './NoteCardDetails';
 import { formatDate } from './formatDate';
 
@@ -21,6 +23,7 @@ export function NoteCard({
   onOpen,
   onStatus,
   onToggleItem,
+  onSnooze,
   hiddenStatuses,
   statusPending = false,
   workspaceName,
@@ -33,6 +36,8 @@ export function NoteCard({
   onStatus: (note: Note, status: NoteStatus | null) => void;
   /** Tap on a checklist box: toggle the item on line `index`. */
   onToggleItem?: ((note: Note, index: number) => void) | undefined;
+  /** Snooze until a day; `null` wakes. Omit to hide the snooze button. */
+  onSnooze?: ((note: Note, day: string | null) => void) | undefined;
   /** Statuses the status button skips over. */
   hiddenStatuses: readonly NoteStatus[];
   /** This note's status save is in flight. */
@@ -44,10 +49,12 @@ export function NoteCard({
 }) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [snoozing, setSnoozing] = useState(false);
   const detailsId = useId();
   const heading = noteHeading(note);
   const progress = checklistProgress(note.body);
   const overdue = isOverdue(note, today);
+  const snoozed = isSnoozed(note, today);
   const tracked = note.status === null || note.status === 'draft' ? null : note.status;
   return (
     <li
@@ -129,6 +136,22 @@ export function NoteCard({
             </span>
           </span>
         )}
+        {snoozed && note.snoozedUntil !== null && (
+          <span className="pill bg-transparent text-muted">
+            <Icon name="clock" size={13} />
+            {t('snooze.until', { date: formatDate(note.snoozedUntil, i18n.language) })}
+          </span>
+        )}
+        {onSnooze && (snoozed || (note.status !== 'done' && note.status !== 'draft')) && (
+          <button
+            type="button"
+            aria-label={t('snooze.button')}
+            onClick={() => setSnoozing(true)}
+            className="btn btn-sm text-muted"
+          >
+            <Icon name="clock" size={16} />
+          </button>
+        )}
         {workspaceName && (
           <span className="pill bg-transparent text-muted">
             <Icon name="layers" size={13} />
@@ -158,6 +181,17 @@ export function NoteCard({
             </span>
           ))}
       </div>
+      {snoozing && onSnooze && (
+        <SnoozeSheet
+          today={today}
+          snoozedUntil={note.snoozedUntil}
+          onClose={() => setSnoozing(false)}
+          onPick={(day) => {
+            setSnoozing(false);
+            onSnooze(note, day);
+          }}
+        />
+      )}
       {expanded ? (
         <NoteCardDetails
           note={note}

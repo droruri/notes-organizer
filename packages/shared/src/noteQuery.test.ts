@@ -23,6 +23,7 @@ const note = (o: Partial<Note> = {}): Note => {
     importance: null,
     urgency: null,
     dueDate: null,
+    snoozedUntil: null,
     proposed: null,
     unreadLinks: [],
     categoryIds: [],
@@ -71,6 +72,29 @@ describe('isOverdue', () => {
   it('is false without a due date or when done', () => {
     expect(isOverdue({ dueDate: null, status: 'todo' }, TODAY)).toBe(false);
     expect(isOverdue({ dueDate: '2026-01-01', status: 'done' }, TODAY)).toBe(false);
+  });
+});
+
+describe('snooze', () => {
+  const future = note({ snoozedUntil: '2026-10-26' });
+  const wakesToday = note({ snoozedUntil: TODAY });
+  const plain = note();
+  it('hides snoozed notes until their day', () => {
+    expect(ids(filterNotes([future, wakesToday, plain], f({}), TODAY))).toEqual([
+      wakesToday.id,
+      plain.id,
+    ]);
+  });
+  it('"Snoozed" shows only snoozed notes', () => {
+    expect(ids(filterNotes([future, wakesToday, plain], f({ snoozedOnly: true }), TODAY))).toEqual([
+      future.id,
+    ]);
+  });
+  it('a stored filter without snoozedOnly still parses', () => {
+    const { snoozedOnly: _omit, ...stored } = EMPTY_FILTER;
+    expect(NoteFilter.parse(stored).snoozedOnly).toBe(false);
+    const { text: _text, snoozedOnly: _s, ...saved } = EMPTY_FILTER;
+    expect(SavedFilter.parse(saved).snoozedOnly).toBe(false);
   });
 });
 

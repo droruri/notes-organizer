@@ -40,6 +40,7 @@ describe('continueNotes', () => {
     importance: null,
     urgency: null,
     dueDate: null,
+    snoozedUntil: null,
     proposed: null,
     unreadLinks: [],
     categoryIds: [],
@@ -49,6 +50,22 @@ describe('continueNotes', () => {
     createdAt: '2026-10-01T00:00:00Z',
     updatedAt: '2026-10-02T00:00:00Z',
     ...o,
+  });
+
+  it('skips snoozed notes among recents and due/overdue picks', () => {
+    const snoozedRecent = note(1, { snoozedUntil: '2026-10-30' });
+    const snoozedDue = note(2, {
+      dueDate: '2026-10-20',
+      status: 'todo',
+      snoozedUntil: '2026-10-30',
+    });
+    const openRecent = note(3);
+    const out = continueNotes(
+      [snoozedRecent, snoozedDue, openRecent],
+      [snoozedRecent.id, openRecent.id],
+      '2026-10-25',
+    );
+    expect(out.map((n) => n.id)).toEqual([openRecent.id]);
   });
 
   it('caps at 8: 5 recents first, then due/overdue notes not already shown', () => {

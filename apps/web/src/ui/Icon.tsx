@@ -30,6 +30,12 @@ const PATHS = {
       <path d="M16 3v4M8 3v4M3 10h18" />
     </>
   ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
   menu: (
     <>
       <circle cx="12" cy="5" r="1" />

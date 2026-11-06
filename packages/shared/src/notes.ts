@@ -85,6 +85,8 @@ export const Note = z.object({
   importance: Importance.nullable(),
   urgency: Urgency.nullable(),
   dueDate: DateString.nullable(),
+  /** Hidden from the list and Today until this day (`YYYY-MM-DD`); null = not snoozed. */
+  snoozedUntil: DateString.nullable(),
   proposed: Proposed.nullable(),
   unreadLinks: z.array(z.string()),
   categoryIds: z.array(z.uuid()),
@@ -154,6 +156,8 @@ export const NoteEdit = z.object({
   newCategories: z.array(z.string()).optional(),
   newTags: z.array(NewTag).optional(),
   dueDate: DateString.nullable().optional(),
+  /** `null` wakes the note. */
+  snoozedUntil: DateString.nullable().optional(),
   importance: Importance.nullable().optional(),
   urgency: Urgency.nullable().optional(),
   /** `null` turns status tracking off. */
@@ -241,6 +245,7 @@ export type TaxonomyAction = z.infer<typeof TaxonomyAction>;
 export const NoteChange = NoteEdit.pick({
   status: true,
   dueDate: true,
+  snoozedUntil: true,
   importance: true,
   urgency: true,
   categoryIds: true,

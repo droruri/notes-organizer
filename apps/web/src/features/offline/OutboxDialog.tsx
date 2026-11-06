@@ -17,6 +17,7 @@ const draftOf = (e: OutboxEntry): Note => ({
   importance: null,
   urgency: null,
   dueDate: null,
+  snoozedUntil: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

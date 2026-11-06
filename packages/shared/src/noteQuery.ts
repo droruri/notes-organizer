@@ -22,6 +22,8 @@ export const NoteFilter = z.object({
   dueTo: FilterDate,
   /** Only notes that have at least one unread link. */
   unreadLinksOnly: z.boolean(),
+  /** Only snoozed notes; otherwise snoozed notes are hidden. The default keeps stored filters valid. */
+  snoozedOnly: z.boolean().default(false),
 });
 export type NoteFilter = z.infer<typeof NoteFilter>;
 
@@ -52,6 +54,7 @@ export const EMPTY_FILTER: NoteFilter = {
   dueFrom: '',
   dueTo: '',
   unreadLinksOnly: false,
+  snoozedOnly: false,
 };
 
 /** Case-insensitive, Hebrew niqqud and cantillation marks removed. */
@@ -68,6 +71,11 @@ export function isOverdue(note: Pick<Note, 'dueDate' | 'status'>, today: string)
   return note.dueDate !== null && isOpen(note.status) && note.dueDate < today;
 }
 
+/** Hidden until a later day. Waking day itself is visible. */
+export function isSnoozed(note: Pick<Note, 'snoozedUntil'>, today: string): boolean {
+  return note.snoozedUntil !== null && note.snoozedUntil > today;
+}
+
 /** The viewer's local `YYYY-MM-DD` for a timestamp, matching the date the card displays. */
 const localDay = (iso: string): string => new Date(iso).toLocaleDateString('en-CA');
 
@@ -80,7 +88,7 @@ const inRange = (value: string | null, from: string, to: string): boolean => {
 const anyOf = <T>(selected: T[], has: (x: T) => boolean) =>
   selected.length === 0 || selected.some(has);
 
-export function filterNotes(notes: Note[], filter: NoteFilter, _today: string): Note[] {
+export function filterNotes(notes: Note[], filter: NoteFilter, today: string): Note[] {
   const text = normalizeText(filter.text.trim());
   return notes.filter(
     (n) =>
@@ -94,7 +102,8 @@ export function filterNotes(notes: Note[], filter: NoteFilter, _today: string): 
       anyOf(filter.urgencies, (u) => n.urgency === u) &&
       inRange(localDay(n.createdAt), filter.createdFrom, filter.createdTo) &&
       inRange(n.dueDate, filter.dueFrom, filter.dueTo) &&
-      (!filter.unreadLinksOnly || n.unreadLinks.length > 0),
+      (!filter.unreadLinksOnly || n.unreadLinks.length > 0) &&
+      isSnoozed(n, today) === filter.snoozedOnly,
   );
 }
 

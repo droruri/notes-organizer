@@ -13,6 +13,7 @@ const suggestion = {
   newCategories: [],
   newTags: [],
   dueDate: null,
+  snoozedUntil: null,
   importance: null,
   urgency: null,
   title: null,

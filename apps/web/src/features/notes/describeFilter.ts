@@ -91,5 +91,11 @@ export function describeFilter(filter: NoteFilter, taxonomy: Taxonomy, t: TFunct
       label: t('links.filter'),
       remove: (f) => ({ ...f, unreadLinksOnly: false }),
     });
+  if (filter.snoozedOnly)
+    chips.push({
+      key: 'snoozed',
+      label: t('snooze.filter'),
+      remove: (f) => ({ ...f, snoozedOnly: false }),
+    });
   return chips;
 }

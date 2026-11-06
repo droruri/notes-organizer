@@ -235,6 +235,7 @@ export function updateNote(
           from: result.value.from,
           to: result.value.note.status,
           workspaceChanged: result.value.workspaceChanged,
+          snoozed: typeof edit.snoozedUntil === 'string',
         },
         'note updated',
       );
@@ -297,6 +298,7 @@ async function updateNoteUntimed(
       ...(edit.body !== undefined ? { body: edit.body } : {}),
       ...(edit.title !== undefined ? { title: edit.title || null } : {}),
       ...(edit.dueDate !== undefined ? { dueDate: edit.dueDate } : {}),
+      ...(edit.snoozedUntil !== undefined ? { snoozedUntil: edit.snoozedUntil } : {}),
       ...(edit.importance !== undefined ? { importance: edit.importance } : {}),
       ...(edit.urgency !== undefined ? { urgency: edit.urgency } : {}),
       ...(edit.unreadLinks !== undefined ? { unreadLinks: edit.unreadLinks } : {}),

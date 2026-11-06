@@ -46,6 +46,7 @@ const note = (n: number, body: string, tagIds: string[]): Note => ({
   importance: null,
   urgency: null,
   dueDate: null,
+  snoozedUntil: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

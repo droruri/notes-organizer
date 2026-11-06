@@ -99,6 +99,7 @@ describe.skipIf(!databaseUrl)('workspaces against the local stack', () => {
       dueFrom: '',
       dueTo: '2026-12-31',
       unreadLinksOnly: true,
+      snoozedOnly: false,
     };
 
     it('saves, returns, isolates and clears the filter; text is not stored', async () => {

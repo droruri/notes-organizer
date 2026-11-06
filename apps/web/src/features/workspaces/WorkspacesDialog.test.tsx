@@ -35,6 +35,7 @@ const note = (n: number, body: string, workspaceId: string): Note => ({
   importance: null,
   urgency: null,
   dueDate: null,
+  snoozedUntil: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

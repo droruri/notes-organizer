@@ -3,6 +3,7 @@ import {
   HideableField,
   Importance,
   MAX_TITLE_LENGTH,
+  isSnoozed,
   Urgency,
   raiseImportance,
   type Note,
@@ -26,7 +27,8 @@ import { ChoiceField } from './ChoiceField';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusSelect } from './StatusSelect';
-import { updatedDate } from './formatDate';
+import { formatDate, updatedDate } from './formatDate';
+import { SnoozeSheet } from './SnoozeSheet';
 import { pickedFrom } from './picked';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
 
@@ -45,8 +47,11 @@ export function NoteEditor({
   onDelete,
   attachable,
   workspaces = [],
+  today,
 }: {
   note: Note;
+  /** The viewer's local day; enables the Snooze button. */
+  today?: string | undefined;
   suggestion: Suggestion;
   taxonomy: Taxonomy;
   busy: boolean;
@@ -92,6 +97,8 @@ export function NoteEditor({
   const [picked, setPicked] = useState<Picked>(pickedFrom(suggestion));
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
+  const [snoozedUntil, setSnoozedUntil] = useState(note.snoozedUntil);
+  const [snoozing, setSnoozing] = useState(false);
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
   // Name of the category that raised importance; cleared when the field is changed by hand.
   const [importanceHint, setImportanceHint] = useState<string | null>(null);
@@ -160,6 +167,7 @@ export function NoteEditor({
       body,
       ...picked,
       dueDate: dueDate || null,
+      ...(snoozedUntil !== note.snoozedUntil ? { snoozedUntil } : {}),
       importance,
       urgency,
       status: tracksStatus ? status : null,
@@ -345,6 +353,14 @@ export function NoteEditor({
         <button type="button" onClick={onCancel} className="btn btn-ghost max-lg:hidden">
           {t('notes.cancel')}
         </button>
+        {today !== undefined && note.status !== 'draft' && (
+          <button type="button" onClick={() => setSnoozing(true)} className="btn">
+            <Icon name="clock" size={16} />
+            {snoozedUntil !== null && isSnoozed({ snoozedUntil }, today)
+              ? t('snooze.until', { date: formatDate(snoozedUntil, i18n.language) })
+              : t('snooze.button')}
+          </button>
+        )}
         {onReanalyze && (
           <button type="button" onClick={reanalyze} disabled={analyzing} className="btn">
             {analyzing ? (
@@ -364,6 +380,17 @@ export function NoteEditor({
           </button>
         )}
       </div>
+      {snoozing && today !== undefined && (
+        <SnoozeSheet
+          today={today}
+          snoozedUntil={snoozedUntil}
+          onClose={() => setSnoozing(false)}
+          onPick={(day) => {
+            setSnoozedUntil(day);
+            setSnoozing(false);
+          }}
+        />
+      )}
       {updated && (
         <p className="text-xs text-muted tabular-nums">
           {t('notes.updated')} {updated}
