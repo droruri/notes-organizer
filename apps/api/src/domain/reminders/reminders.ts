@@ -32,7 +32,7 @@ const DUE_SQL = `
     join s on s.user_id = n.user_id
    where n.deleted_at is null
      and (n.status is null or n.status in ('todo', 'in_progress'))
-     and (n.snoozed_until is null or n.snoozed_until <= ($1::timestamptz at time zone s.timezone)::date)
+     and (n.snoozed_until is null or n.snoozed_until < ($1::timestamptz at time zone s.timezone)::date)
      and n.due_date = ($1::timestamptz at time zone s.timezone)::date
      and extract(hour from ($1::timestamptz at time zone s.timezone)) >= coalesce(s.reminder_hour, 8)
      and not exists (select 1 from reminder_sends r
