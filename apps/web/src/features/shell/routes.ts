@@ -15,6 +15,9 @@ export const ROUTES = {
 /** The edit page of one note. */
 export const notePath = (id: string) => `/notes/${encodeURIComponent(id)}`;
 
+/** The Today view: the notes list in its grouped due / in-progress mode. */
+export const todayPath = `${ROUTES.notes}?view=today`;
+
 /** The notes list filtered to one tag. */
 export const tagPath = (id: string) => `${ROUTES.notes}?tag=${encodeURIComponent(id)}`;
 
@@ -37,6 +40,7 @@ export const isPushedPath = (pathname: string) =>
 
 export type NavId =
   | 'notes'
+  | 'today'
   | 'chat'
   | 'workspaces'
   | 'more'
@@ -58,6 +62,7 @@ export const NAV_ITEMS: readonly {
   adminOnly?: boolean;
 }[] = [
   { id: 'notes', icon: 'note', label: 'notes.title', group: 'tab' },
+  { id: 'today', icon: 'calendar', label: 'today.title', group: 'tab' },
   { id: 'chat', icon: 'spark', label: 'chat.open', group: 'tab' },
   { id: 'workspaces', icon: 'layers', label: 'workspaces.menu', group: 'tab' },
   { id: 'more', icon: 'menu', label: 'app.menu', group: 'tab' },

@@ -32,4 +32,30 @@ describe('Sidebar', () => {
     expect(onSwitch).toHaveBeenCalledWith('b');
     expect(screen.getByRole('menuitem', { name: i18n.t('auth.signOut') })).toBeTruthy();
   });
+
+  it('marks Today active on /?view=today and not Notes, and the reverse on /', () => {
+    const active = (entry: string) => {
+      const { unmount } = render(
+        <MemoryRouter initialEntries={[entry]}>
+          <Sidebar
+            workspaces={[]}
+            currentId={undefined}
+            onSwitch={vi.fn()}
+            onManage={vi.fn()}
+            onPick={vi.fn()}
+            onSignOut={vi.fn()}
+            isAdmin={false}
+          />
+        </MemoryRouter>,
+      );
+      const names = screen
+        .getAllByRole('button')
+        .filter((b) => b.getAttribute('aria-current') === 'page')
+        .map((b) => b.textContent);
+      unmount();
+      return names;
+    };
+    expect(active('/?view=today')).toEqual([i18n.t('today.title')]);
+    expect(active('/')).toEqual([i18n.t('notes.title')]);
+  });
 });

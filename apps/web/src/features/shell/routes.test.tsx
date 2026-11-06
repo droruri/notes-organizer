@@ -41,9 +41,9 @@ describe('isPushedPath', () => {
 });
 
 describe('NAV_ITEMS', () => {
-  it('has the four tab items and the more group', () => {
+  it('has the five tab items and the more group', () => {
     const tabs = NAV_ITEMS.filter((i) => i.group === 'tab').map((i) => i.id);
-    expect(tabs).toEqual(['notes', 'chat', 'workspaces', 'more']);
+    expect(tabs).toEqual(['notes', 'today', 'chat', 'workspaces', 'more']);
   });
 });
 

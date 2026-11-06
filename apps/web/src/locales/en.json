@@ -243,6 +243,15 @@
     "reader": "Reader view",
     "original": "Open original"
   },
+  "today": {
+    "title": "Today",
+    "overdue": "Overdue",
+    "dueToday": "Due today",
+    "inProgress": "In progress",
+    "upcoming": "Next 7 days",
+    "empty": "Nothing due. Enjoy the quiet.",
+    "allNotes": "All notes"
+  },
   "chat": {
     "loading": "Loading…",
     "title": "Ask about your notes",

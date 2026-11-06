@@ -1,9 +1,9 @@
 import type { Workspace } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Icon } from '../../ui/Icon';
 import { AppMenu } from './AppMenu';
-import { NAV_ITEMS, ROUTES, type NavId } from './routes';
+import { NAV_ITEMS, ROUTES, todayPath, type NavId } from './routes';
 
 type Actions = {
   onPick: (id: NavId) => void;
@@ -27,11 +27,17 @@ export function Sidebar({
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const isToday = useSearchParams()[0].get('view') === 'today';
   const newNote = () => void navigate(ROUTES.compose);
-  const link = (id: 'notes' | 'chat', to: string) => {
+  const link = (id: 'notes' | 'today' | 'chat', to: string) => {
     const item = NAV_ITEMS.find((i) => i.id === id);
     if (!item) return null;
-    const active = pathname === to;
+    const active =
+      id === 'notes'
+        ? pathname === to && !isToday
+        : id === 'today'
+          ? pathname === ROUTES.notes && isToday
+          : pathname === to;
     return (
       <button
         key={id}
@@ -59,6 +65,7 @@ export function Sidebar({
       </button>
       <nav aria-label={t('app.name')} className="flex flex-col gap-0.5">
         {link('notes', ROUTES.notes)}
+        {link('today', todayPath)}
         {link('chat', ROUTES.chat)}
       </nav>
       <section aria-label={t('workspaces.menu')} className="flex flex-col gap-0.5">

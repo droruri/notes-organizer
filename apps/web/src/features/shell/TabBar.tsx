@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { Icon } from '../../ui/Icon';
 import { NAV_ITEMS, ROUTES, isPushedPath, type NavId } from './routes';
 
@@ -9,8 +9,14 @@ const TAB_ITEMS = NAV_ITEMS.filter((i) => i.group === 'tab');
 export function TabBar({ onPick }: { onPick: (id: NavId) => void }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  const view = useSearchParams()[0].get('view');
   if (isPushedPath(pathname)) return null;
-  const current: NavId = pathname === ROUTES.chat ? 'chat' : 'notes';
+  const current: NavId =
+    pathname === ROUTES.chat
+      ? 'chat'
+      : pathname === ROUTES.notes && view === 'today'
+        ? 'today'
+        : 'notes';
   return (
     <nav
       aria-label={t('app.name')}

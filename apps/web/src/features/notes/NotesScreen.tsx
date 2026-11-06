@@ -27,7 +27,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { Navigate, useLocation, useMatch, useNavigate } from 'react-router';
+import { Navigate, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router';
 import { api, ApiNetworkError } from '../../lib/api';
 import { syncNotes } from '../../lib/noteStore';
 import type { ImportResult } from '../import/ImportDialog';
@@ -51,6 +51,8 @@ import { NoteEditor } from './NoteEditor';
 import { NoteFilters } from './NoteFilters';
 import { ContinueRow } from './ContinueRow';
 import { CategoryStrip } from './CategoryStrip';
+import { TodayList } from './TodayList';
+import { todayCount, todayGroups } from './todayGroups';
 import { rankCategories } from './categoryRank';
 import { NoteList } from './NoteList';
 import { recordOpen } from './recent';
@@ -103,6 +105,8 @@ export function NotesScreen({
   const goBack = useGoBack();
   const [titleSentinel, titleCollapsed] = useScrolledPast<HTMLDivElement>();
   const { pathname, search, state } = useLocation();
+  // The URL is untrusted: only exactly `view=today` switches the list to the Today view.
+  const todayMode = useSearchParams()[0].get('view') === 'today';
   const chatOpen = pathname === ROUTES.chat;
   const importing = pathname === ROUTES.import;
   const editId = useMatch('/notes/:id')?.params.id;
@@ -543,8 +547,12 @@ export function NotesScreen({
     : undefined;
   const deferredFilter = { ...filter, text: deferredText };
   const visible = sortNotes(filterNotes(inWorkspace, deferredFilter, today), sort, today);
+  const groups = todayMode ? todayGroups(inWorkspace, today, sort) : null;
+  const shownCount = groups ? todayCount(groups) : visible.length;
   const showContinue =
-    filter.text === '' && sameFilter(filter, { ...EMPTY_FILTER, ...workspace?.defaultFilter });
+    !todayMode &&
+    filter.text === '' &&
+    sameFilter(filter, { ...EMPTY_FILTER, ...workspace?.defaultFilter });
   const listKey = JSON.stringify([deferredFilter, sort, workspace?.id, acrossWorkspaces]);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return slots(
@@ -579,10 +587,10 @@ export function NotesScreen({
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col">
           <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
-            {workspace?.name ?? t('notes.title')}
+            {todayMode ? t('today.title') : (workspace?.name ?? t('notes.title'))}
           </h2>
           <p className="text-sm text-muted tabular-nums">
-            {t('notes.count', { count: visible.length })}
+            {t('notes.count', { count: shownCount })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -633,77 +641,83 @@ export function NotesScreen({
           </div>
         </div>
       </div>
-      <div className="max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:-mx-4 max-lg:bg-bg/90 max-lg:px-4 max-lg:pb-2 max-lg:backdrop-blur-md">
-        <div
-          aria-hidden="true"
-          data-collapsed={titleCollapsed ? '' : undefined}
-          className="grid grid-rows-[0fr] overflow-hidden transition-[grid-template-rows] duration-150 data-[collapsed]:grid-rows-[1fr] lg:hidden"
-        >
-          <p className="min-h-0 truncate pt-[env(safe-area-inset-top)] text-center text-base leading-10 font-semibold">
-            {workspace?.name ?? t('notes.title')}
-          </p>
+      {!todayMode && (
+        <div className="max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:-mx-4 max-lg:bg-bg/90 max-lg:px-4 max-lg:pb-2 max-lg:backdrop-blur-md">
+          <div
+            aria-hidden="true"
+            data-collapsed={titleCollapsed ? '' : undefined}
+            className="grid grid-rows-[0fr] overflow-hidden transition-[grid-template-rows] duration-150 data-[collapsed]:grid-rows-[1fr] lg:hidden"
+          >
+            <p className="min-h-0 truncate pt-[env(safe-area-inset-top)] text-center text-base leading-10 font-semibold">
+              {workspace?.name ?? t('notes.title')}
+            </p>
+          </div>
+          <NoteFilters
+            filter={filter}
+            onChange={setFilter}
+            taxonomy={taxonomy.data}
+            allWorkspaces={acrossWorkspaces}
+            sheetOpen={filtersOpen}
+            onSheetOpenChange={setFiltersOpen}
+            notes={inWorkspaceForSearch}
+            ranked={ranked}
+            onOpenNote={(id) => open(notePath(id))}
+            onSmartSearch={smartSearch}
+            smartPending={smartPending}
+            understood={understood === filter}
+            onAllWorkspaces={setAllWorkspaces}
+            showAllWorkspaces={showAllWorkspaces}
+            savedDefault={workspace?.defaultFilter ?? null}
+            {...(workspace && {
+              onSaveDefault: () => {
+                const { text: _text, ...defaultFilter } = filter;
+                saveDefault.mutate({ id: workspace.id, defaultFilter });
+              },
+            })}
+            sort={
+              <label className="flex items-center gap-2 text-sm text-muted">
+                <span className="shrink-0">{t('notes.sort.label')}</span>
+                <select
+                  value={sort}
+                  onChange={(e) => {
+                    const next = NoteSort.safeParse(e.target.value);
+                    if (next.success) saveSort.mutate({ noteSort: next.data });
+                  }}
+                  className="field min-h-11 w-auto py-1 text-sm text-fg"
+                >
+                  {NoteSort.options.map((o) => (
+                    <option key={o} value={o}>
+                      {t(`notes.sort.${o}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            }
+          />
         </div>
-        <NoteFilters
-          filter={filter}
-          onChange={setFilter}
-          taxonomy={taxonomy.data}
-          allWorkspaces={acrossWorkspaces}
-          sheetOpen={filtersOpen}
-          onSheetOpenChange={setFiltersOpen}
-          notes={inWorkspaceForSearch}
-          ranked={ranked}
-          onOpenNote={(id) => open(notePath(id))}
-          onSmartSearch={smartSearch}
-          smartPending={smartPending}
-          understood={understood === filter}
-          onAllWorkspaces={setAllWorkspaces}
-          showAllWorkspaces={showAllWorkspaces}
-          savedDefault={workspace?.defaultFilter ?? null}
-          {...(workspace && {
-            onSaveDefault: () => {
-              const { text: _text, ...defaultFilter } = filter;
-              saveDefault.mutate({ id: workspace.id, defaultFilter });
-            },
-          })}
-          sort={
-            <label className="flex items-center gap-2 text-sm text-muted">
-              <span className="shrink-0">{t('notes.sort.label')}</span>
-              <select
-                value={sort}
-                onChange={(e) => {
-                  const next = NoteSort.safeParse(e.target.value);
-                  if (next.success) saveSort.mutate({ noteSort: next.data });
-                }}
-                className="field min-h-11 w-auto py-1 text-sm text-fg"
-              >
-                {NoteSort.options.map((o) => (
-                  <option key={o} value={o}>
-                    {t(`notes.sort.${o}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          }
-        />
-      </div>
+      )}
       <p role="status" className="sr-only">
-        {understood === filter
-          ? visible.length === 0
-            ? t('filters.foundNone')
-            : t('filters.found', { count: visible.length })
-          : ''}
+        {todayMode
+          ? ''
+          : understood === filter
+            ? visible.length === 0
+              ? t('filters.foundNone')
+              : t('filters.found', { count: visible.length })
+            : ''}
       </p>
       {smartNotice !== null && smartNotice.text === filter.text && (
         <p role="status" className="notice notice-info">
           {smartNotice.kind === 'offline' ? t('filters.smartOffline') : t('filters.smartFailed')}
         </p>
       )}
-      <CategoryStrip
-        ranked={ranked}
-        filter={filter}
-        onChange={setFilter}
-        onOpenAll={() => setFiltersOpen(true)}
-      />
+      {!todayMode && (
+        <CategoryStrip
+          ranked={ranked}
+          filter={filter}
+          onChange={setFilter}
+          onOpenAll={() => setFiltersOpen(true)}
+        />
+      )}
       {saveSort.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
@@ -727,25 +741,46 @@ export function NotesScreen({
         />
       )}
       <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
-        <NoteList
-          key={listKey}
-          notes={visible}
-          filtered={inWorkspace.length > 0}
-          workspaceNames={workspaceNames}
-          taxonomy={taxonomy.data}
-          today={today}
-          selectedId={editId}
-          onOpen={(note) => {
-            clearErrors();
-            open(notePath(note.id));
-          }}
-          onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-          hiddenStatuses={
-            settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
-          }
-          statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
-          onAdd={() => open(ROUTES.compose)}
-        />
+        {groups ? (
+          <TodayList
+            groups={groups}
+            lang={locale}
+            onAllNotes={() => void navigate({ pathname: ROUTES.notes })}
+            workspaceNames={workspaceNames}
+            taxonomy={taxonomy.data}
+            today={today}
+            selectedId={editId}
+            onOpen={(note) => {
+              clearErrors();
+              open(notePath(note.id));
+            }}
+            onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+            hiddenStatuses={
+              settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
+            }
+            statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
+          />
+        ) : (
+          <NoteList
+            key={listKey}
+            notes={visible}
+            filtered={inWorkspace.length > 0}
+            workspaceNames={workspaceNames}
+            taxonomy={taxonomy.data}
+            today={today}
+            selectedId={editId}
+            onOpen={(note) => {
+              clearErrors();
+              open(notePath(note.id));
+            }}
+            onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+            hiddenStatuses={
+              settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
+            }
+            statusPendingId={changeStatus.isPending ? changeStatus.variables.id : undefined}
+            onAdd={() => open(ROUTES.compose)}
+          />
+        )}
       </div>
       {changeStatus.isError && (
         <p role="alert" className="notice notice-danger">
