@@ -83,36 +83,34 @@ export function RemindersSettings() {
               />
             </label>
           </li>
-          {on && (
-            <>
-              <li className="flex items-center gap-3 px-4 py-3">
-                <label htmlFor="reminder-hour">{t('reminders.hour')}</label>
-                <select
-                  id="reminder-hour"
-                  className="ms-auto"
-                  value={settings.data?.reminderHour ?? DEFAULT_HOUR}
-                  disabled={!settings.data || saveSettings.isPending}
-                  onChange={(e) => saveSettings.mutate({ reminderHour: Number(e.target.value) })}
-                >
-                  {HOURS.map((h) => (
-                    <option key={h} value={h}>
-                      {t('reminders.hourOption', { hour: String(h).padStart(2, '0') })}
-                    </option>
-                  ))}
-                </select>
-              </li>
-              <li className="px-4 py-3">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  disabled={test.isPending}
-                  onClick={() => test.mutate()}
-                >
-                  {test.isPending ? t('reminders.sending') : t('reminders.send')}
-                </button>
-              </li>
-            </>
-          )}
+          <>
+            <li className="flex items-center gap-3 px-4 py-3">
+              <label htmlFor="reminder-hour">{t('reminders.hour')}</label>
+              <select
+                id="reminder-hour"
+                className="ms-auto"
+                value={settings.data?.reminderHour ?? DEFAULT_HOUR}
+                disabled={!settings.data || saveSettings.isPending}
+                onChange={(e) => saveSettings.mutate({ reminderHour: Number(e.target.value) })}
+              >
+                {HOURS.map((h) => (
+                  <option key={h} value={h}>
+                    {t('reminders.hourOption', { hour: String(h).padStart(2, '0') })}
+                  </option>
+                ))}
+              </select>
+            </li>
+            <li className="px-4 py-3">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={!on || test.isPending}
+                onClick={() => test.mutate()}
+              >
+                {test.isPending ? t('reminders.sending') : t('reminders.send')}
+              </button>
+            </li>
+          </>
         </ul>
       )}
       {notice && (
