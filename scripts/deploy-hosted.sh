@@ -1,6 +1,6 @@
 #!/bin/bash
 # One-command hosted deploy (README → "Deploying"): hosted Supabase migrations and Google
-# provider, the Render API service, the Cloudflare Pages site, the two cron-job.org keep-alive
+# provider, the Render API service, the Cloudflare Pages site, the three cron-job.org (keep-alive + reminders)
 # jobs, then a live check. Idempotent — safe to re-run; it finds what exists and updates it.
 #
 # Each part runs only when its keys are in `.env` (see .env.example → "Hosted setup"); a part
@@ -168,7 +168,7 @@ else
   [ -z "$API_URL" ] && echo "  note: API URL unknown (Render skipped, no HOSTED_API_URL) — VITE_API_URL left unset"
   [ -z "$ANON_KEY" ] && echo "  note: Supabase skipped — VITE_SUPABASE_* left unset"
   body=$(jq -n --arg name "$PAGES_PROJECT" --arg owner "$GH_OWNER" --arg repo "$GH_REPO" \
-    --arg api "$API_URL" --arg sb "$SUPABASE_URL_HOSTED" --arg key "$ANON_KEY" '
+    --arg api "$API_URL" --arg vapid "${VAPID_PUBLIC_KEY:-}" --arg sb "$SUPABASE_URL_HOSTED" --arg key "$ANON_KEY" '
     def plain: {type: "plain_text", value: .};
     {
       name: $name, production_branch: "main",
@@ -182,6 +182,7 @@ else
       deployment_configs: { production: { env_vars: (
         { NODE_VERSION: ("24" | plain), PNPM_VERSION: ("10.34.5" | plain) }
         + (if $api != "" then { VITE_API_URL: ($api | plain) } else {} end)
+        + (if $vapid != "" then { VITE_VAPID_PUBLIC_KEY: ($vapid | plain) } else {} end)
         + (if $key != "" then { VITE_SUPABASE_URL: ($sb | plain), VITE_SUPABASE_ANON_KEY: ($key | plain) } else {} end)
       ) } }
     }')
@@ -238,12 +239,17 @@ if [ -n "$RENDER_ID" ]; then
     # PUT replaces the whole set, so this is every variable the API reads on Render.
     envs=$(jq -n --arg db "$DB_URL?sslmode=no-verify" --arg sb "$SUPABASE_URL_HOSTED" --arg web "$WEB_URL" \
       --arg allowed "$ALLOWED_EMAILS" --arg ak "$GOOGLE_GENERATIVE_AI_API_KEY" --arg gk "$GROQ_API_KEY" --arg jk "${JINA_API_KEY:-}" \
+      --arg vpub "${VAPID_PUBLIC_KEY:-}" --arg vpriv "${VAPID_PRIVATE_KEY:-}" --arg vsub "${VAPID_SUBJECT:-}" --arg cron "${CRON_SECRET:-}" \
       --arg cm "${LLM_CLASSIFY_MODEL:-}" --arg chm "${LLM_CHAT_MODEL:-}" \
       '[{key: "NODE_VERSION", value: "24"}, {key: "DATABASE_URL", value: $db},
         {key: "SUPABASE_URL", value: $sb}, {key: "WEB_ORIGIN", value: $web},
         {key: "ALLOWED_EMAILS", value: $allowed},
         {key: "GOOGLE_GENERATIVE_AI_API_KEY", value: $ak}, {key: "GROQ_API_KEY", value: $gk}]
         + (if $jk != "" then [{key: "JINA_API_KEY", value: $jk}] else [] end)
+        # Push reminders: both VAPID keys, or push stays disabled on the API.
+        + (if $vpub != "" and $vpriv != "" then [{key: "VAPID_PUBLIC_KEY", value: $vpub}, {key: "VAPID_PRIVATE_KEY", value: $vpriv}]
+            + (if $vsub != "" then [{key: "VAPID_SUBJECT", value: $vsub}] else [] end) else [] end)
+        + (if $cron != "" then [{key: "CRON_SECRET", value: $cron}] else [] end)
         # Optional: unset, the API falls back to its own default model.
         + (if $cm != "" then [{key: "LLM_CLASSIFY_MODEL", value: $cm}] else [] end)
         + (if $chm != "" then [{key: "LLM_CHAT_MODEL", value: $chm}] else [] end)')
@@ -268,15 +274,17 @@ else
   C=https://api.cron-job.org
   KEEPALIVE="notes-api keep-alive"
   DEEP="notes-api deep"
+  REMINDERS="notes-api reminders"
   if jobs=$(api GET "$C/jobs" "$CRONJOB_API_KEY"); then
-    # upsert <title> <url> <hours json> <minutes json>, matched by title.
+    # upsert <title> <url> <hours json> <minutes json> [secret], matched by title. A secret turns
+    # it into a POST carrying the x-cron-secret header.
     upsert() {
       local job id
-      job=$(jq -n --arg t "$1" --arg u "$2" --argjson h "$3" --argjson mi "$4" '{ job: {
+      job=$(jq -n --arg t "$1" --arg u "$2" --argjson h "$3" --argjson mi "$4" --arg sec "${5:-}" '{ job: ({
         title: $t, url: $u, enabled: true, saveResponses: false,
         schedule: { timezone: "Asia/Jerusalem", expiresAt: 0, hours: $h, minutes: $mi, mdays: [-1], months: [-1], wdays: [-1] },
         notification: { onFailure: true, onSuccess: false, onDisable: true }
-      } }')
+      } + (if $sec != "" then { requestMethod: 1, extendedData: { headers: { "x-cron-secret": $sec } } } else {} end)) }')
       id=$(jq -r --arg t "$1" '.jobs[] | select(.title == $t) | .jobId' <<<"$jobs" | head -1)
       sleep 2 # cron-job.org rate-limits back-to-back calls (HTTP 429)
       if [ -n "$id" ]; then
@@ -290,10 +298,17 @@ else
     # Once a day: one DB query so hosted Supabase never pauses.
     upsert "$DEEP" "$API_URL/health?deep=1" '[12]' '[0]'
 
+    # Every 5 min around the clock: the reminders sender (needs CRON_SECRET on the API too).
+    if [ -n "${CRON_SECRET:-}" ]; then
+      upsert "$REMINDERS" "$API_URL/cron/reminders" '[-1]' "$(jq -nc '[range(0; 60; 5)]')" "$CRON_SECRET"
+    else
+      skip "CRON_SECRET not set — reminders job not touched"
+    fi
+
     # Self-heal: re-enable our jobs if cron-job.org disabled them.
     sleep 2
     if jobs=$(api GET "$C/jobs" "$CRONJOB_API_KEY"); then
-      for id in $(jq -r --arg a "$KEEPALIVE" --arg b "$DEEP" '.jobs[] | select((.title == $a or .title == $b) and (.enabled | not)) | .jobId' <<<"$jobs"); do
+      for id in $(jq -r --arg a "$KEEPALIVE" --arg b "$DEEP" --arg c "$REMINDERS" '.jobs[] | select((.title == $a or .title == $b or .title == $c) and (.enabled | not)) | .jobId' <<<"$jobs"); do
         sleep 2
         api PATCH "$C/jobs/$id" "$CRONJOB_API_KEY" '{"job":{"enabled":true}}' >/dev/null \
           && ok "re-enabled job $id" || fail "could not enable job $id"

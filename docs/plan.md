@@ -17,9 +17,9 @@ the user reviews the **draft** and submits it.
 text and voice notes · Claude draft → review → submit · link previews and in-app video ·
 status steps · notes list with free-text search, filters and a saved sort · chat agent (read
 questions + propose-only taxonomy changes) · import of old notes · offline outbox ·
-Web Share Target · Android app via TWA · hosted deploy.
+Web Share Target · Android app via TWA · hosted deploy · Web Push reminders (due-date morning, remind-at time, snooze return).
 
-**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders beyond Web Push (due-date reminders: `POST /cron/reminders`, hit every 5 min by cron-job.org with `x-cron-secret`; one send per note per due date via `reminder_sends`).
+**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications other than Web Push reminders.
 
 Decisions taken with the user:
 
@@ -402,7 +402,9 @@ and Re-analyze are the safety net.
 Google provider, Render API service (env incl. `GOOGLE_GENERATIVE_AI_API_KEY`, `GROQ_API_KEY`,
 `JINA_API_KEY` when set,
 `ALLOWED_EMAILS`, `SUPABASE_URL`, `WEB_ORIGIN`), Cloudflare Pages for the web, cron-job.org
-keep-alive (`/health` every 14 min 07:00–23:00; `/health?deep=1` daily). Idempotent; each step
+keep-alive (`/health` every 14 min 07:00–23:00; `/health?deep=1` daily) and a reminders job
+(`POST /cron/reminders` every 5 min, header `x-cron-secret`; one send per note per slot via
+`reminder_sends`). VAPID keys, `CRON_SECRET` go to Render, `VITE_VAPID_PUBLIC_KEY` to Pages. Idempotent; each step
 skips with a warning when its key is missing.
 
 Creating accounts and keys is human-only, in a `needs-human` setup issue with exact steps
