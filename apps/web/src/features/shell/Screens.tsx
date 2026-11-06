@@ -13,7 +13,7 @@ import { Sheet } from '../../ui/Sheet';
 import { AppMenu } from './AppMenu';
 import { Sidebar } from './Sidebar';
 import { TabBar } from './TabBar';
-import { ROUTES, type NavId, tagPath, useGoBack } from './routes';
+import { ROUTES, type NavId, tagPath, todayPath, useGoBack } from './routes';
 
 // Taxonomy and the admin-only Users screen are rarely opened, so they load in their own chunks.
 const TaxonomyScreen = lazy(() =>
@@ -44,6 +44,7 @@ export function Screens() {
   const pick = (id: NavId) => {
     const options = { replace: moreOpen };
     if (id === 'notes') void navigate(ROUTES.notes, options);
+    else if (id === 'today') void navigate(todayPath, options);
     else if (id === 'chat') void navigate(ROUTES.chat, options);
     else if (id === 'workspaces') setPicking(true);
     else if (id === 'more') setMoreOpen(true);

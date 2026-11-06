@@ -264,6 +264,77 @@ describe('NotesScreen modes from the URL', () => {
   });
 });
 
+describe('NotesScreen Today view', () => {
+  const setup = (entry: string) => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const due: Note = { ...note(1, 'overdue note', []), dueDate: '2020-01-01' };
+    vi.spyOn(api, 'notes').mockResolvedValue([due, note(2, 'plain note', [])]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({
+      categories: [
+        {
+          id: C,
+          name: 'work',
+          deleted: false,
+          importance: null,
+          color: 'slate',
+          pinned: false,
+          tags: [],
+        },
+      ],
+    });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // oxlint-disable-next-line react/no-multi-comp -- tiny test probe
+    const Where = () => (
+      <p data-testid="where">{`${useLocation().pathname}${useLocation().search}`}</p>
+    );
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[entry]}>
+          <Where />
+          <Routes>
+            <Route path="/" element={<NotesScreen />}>
+              <Route path="notes/:id" element={null} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+
+  it('hides the search, filters and sort and lists only actionable notes', async () => {
+    setup('/?view=today');
+    await screen.findByText('overdue note');
+    expect(screen.queryByText('plain note')).toBeNull();
+    expect(screen.queryByRole('searchbox')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^filter/i })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Categories' })).toBeNull();
+    expect(screen.queryByLabelText('Sort')).toBeNull();
+    screen.getByRole('heading', { name: 'Today' });
+  });
+
+  it('shows the normal list for an unknown view value', async () => {
+    setup('/?view=bogus');
+    await screen.findByText('plain note');
+    expect(screen.getAllByText('overdue note').length).toBeGreaterThan(0);
+    // Control assertions: the controls the Today test expects to hide are present here.
+    screen.getByRole('button', { name: /^filter/i });
+    screen.getByRole('list', { name: 'Categories' });
+  });
+
+  it('keeps view=today in the URL when a card is opened', async () => {
+    setup('/?view=today');
+    fireEvent.click(await screen.findByText('overdue note'));
+    await waitFor(() =>
+      expect(screen.getByTestId('where').textContent).toMatch(/^\/notes\/.+\?view=today$/),
+    );
+  });
+});
+
 describe('NotesScreen status from the list', () => {
   it('saves the next status on tap, keeps the list open and shows the saved note', async () => {
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);

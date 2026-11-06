@@ -338,6 +338,12 @@ and Re-analyze are the safety net.
   (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
   deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
   add-note button (text / record), chat button. Drafts sit at the top with a "draft" badge.
+- **Today view:** `/?view=today` (Today tab on mobile, sidebar link on desktop) is a mode of the
+  main screen: sections Overdue, Due today, In progress, Next 7 days (grouped by date), derived on
+  the client from the notes already synced. A note shows in the first section it matches; drafts and
+  done notes never show. It ignores search, filters, the category strip and the sort control; the
+  saved sort orders the Due today, In progress and Upcoming sections, while Overdue is always
+  oldest due first. It follows the workspace scope. Opening a card keeps `?view=today` in the URL, so Back returns to it.
 - **NoteCard:** body excerpt, created date, due date (red when overdue), importance, urgency,
   status, category and tag chips (deleted ones greyed), link previews, audio player, a
   "link not read" chip per entry in `unreadLinks`.

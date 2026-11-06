@@ -39,6 +39,12 @@ _Avoid_: Completion date, deadline
 A `todo` or `in_progress` note whose due date is before the user's today.
 _Avoid_: Late, expired
 
+**Today view**:
+The main screen in its `?view=today` mode: the open notes of the current workspace that are
+overdue, due today, in progress, or due within 7 days, grouped in that order. A note shows in the
+first group it matches.
+_Avoid_: Dashboard, agenda
+
 **Unread link**:
 A link in a note's body that Claude could not read (paywall, blocked site, private video), so
 the note was classified from the URL alone. Shown with a "link not read" chip until a Re-analyze
