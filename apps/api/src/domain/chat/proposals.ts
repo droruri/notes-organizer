@@ -11,6 +11,8 @@ import type { AgentAction, NoteChange, Taxonomy } from '@notes/shared';
 import { z } from 'zod';
 import type { Db } from '../../db';
 import { timed, log } from '../../requestLog';
+// The repository, not the service: the service's listNotes seeds a default workspace (a write),
+// and a proposal must only read.
 import * as noteRepo from '../notes/repository';
 import * as taxonomy from '../taxonomy/service';
 import { isUsable, normalizeName } from '../taxonomy/taxonomy';
@@ -221,8 +223,10 @@ export function proposeNoteChanges(
     const results = inputs.map((input) => validateNote(tax, byId, input));
     results.forEach((r, index) => {
       if ('error' in r) {
+        // The id comes from LLM output: log it only when it is a real uuid, never raw text.
+        const parsed = z.uuid().safeParse(inputs[index]?.noteId);
         log().warn(
-          { index, noteId: inputs[index]?.noteId, error: r.error },
+          { index, noteId: parsed.success ? parsed.data : undefined, error: r.error },
           'note proposal rejected',
         );
       }

@@ -237,8 +237,9 @@ describe('proposeNoteChanges', () => {
     });
     expect(lines.filter((l) => l.msg === 'note proposal rejected')).toMatchObject([
       { index: 1, noteId: N2, error: 'draft' },
-      { index: 2, noteId: 'nope', error: 'not_found' },
+      { index: 2, error: 'not_found' },
     ]);
+    expect(JSON.stringify(lines)).not.toContain('nope');
     expect(JSON.stringify(lines)).not.toContain('secret body');
     expect(JSON.stringify(lines)).not.toContain('Title b1');
   });
