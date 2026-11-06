@@ -8,6 +8,7 @@ import {
   Urgency,
   NoteStatus,
   DateString,
+  MAX_ACTIONS,
 } from '@notes/shared';
 import type { AgentAction, ChatMessage, Locale, Note } from '@notes/shared';
 import { tool, type ToolSet } from 'ai';
@@ -16,12 +17,17 @@ import type { Db } from '../../db';
 import * as notes from '../notes/service';
 import * as taxonomy from '../taxonomy/service';
 import { isUsable } from '../taxonomy/taxonomy';
-import { MAX_PROPOSALS, ProposeInput, proposeTaxonomyChanges } from './proposals';
+import { ProposeInput, proposeTaxonomyChanges } from './proposals';
 
 export const MAX_STEPS = 6;
 export const MAX_MESSAGES = 20;
 export const MAX_FIND_LIMIT = 100;
 export const MAX_BODY_CHARS = 1000;
+
+/** `propose_change` input: 1–20 changes. Exported so tests parse it directly. */
+export const ProposeChangeInput = z.object({
+  changes: z.array(ProposeInput).min(1).max(MAX_ACTIONS),
+});
 
 const FindNotesInput = z.object({
   categoryIds: z.array(z.string()).optional(),
@@ -110,7 +116,7 @@ export function buildTools({ db, userId, today }: { db: Db; userId: string; toda
     propose_change: tool({
       description:
         'Propose up to 20 changes in one call: adding, renaming, deleting or restoring a category or tag, or recoloring a category (color is one of blue, green, purple, amber, teal, pink, red, slate). Nothing changes until the user approves each card. Returns one result per change, in order: the proposal or an error.',
-      inputSchema: z.object({ changes: z.array(ProposeInput).min(1).max(MAX_PROPOSALS) }),
+      inputSchema: ProposeChangeInput,
       execute: ({ changes }) => proposeTaxonomyChanges(db, userId, changes),
     }),
   } satisfies ToolSet;

@@ -292,7 +292,9 @@ Rules:
     × `category | tag`, plus `recolor` (category only, one of the 8 palette keys); validated in
     `chat/proposals.ts` against one read of the taxonomy; returns one `AgentAction` or `{error}`
     per change, in order. The route streams one `data-actions` part per valid action.
-    **Writes nothing.**
+    **Writes nothing.** Logs: `info { proposed, rejected } 'taxonomy changes proposed'` per call,
+    `warn { index, error } 'proposal rejected'` per rejected change (no names). A captured-log
+    test covers both.
   - `maxSteps` 6; last 20 messages; answer in the request `locale`; ground answers in tool
     results only; note ids cited in the answer are checked before the web renders them.
 - No real model call in any test or in CI.

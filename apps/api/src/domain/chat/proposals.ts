@@ -6,9 +6,6 @@ import { timed, log } from '../../requestLog';
 import * as taxonomy from '../taxonomy/service';
 import { normalizeName } from '../taxonomy/taxonomy';
 
-/** Matches the cap of `ActionsBody`. */
-export const MAX_PROPOSALS = 20;
-
 export const ProposeInput = z.object({
   action: z.enum(['create', 'rename', 'delete', 'restore', 'recolor']),
   kind: z.enum(['category', 'tag']),

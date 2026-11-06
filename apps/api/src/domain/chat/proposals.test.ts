@@ -79,7 +79,7 @@ describe('proposeTaxonomyChanges', () => {
       { action: 'recolor', kind: 'tag', id: T1, color: 'blue' },
       { action: 'recolor', kind: 'category', id: D1, color: 'blue' },
       { action: 'recolor', kind: 'category', id: C1 },
-      { action: 'recolor', kind: 'category', id: C1, color: 'slate' as never },
+      { action: 'recolor', kind: 'category', id: C1, color: 'slate' },
       { action: 'rename', kind: 'tag', id: T1, name: 'later' },
     ]);
     expect(out.map((o) => ('error' in o ? o.error : o.action))).toEqual([

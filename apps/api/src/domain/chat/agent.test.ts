@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 import type { Db } from '../../db';
-import { buildTools, MAX_MESSAGES, MAX_STEPS, chatArgs, proposedActions } from './agent';
+import {
+  buildTools,
+  MAX_MESSAGES,
+  MAX_STEPS,
+  chatArgs,
+  proposedActions,
+  ProposeChangeInput,
+} from './agent';
 
 const ME = '11111111-1111-4111-8111-111111111111';
 const cat = (id: string, name: string) => ({
@@ -160,8 +167,7 @@ describe('chat agent tools', () => {
 });
 
 describe('propose_change tool', () => {
-  const tools = buildTools({ db, userId: ME, today }).tools;
-  const schema = tools.propose_change.inputSchema as import('zod').ZodType;
+  const schema = ProposeChangeInput;
   const one = { action: 'delete', kind: 'category', id: C2 };
 
   it('accepts 1–20 changes only', () => {
