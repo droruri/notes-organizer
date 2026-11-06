@@ -9,8 +9,11 @@ const MAX_TITLE = 80;
 
 export type RemindersResult = { sent: number; gone: number };
 
+type Kind = 'due' | 'time';
+
 type Candidate = {
   note_id: string;
+  kind: Kind;
   slot: string;
   title: string | null;
   body: string;
@@ -24,7 +27,7 @@ const DUE_SQL = `
     select user_id, timezone, reminder_hour from user_settings
      where timezone in (select name from pg_timezone_names)
   )
-  select n.id as note_id, n.due_date::text as slot, n.title, n.body, n.user_id
+  select n.id as note_id, 'due' as kind, n.due_date::text as slot, n.title, n.body, n.user_id
     from notes n
     join s on s.user_id = n.user_id
    where n.deleted_at is null
@@ -36,6 +39,23 @@ const DUE_SQL = `
                       where r.note_id = n.id and r.kind = 'due' and r.slot = n.due_date::text)
      and exists (select 1 from push_subscriptions p where p.user_id = n.user_id)
    order by n.due_date, n.id
+   limit $2`;
+
+// An exact "remind me at" instant that has passed: open, live notes of users with a device.
+// Slot = the instant, so a changed remind_at re-arms the reminder.
+const TIME_SQL = `
+  select n.id as note_id, 'time' as kind,
+         to_char(n.remind_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as slot,
+         n.title, n.body, n.user_id
+    from notes n
+   where n.deleted_at is null
+     and n.remind_at <= $1::timestamptz
+     and (n.status is null or n.status in ('todo', 'in_progress'))
+     and not exists (select 1 from reminder_sends r
+                      where r.note_id = n.id and r.kind = 'time'
+                        and r.slot = to_char(n.remind_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
+     and exists (select 1 from push_subscriptions p where p.user_id = n.user_id)
+   order by n.remind_at, n.id
    limit $2`;
 
 /** Users who have a device but a timezone Postgres doesn't know: counted, never logged by name. */
@@ -56,10 +76,12 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
     const bad = await db.query<{ user_id: string }>(BAD_TZ_SQL);
     for (const _row of bad.rows) log().warn({}, 'reminder candidate skipped');
 
-    const due = await db.query<Candidate>(DUE_SQL, [now.toISOString(), MAX_SENDS_PER_RUN]);
+    const args = [now.toISOString(), MAX_SENDS_PER_RUN];
+    const due = await db.query<Candidate>(DUE_SQL, args);
+    const time = await db.query<Candidate>(TIME_SQL, args);
     let sent = 0;
     let gone = 0;
-    for (const c of due.rows) {
+    for (const c of [...due.rows, ...time.rows]) {
       if (sent >= MAX_SENDS_PER_RUN) break;
       const subs = await db.query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
         'select id, endpoint, p256dh, auth from push_subscriptions where user_id = $1',
@@ -68,9 +90,9 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
       // Check the cap before claiming: a claimed slot with no send would never be retried.
       if (sent + subs.rows.length > MAX_SENDS_PER_RUN) break;
       const claim = await db.query(
-        `insert into reminder_sends (note_id, kind, slot) values ($1, 'due', $2)
+        `insert into reminder_sends (note_id, kind, slot) values ($1, $2, $3)
          on conflict do nothing returning note_id`,
-        [c.note_id, c.slot],
+        [c.note_id, c.kind, c.slot],
       );
       if (claim.rowCount === 0) continue;
       const title = Array.from(noteHeading({ title: c.title, body: c.body }).text)
@@ -78,7 +100,7 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
         .join('');
       const goneIds: string[] = [];
       for (const sub of subs.rows) {
-        const result = await push.send(sub, { kind: 'due', noteId: c.note_id, title });
+        const result = await push.send(sub, { kind: c.kind, noteId: c.note_id, title });
         if (result.ok) sent += 1;
         else if (result.gone) goneIds.push(sub.id);
       }
@@ -88,7 +110,13 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
       }
     }
     log().info(
-      { due: due.rows.length, sent, gone, ms: Math.round(performance.now() - started) },
+      {
+        due: due.rows.length,
+        time: time.rows.length,
+        sent,
+        gone,
+        ms: Math.round(performance.now() - started),
+      },
       'reminders run',
     );
     return { sent, gone };

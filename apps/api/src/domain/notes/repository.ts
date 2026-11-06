@@ -25,7 +25,8 @@ const NOTE_SELECT = `
     n.workspace_id as "workspaceId",
     n.importance, n.urgency,
     to_char(n.due_date, 'YYYY-MM-DD') as "dueDate",
-    to_char(n.snoozed_until, 'YYYY-MM-DD') as "snoozedUntil", n.proposed, n.unread_links as "unreadLinks",
+    to_char(n.snoozed_until, 'YYYY-MM-DD') as "snoozedUntil",
+    to_char(n.remind_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "remindAt", n.proposed, n.unread_links as "unreadLinks",
     n.created_at as "createdAt", n.updated_at as "updatedAt",
     coalesce((select array_agg(nc.category_id::text) from note_categories nc where nc.note_id = n.id), '{}') as "categoryIds",
     coalesce((select array_agg(nt.tag_id::text) from note_tags nt where nt.note_id = n.id), '{}') as "tagIds",
@@ -157,6 +158,7 @@ export type NoteChange = {
   status?: NoteStatus | null;
   dueDate?: string | null;
   snoozedUntil?: string | null;
+  remindAt?: string | null;
   importance?: Importance | null;
   urgency?: Urgency | null;
   /** `null` clears it. */
@@ -171,6 +173,7 @@ const COLUMNS = {
   status: 'status',
   dueDate: 'due_date',
   snoozedUntil: 'snoozed_until',
+  remindAt: 'remind_at',
   importance: 'importance',
   urgency: 'urgency',
   proposed: 'proposed',

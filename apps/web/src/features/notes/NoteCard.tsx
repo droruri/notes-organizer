@@ -142,6 +142,18 @@ export function NoteCard({
             {t('snooze.until', { date: formatDate(note.snoozedUntil, i18n.language) })}
           </span>
         )}
+        {note.remindAt !== null && note.status !== 'done' && (
+          <span className="pill bg-transparent text-muted">
+            <Icon name="bell" size={13} />
+            <span className="sr-only">{t('notes.remindAt')}: </span>
+            {new Intl.DateTimeFormat(i18n.language, {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            }).format(new Date(note.remindAt))}
+          </span>
+        )}
         {onSnooze && (snoozed || (note.status !== 'done' && note.status !== 'draft')) && (
           <button
             type="button"

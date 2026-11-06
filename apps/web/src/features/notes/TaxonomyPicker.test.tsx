@@ -43,6 +43,7 @@ describe('TaxonomyPicker', () => {
       tagIds: [],
       dueDate: null,
       snoozedUntil: null,
+      remindAt: null,
       importance: null,
       color: 'slate' as const,
       pinned: false,

@@ -17,6 +17,7 @@ const note = (i: number, o: Partial<Note> = {}): Note => ({
   urgency: null,
   dueDate: null,
   snoozedUntil: null,
+  remindAt: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

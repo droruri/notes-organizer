@@ -24,6 +24,7 @@ const note: Note = {
   urgency: null,
   dueDate: null,
   snoozedUntil: null,
+  remindAt: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

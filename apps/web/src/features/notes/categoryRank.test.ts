@@ -22,6 +22,7 @@ const note = (categoryIds: string[], updatedAt: string, status: Note['status'] =
   urgency: null,
   dueDate: null,
   snoozedUntil: null,
+  remindAt: null,
   proposed: null,
   unreadLinks: [],
   categoryIds,

@@ -58,6 +58,8 @@
     "tracksStatus": "מעקב סטטוס",
     "savedIn": "נשמר ב‑{{name}}",
     "dueDate": "תאריך יעד",
+    "remindAt": "תזכרו אותי ב־",
+    "clearRemind": "נקה",
     "importance": "חשיבות",
     "importanceFromCategory": "נקבע לפי הקטגוריה {{name}}",
     "urgency": "דחיפות",

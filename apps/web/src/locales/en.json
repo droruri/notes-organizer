@@ -55,6 +55,8 @@
     "noteTitle": "Title (optional)",
     "body": "Text",
     "dueDate": "Due date",
+    "remindAt": "Remind me at",
+    "clearRemind": "Clear",
     "workspace": "Workspace",
     "tracksStatus": "Track status",
     "savedIn": "Saved in {{name}}",
