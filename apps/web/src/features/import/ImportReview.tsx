@@ -70,6 +70,7 @@ export function ImportReview({
         failed={false}
         onSubmit={(edit) => {
           const suggestion: Suggestion = {
+            checklist: [],
             categoryIds: edit.categoryIds ?? [],
             tagIds: edit.tagIds ?? [],
             newCategories: edit.newCategories ?? [],

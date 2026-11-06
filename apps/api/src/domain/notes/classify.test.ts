@@ -235,3 +235,26 @@ describe('classify actionable', () => {
     expect(mapSuggestion(raw({ actionable: 'maybe' }), taxonomy).tracksStatus).toBe(true);
   });
 });
+
+describe('mapSuggestion checklist', () => {
+  const checklist = (value: unknown) =>
+    mapSuggestion(raw({ checklist: value }), taxonomy).checklist;
+  it('maps 3 items, trimming, dropping empties and duplicates', () => {
+    expect(checklist([' milk ', 'Dan', '', 'milk', 'bill'])).toEqual(['milk', 'Dan', 'bill']);
+  });
+  it('one item or none is no checklist', () => {
+    expect(checklist(['milk'])).toEqual([]);
+    expect(checklist([])).toEqual([]);
+    expect(checklist(undefined)).toEqual([]);
+    expect(checklist(null)).toEqual([]);
+  });
+  it('caps at 30 items of 200 chars', () => {
+    const items = Array.from({ length: 40 }, (_, i) => `item ${i}`);
+    expect(checklist(items)).toHaveLength(30);
+    expect(checklist(['x'.repeat(300), 'y'])[0]).toBe('x'.repeat(200));
+  });
+  it('a non-array is dropped', () => {
+    expect(checklist('milk, Dan')).toEqual([]);
+    expect(checklist([1, 2])).toEqual([]);
+  });
+});

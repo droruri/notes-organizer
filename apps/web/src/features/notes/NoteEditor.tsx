@@ -66,7 +66,9 @@ export function NoteEditor({
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
   const [undoBody, setUndoBody] = useState<string | null>(null);
-  const bodyItems = linesToItems(body);
+  const [aiChecklist, setAiChecklist] = useState(suggestion.checklist);
+  // Claude's items win over the body's own lines; the body changes only on tap.
+  const bodyItems = aiChecklist.length >= 2 ? aiChecklist : linesToItems(body);
   const canChecklist =
     undoBody === null && checklistProgress(body) === null && bodyItems.length >= 2;
   const slow = useSlow(busy);
@@ -77,7 +79,12 @@ export function NoteEditor({
     (f) => !hidden.has(f),
   ).length;
   // Any field Claude filled in counts; comparing JSON would depend on key order.
-  const { workspaceId: suggestedWorkspace, tracksStatus: suggestedTracks, ...content } = suggestion;
+  const {
+    workspaceId: suggestedWorkspace,
+    tracksStatus: suggestedTracks,
+    checklist: _checklist,
+    ...content
+  } = suggestion;
   const hasSuggestion = Object.values(content).some((v) =>
     Array.isArray(v) ? v.length > 0 : v !== null && v !== '',
   );
@@ -132,6 +139,7 @@ export function NoteEditor({
       // Functional update: a title typed while the AI ran must not be overwritten.
       setTitle((cur) => (cur.trim() ? cur : (next.title ?? '')));
       setPicked(pickedFrom(next));
+      setAiChecklist(next.checklist);
       setUnreadLinks(next.unreadLinks);
       if (next.workspaceId) setWorkspaceId(next.workspaceId);
       if (note.status === 'draft') setTracksStatus(next.tracksStatus);

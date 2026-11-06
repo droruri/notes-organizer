@@ -50,6 +50,7 @@ describe('TaxonomyPicker', () => {
       workspaceId: null,
       tracksStatus: true,
       unreadLinks: [],
+      checklist: [],
     };
     const initial = pickedFrom({ ...empty, categoryIds: [C], newCategories: ['הופעות'] });
     expect(initial.newCategories).toEqual([]);

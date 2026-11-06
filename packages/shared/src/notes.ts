@@ -70,6 +70,8 @@ export const Suggestion = Proposed.extend({
   tracksStatus: z.boolean(),
   /** Links in the body that Claude could not read (set by the service, not by Claude). */
   unreadLinks: z.array(z.string()),
+  /** Short action items Claude proposes as a checklist (2 or more, else empty). */
+  checklist: z.array(z.string()),
 });
 export type Suggestion = z.infer<typeof Suggestion>;
 
@@ -107,6 +109,7 @@ export const EMPTY_SUGGESTION: Suggestion = {
   workspaceId: null,
   tracksStatus: true,
   unreadLinks: [],
+  checklist: [],
 };
 
 /** The suggestion a draft was created with, rebuilt from the stored draft. */
@@ -123,6 +126,7 @@ export function suggestionOf(note: Note): Suggestion {
     workspaceId: note.workspaceId,
     tracksStatus: note.proposed?.tracksStatus ?? true,
     unreadLinks: note.unreadLinks,
+    checklist: [],
   };
 }
 
