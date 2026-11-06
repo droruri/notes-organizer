@@ -144,6 +144,26 @@ describe.skipIf(!databaseUrl)('due reminders against the local stack', () => {
     expect(lines.filter((l) => l.msg === 'reminders run').some((l) => l['time'] === 1)).toBe(true);
   });
 
+  it('sends a snooze ping once on the snooze day at the hour; woken early sends nothing', async () => {
+    const id = await addNote({ due: '2026-12-01', snooze: TODAY });
+    clock = BEFORE;
+    expect((await run()).json()).toMatchObject({ sent: 0 });
+    clock = AFTER;
+    expect((await run()).json()).toMatchObject({ sent: 1 });
+    expect(fake.sent[0]?.payload).toEqual({ kind: 'snooze', noteId: id, title: 'buy milk' });
+    expect((await run()).json()).toMatchObject({ sent: 0 });
+    expect(lines.filter((l) => l.msg === 'reminders run').some((l) => l['snooze'] === 1)).toBe(
+      true,
+    );
+    await addNote({ due: '2026-12-01', snooze: TODAY });
+    await pool.query(`update notes set snoozed_until = null where user_id = $1 and id <> $2`, [
+      USER.id,
+      id,
+    ]);
+    fake.sent.length = 0;
+    expect((await run()).json()).toMatchObject({ sent: 0 });
+  });
+
   it('skips done, draft, snoozed, deleted and not-due-today notes', async () => {
     await addNote({ status: 'done' });
     await addNote({ status: 'draft' });

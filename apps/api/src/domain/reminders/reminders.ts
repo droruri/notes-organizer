@@ -9,7 +9,7 @@ const MAX_TITLE = 80;
 
 export type RemindersResult = { sent: number; gone: number };
 
-type Kind = 'due' | 'time';
+type Kind = 'due' | 'time' | 'snooze';
 
 type Candidate = {
   note_id: string;
@@ -58,6 +58,26 @@ const TIME_SQL = `
    order by n.remind_at, n.id
    limit $2`;
 
+// A snoozed note whose snooze day is today (user's timezone), at or after the reminder hour.
+// Clearing snoozed_until (woken early) removes it from the candidates.
+const SNOOZE_SQL = `
+  with s as materialized (
+    select user_id, timezone, reminder_hour from user_settings
+     where timezone in (select name from pg_timezone_names)
+  )
+  select n.id as note_id, 'snooze' as kind, n.snoozed_until::text as slot, n.title, n.body, n.user_id
+    from notes n
+    join s on s.user_id = n.user_id
+   where n.deleted_at is null
+     and (n.status is null or n.status in ('todo', 'in_progress'))
+     and n.snoozed_until = ($1::timestamptz at time zone s.timezone)::date
+     and extract(hour from ($1::timestamptz at time zone s.timezone)) >= coalesce(s.reminder_hour, 8)
+     and not exists (select 1 from reminder_sends r
+                      where r.note_id = n.id and r.kind = 'snooze' and r.slot = n.snoozed_until::text)
+     and exists (select 1 from push_subscriptions p where p.user_id = n.user_id)
+   order by n.snoozed_until, n.id
+   limit $2`;
+
 /** Users who have a device but a timezone Postgres doesn't know: counted, never logged by name. */
 const BAD_TZ_SQL = `
   select s.user_id
@@ -79,9 +99,10 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
     const args = [now.toISOString(), MAX_SENDS_PER_RUN];
     const due = await db.query<Candidate>(DUE_SQL, args);
     const time = await db.query<Candidate>(TIME_SQL, args);
+    const snooze = await db.query<Candidate>(SNOOZE_SQL, args);
     let sent = 0;
     let gone = 0;
-    for (const c of [...due.rows, ...time.rows]) {
+    for (const c of [...due.rows, ...time.rows, ...snooze.rows]) {
       if (sent >= MAX_SENDS_PER_RUN) break;
       const subs = await db.query<{ id: string; endpoint: string; p256dh: string; auth: string }>(
         'select id, endpoint, p256dh, auth from push_subscriptions where user_id = $1',
@@ -113,6 +134,7 @@ export function runReminders(db: Db, push: Push, now: Date): Promise<RemindersRe
       {
         due: due.rows.length,
         time: time.rows.length,
+        snooze: snooze.rows.length,
         sent,
         gone,
         ms: Math.round(performance.now() - started),
