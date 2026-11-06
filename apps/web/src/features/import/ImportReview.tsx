@@ -18,6 +18,7 @@ const asNote = (row: Row): Note => ({
   urgency: row.suggestion.urgency,
   dueDate: row.suggestion.dueDate,
   snoozedUntil: null,
+  remindAt: null,
   proposed: null,
   unreadLinks: row.suggestion.unreadLinks,
   categoryIds: row.suggestion.categoryIds,

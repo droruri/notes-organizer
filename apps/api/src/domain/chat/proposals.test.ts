@@ -15,6 +15,7 @@ const mockNote = (id: string, over: Record<string, unknown> = {}) => ({
   status: 'todo',
   dueDate: null,
   snoozedUntil: null,
+  remindAt: null,
   importance: null,
   urgency: null,
   categoryIds: [C1],

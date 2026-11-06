@@ -299,6 +299,7 @@ async function updateNoteUntimed(
       ...(edit.title !== undefined ? { title: edit.title || null } : {}),
       ...(edit.dueDate !== undefined ? { dueDate: edit.dueDate } : {}),
       ...(edit.snoozedUntil !== undefined ? { snoozedUntil: edit.snoozedUntil } : {}),
+      ...(edit.remindAt !== undefined ? { remindAt: edit.remindAt } : {}),
       ...(edit.importance !== undefined ? { importance: edit.importance } : {}),
       ...(edit.urgency !== undefined ? { urgency: edit.urgency } : {}),
       ...(edit.unreadLinks !== undefined ? { unreadLinks: edit.unreadLinks } : {}),

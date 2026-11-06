@@ -28,6 +28,7 @@ import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { StatusSelect } from './StatusSelect';
 import { formatDate, updatedDate } from './formatDate';
+import { isoToLocalInput, localInputToIso } from './remindAt';
 import { SnoozeSheet } from './SnoozeSheet';
 import { pickedFrom } from './picked';
 import { TaxonomyPicker, type Picked } from './TaxonomyPicker';
@@ -98,6 +99,7 @@ export function NoteEditor({
   const [unreadLinks, setUnreadLinks] = useState(suggestion.unreadLinks);
   const [dueDate, setDueDate] = useState(suggestion.dueDate ?? '');
   const [snoozedUntil, setSnoozedUntil] = useState(note.snoozedUntil);
+  const [remind, setRemind] = useState(isoToLocalInput(note.remindAt));
   const [snoozing, setSnoozing] = useState(false);
   const [importance, setImportance] = useState<Importance | null>(suggestion.importance);
   // Name of the category that raised importance; cleared when the field is changed by hand.
@@ -168,6 +170,7 @@ export function NoteEditor({
       ...picked,
       dueDate: dueDate || null,
       ...(snoozedUntil !== note.snoozedUntil ? { snoozedUntil } : {}),
+      ...(remind !== isoToLocalInput(note.remindAt) ? { remindAt: localInputToIso(remind) } : {}),
       importance,
       urgency,
       status: tracksStatus ? status : null,
@@ -267,6 +270,24 @@ export function NoteEditor({
             ))}
           </select>
         </label>
+      )}
+      {note.status !== 'draft' && (
+        <div className="flex items-end gap-2">
+          <label className="label flex-1">
+            {t('notes.remindAt')}
+            <input
+              type="datetime-local"
+              value={remind}
+              onChange={(e) => setRemind(e.target.value)}
+              className={`${field} text-fg`}
+            />
+          </label>
+          {remind !== '' && (
+            <button type="button" onClick={() => setRemind('')} className="btn btn-sm">
+              {t('notes.clearRemind')}
+            </button>
+          )}
+        </div>
       )}
       {!hidden.has('categories') && (
         <TaxonomyPicker taxonomy={taxonomy} value={picked} onChange={changePicked} />

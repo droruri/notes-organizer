@@ -14,6 +14,7 @@ const suggestion = {
   newTags: [],
   dueDate: null,
   snoozedUntil: null,
+  remindAt: null,
   importance: null,
   urgency: null,
   title: null,

@@ -120,6 +120,30 @@ describe.skipIf(!databaseUrl)('due reminders against the local stack', () => {
     expect((await run()).json()).toMatchObject({ sent: 0 });
   });
 
+  it('sends a past remind_at once, via the PATCH offset form, and logs time', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `insert into notes (user_id, client_id, body, status, workspace_id)
+       values ($1, gen_random_uuid(), 'call Dan', 'todo', $2) returning id`,
+      [USER.id, workspaceId],
+    );
+    const id = rows[0]?.id ?? '';
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: `/notes/${id}`,
+      headers: { authorization: 'Bearer t' },
+      payload: { remindAt: '2026-11-10T08:00:00+02:00' },
+    });
+    expect(patch.statusCode).toBe(200);
+    expect(patch.json()).toMatchObject({ remindAt: '2026-11-10T06:00:00.000Z' });
+    clock = BEFORE;
+    expect((await run()).json()).toMatchObject({ sent: 0 });
+    clock = AFTER;
+    expect((await run()).json()).toMatchObject({ sent: 1 });
+    expect(fake.sent[0]?.payload).toEqual({ kind: 'time', noteId: id, title: 'call Dan' });
+    expect((await run()).json()).toMatchObject({ sent: 0 });
+    expect(lines.filter((l) => l.msg === 'reminders run').some((l) => l['time'] === 1)).toBe(true);
+  });
+
   it('skips done, draft, snoozed, deleted and not-due-today notes', async () => {
     await addNote({ status: 'done' });
     await addNote({ status: 'draft' });

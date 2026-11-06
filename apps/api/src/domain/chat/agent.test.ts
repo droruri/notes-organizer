@@ -33,6 +33,7 @@ const note = (id: string, o: Record<string, unknown>) => ({
   urgency: null,
   dueDate: null,
   snoozedUntil: null,
+  remindAt: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

@@ -18,6 +18,7 @@ const note: Note = {
   urgency: null,
   dueDate: '2026-10-30',
   snoozedUntil: null,
+  remindAt: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [CAT],

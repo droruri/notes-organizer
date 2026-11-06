@@ -87,6 +87,8 @@ export const Note = z.object({
   dueDate: DateString.nullable(),
   /** Hidden from the list and Today until this day (`YYYY-MM-DD`); null = not snoozed. */
   snoozedUntil: DateString.nullable(),
+  /** Exact instant (ISO) to push a reminder; null = none. */
+  remindAt: z.string().nullable(),
   proposed: Proposed.nullable(),
   unreadLinks: z.array(z.string()),
   categoryIds: z.array(z.uuid()),
@@ -158,6 +160,8 @@ export const NoteEdit = z.object({
   dueDate: DateString.nullable().optional(),
   /** `null` wakes the note. */
   snoozedUntil: DateString.nullable().optional(),
+  /** ISO instant with offset; `null` clears it. */
+  remindAt: z.iso.datetime({ offset: true }).nullable().optional(),
   importance: Importance.nullable().optional(),
   urgency: Urgency.nullable().optional(),
   /** `null` turns status tracking off. */
