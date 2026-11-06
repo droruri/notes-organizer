@@ -8,6 +8,7 @@ import {
   listTaxonomy,
   proposedActions,
   ProposeChangeInput,
+  ProposeNoteChangesInput,
 } from './agent';
 
 const ME = '11111111-1111-4111-8111-111111111111';
@@ -231,5 +232,29 @@ describe('propose_change tool', () => {
     ).toEqual([action, action]);
     expect(proposedActions({ type: 'tool-output-available', output: { error: 'x' } })).toEqual([]);
     expect(proposedActions({ type: 'text-delta' })).toEqual([]);
+  });
+});
+
+describe('propose_note_changes tool', () => {
+  const note = {
+    action: 'update',
+    kind: 'note',
+    id: C1,
+    name: 'Dentist',
+    edit: { status: 'done' },
+    labels: { categories: [], tags: [] },
+  };
+
+  it('accepts 1–20 changes only', () => {
+    const one = { noteId: C1, status: 'done' };
+    expect(ProposeNoteChangesInput.safeParse({ changes: [one] }).success).toBe(true);
+    expect(ProposeNoteChangesInput.safeParse({ changes: [] }).success).toBe(false);
+    expect(ProposeNoteChangesInput.safeParse({ changes: Array(21).fill(one) }).success).toBe(false);
+  });
+
+  it('a note action survives the stream filter next to errors', () => {
+    expect(
+      proposedActions({ type: 'tool-output-available', output: [note, { error: 'draft' }] }),
+    ).toEqual([note]);
   });
 });

@@ -1,7 +1,7 @@
-import type { ActionsBody, ActionsResponse, AgentAction } from '@notes/shared';
+import type { ActionsBody, ActionsResponse, AgentAction, NoteChange } from '@notes/shared';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { ApiRequestError, api } from '../../lib/api';
 import { ActionCard, type CardState } from './ActionCard';
 
 type Card = { state: CardState; error: string | null };
@@ -12,11 +12,14 @@ export function ActionGroup({
   actions,
   onApplied,
   apply = api.applyActions,
+  applyNote = api.updateNote,
 }: {
   actions: AgentAction[];
   /** Called once per request that applied at least one action, to refresh taxonomy and notes. */
   onApplied: () => void;
   apply?: (body: ActionsBody) => Promise<ActionsResponse>;
+  /** Applies one note change card (`PATCH /notes/:id`). */
+  applyNote?: (id: string, edit: NoteChange) => Promise<unknown>;
 }) {
   const { t } = useTranslation();
   // Keyed by position: actions can keep arriving while the answer streams, and start idle.
@@ -33,7 +36,11 @@ export function ActionGroup({
       ? t('chat.action.nameTaken')
       : code === 'category_deleted'
         ? t('chat.action.categoryDeleted')
-        : t('chat.action.failed');
+        : code === 'invalid_transition'
+          ? t('chat.action.invalidTransition')
+          : code === 'not_found'
+            ? t('chat.action.noteNotFound')
+            : t('chat.action.failed');
 
   const set = (patch: Record<number, Card>) => setCards((prev) => ({ ...prev, ...patch }));
 
@@ -48,20 +55,43 @@ export function ActionGroup({
     set(Object.fromEntries(selected.map(({ k }) => [k, { state: 'busy', error: null }])));
     const next: Record<number, Card> = {};
     let applied = false;
-    try {
-      const { results } = await apply({ actions: selected.map(({ action }) => action) });
-      selected.forEach(({ k }, i) => {
-        const result = results[i];
-        if (result?.ok) {
+    const taxonomyCards = selected.flatMap(({ k, action }) =>
+      action.kind === 'note' ? [] : [{ k, action }],
+    );
+    const noteCards = selected.flatMap(({ k, action }) =>
+      action.kind === 'note' ? [{ k, action }] : [],
+    );
+    const taxonomyRun = async () => {
+      if (taxonomyCards.length === 0) return;
+      try {
+        const { results } = await apply({ actions: taxonomyCards.map(({ action }) => action) });
+        taxonomyCards.forEach(({ k }, i) => {
+          const result = results[i];
+          if (result?.ok) {
+            applied = true;
+            next[k] = { state: 'done', error: null };
+          } else {
+            next[k] = { state: 'idle', error: errorText(result?.error) };
+          }
+        });
+      } catch {
+        for (const { k } of taxonomyCards) next[k] = { state: 'idle', error: errorText(undefined) };
+      }
+    };
+    const noteRun = ({ k, action }: (typeof noteCards)[number]) =>
+      applyNote(action.id, action.edit).then(
+        () => {
           applied = true;
           next[k] = { state: 'done', error: null };
-        } else {
-          next[k] = { state: 'idle', error: errorText(result?.error) };
-        }
-      });
-    } catch {
-      for (const { k } of selected) next[k] = { state: 'idle', error: errorText(undefined) };
-    }
+        },
+        (e: unknown) => {
+          next[k] = {
+            state: 'idle',
+            error: errorText(e instanceof ApiRequestError ? e.code : undefined),
+          };
+        },
+      );
+    await Promise.all([taxonomyRun(), ...noteCards.map(noteRun)]);
     set(next);
     inFlightRef.current = false;
     setInFlight(false);

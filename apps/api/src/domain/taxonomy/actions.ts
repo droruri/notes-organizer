@@ -1,9 +1,9 @@
-import type { ActionResult, AgentAction } from '@notes/shared';
+import type { ActionResult, TaxonomyAction } from '@notes/shared';
 import type { Db } from '../../db';
 import { log, timed } from '../../requestLog';
 import * as service from './service';
 
-function run(db: Db, userId: string, a: AgentAction): Promise<service.Result<unknown>> {
+function run(db: Db, userId: string, a: TaxonomyAction): Promise<service.Result<unknown>> {
   if (a.action === 'create') {
     return a.kind === 'category'
       ? service.createCategory(db, userId, a.name)
@@ -25,7 +25,7 @@ function run(db: Db, userId: string, a: AgentAction): Promise<service.Result<unk
 export function applyActions(
   db: Db,
   userId: string,
-  actions: AgentAction[],
+  actions: TaxonomyAction[],
 ): Promise<ActionResult[]> {
   return timed('applyActions', { count: actions.length }, async () => {
     const results: ActionResult[] = [];

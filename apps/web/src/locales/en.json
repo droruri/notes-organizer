@@ -262,6 +262,10 @@
       "dismissed": "Dismissed",
       "nameTaken": "That name already exists.",
       "categoryDeleted": "The category is deleted.",
+      "invalidTransition": "That status change is not allowed.",
+      "noteNotFound": "The note no longer exists.",
+      "categories": "Categories",
+      "tags": "Tags",
       "failed": "The action failed.",
       "create": {
         "category": "Create category \"{{name}}\"",
@@ -277,6 +281,9 @@
       },
       "recolor": {
         "category": "Color category \"{{name}}\" {{color}}"
+      },
+      "update": {
+        "note": "Update «{{name}}»"
       },
       "restore": {
         "category": "Restore category \"{{name}}\"",

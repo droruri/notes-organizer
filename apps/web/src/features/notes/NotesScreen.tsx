@@ -523,7 +523,7 @@ export function NotesScreen({
           open(notePath(note.id), true);
         }}
         onClose={goBack}
-        onTaxonomyChanged={() => {
+        onApplied={() => {
           void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
           void queryClient.invalidateQueries({ queryKey: ['notes'] });
         }}
