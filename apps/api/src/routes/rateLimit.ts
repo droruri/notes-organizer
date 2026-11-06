@@ -9,3 +9,12 @@ export const llmRateLimit = {
     keyGenerator: (req: FastifyRequest) => currentUser(req).id,
   },
 };
+
+/** `POST /push/test`: 5 a minute per signed-in user. */
+export const pushTestRateLimit = {
+  rateLimit: {
+    max: 5,
+    timeWindow: '1 minute',
+    keyGenerator: (req: FastifyRequest) => currentUser(req).id,
+  },
+};

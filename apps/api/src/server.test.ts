@@ -103,6 +103,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         status: { hiddenValues: [] },
       },
       quickActions: ['record'],
+      timezone: null,
+      reminderHour: null,
     });
 
     const put = await app.inject({
@@ -120,6 +122,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         status: { hiddenValues: [] },
       },
       quickActions: ['record'],
+      timezone: null,
+      reminderHour: null,
     });
     const again = await app.inject({ method: 'GET', url: '/settings', headers });
     expect(again.json()).toEqual({
@@ -131,6 +135,8 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
         status: { hiddenValues: [] },
       },
       quickActions: ['record'],
+      timezone: null,
+      reminderHour: null,
     });
   });
 
@@ -147,14 +153,26 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       headers,
       payload: { noteForm: form },
     });
-    expect(a.json()).toEqual({ noteSort: 'newest', noteForm: form, quickActions: ['record'] });
+    expect(a.json()).toEqual({
+      noteSort: 'newest',
+      noteForm: form,
+      quickActions: ['record'],
+      timezone: null,
+      reminderHour: null,
+    });
     const b = await app.inject({
       method: 'PUT',
       url: '/settings',
       headers,
       payload: { noteSort: 'oldest' },
     });
-    expect(b.json()).toEqual({ noteSort: 'oldest', noteForm: form, quickActions: ['record'] });
+    expect(b.json()).toEqual({
+      noteSort: 'oldest',
+      noteForm: form,
+      quickActions: ['record'],
+      timezone: null,
+      reminderHour: null,
+    });
     const bad = await app.inject({
       method: 'PUT',
       url: '/settings',
@@ -173,7 +191,13 @@ describe.skipIf(!databaseUrl)('/settings against the local stack', () => {
       headers,
       payload: { quickActions: ['import'] },
     });
-    expect(a.json()).toEqual({ noteSort, noteForm, quickActions: ['import'] });
+    expect(a.json()).toEqual({
+      noteSort,
+      noteForm,
+      quickActions: ['import'],
+      timezone: null,
+      reminderHour: null,
+    });
     const b = await app.inject({
       method: 'PUT',
       url: '/settings',

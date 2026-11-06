@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CategoryColor, Importance, Urgency } from './notes';
+import { ReminderHour, Timezone } from './push';
 
 // Schemas and types used by both web and api, defined once.
 
@@ -52,6 +53,10 @@ export const Settings = z.object({
   noteSort: NoteSort,
   noteForm: NoteForm.default(DEFAULT_NOTE_FORM),
   quickActions: z.array(QuickAction).default(DEFAULT_QUICK_ACTIONS),
+  /** IANA timezone reminders use; null until the user turns reminders on. */
+  timezone: Timezone.nullable().optional(),
+  /** Local hour of day reminders are sent; null means the default (8). */
+  reminderHour: ReminderHour.nullable().optional(),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -60,6 +65,9 @@ export const SettingsPatch = z.object({
   noteSort: NoteSort.optional(),
   noteForm: NoteForm.optional(),
   quickActions: z.array(QuickAction).optional(),
+  timezone: Timezone.optional(),
+  /** `null` resets to the default hour. */
+  reminderHour: ReminderHour.nullable().optional(),
 });
 export type SettingsPatch = z.infer<typeof SettingsPatch>;
 
@@ -117,6 +125,7 @@ export * from './noteStatus';
 export * from './links';
 export * from './imports';
 export * from './workspaces';
+export * from './push';
 
 /** `GET /me`: who the caller is, so the web knows whether to show the admin screen. */
 export const Me = z.object({ email: z.string(), isAdmin: z.boolean() });

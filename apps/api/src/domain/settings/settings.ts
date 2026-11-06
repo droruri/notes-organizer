@@ -12,7 +12,13 @@ import { z } from 'zod';
 import type { Db } from '../../db';
 import { log, timed } from '../../requestLog';
 
-type SettingsRow = { note_sort: string | null; note_form: unknown; quick_actions: unknown };
+type SettingsRow = {
+  note_sort: string | null;
+  note_form: unknown;
+  quick_actions: unknown;
+  timezone: string | null;
+  reminder_hour: number | null;
+};
 
 /** Parse a stored row into settings. Null columns mean defaults; a present but invalid value is warned. */
 function fromRow(row: SettingsRow | undefined): Settings {
@@ -32,12 +38,14 @@ function fromRow(row: SettingsRow | undefined): Settings {
     quickActions: quick.success ? quick.data : [...DEFAULT_QUICK_ACTIONS],
     noteSort: sort.success ? sort.data : DEFAULT_NOTE_SORT,
     noteForm: form.success ? form.data : DEFAULT_NOTE_FORM,
+    timezone: row?.timezone ?? null,
+    reminderHour: row?.reminder_hour ?? null,
   };
 }
 
 export async function getSettings(db: Db, userId: string): Promise<Settings> {
   const { rows } = await db.query<SettingsRow>(
-    'select note_sort, note_form, quick_actions from user_settings where user_id = $1',
+    'select note_sort, note_form, quick_actions, timezone, reminder_hour from user_settings where user_id = $1',
     [userId],
   );
   return fromRow(rows[0]);
@@ -50,18 +58,23 @@ export async function getSettings(db: Db, userId: string): Promise<Settings> {
 export function saveSettings(db: Db, userId: string, patch: SettingsPatch): Promise<Settings> {
   return timed('saveSettings', {}, async () => {
     const { rows } = await db.query<SettingsRow>(
-      `insert into user_settings (user_id, note_sort, note_form, quick_actions)
-         values ($1, coalesce($2, 'urgency'), $3::jsonb, $4::jsonb)
+      `insert into user_settings (user_id, note_sort, note_form, quick_actions, timezone, reminder_hour)
+         values ($1, coalesce($2, 'urgency'), $3::jsonb, $4::jsonb, $5, $6::smallint)
        on conflict (user_id) do update
          set note_sort = coalesce($2, user_settings.note_sort),
              note_form = coalesce($3::jsonb, user_settings.note_form),
-             quick_actions = coalesce($4::jsonb, user_settings.quick_actions)
-       returning note_sort, note_form, quick_actions`,
+             quick_actions = coalesce($4::jsonb, user_settings.quick_actions),
+             timezone = coalesce($5, user_settings.timezone),
+             reminder_hour = case when $7::boolean then $6::smallint else user_settings.reminder_hour end
+       returning note_sort, note_form, quick_actions, timezone, reminder_hour`,
       [
         userId,
         patch.noteSort ?? null,
         patch.noteForm === undefined ? null : JSON.stringify(patch.noteForm),
         patch.quickActions === undefined ? null : JSON.stringify(patch.quickActions),
+        patch.timezone ?? null,
+        patch.reminderHour ?? null,
+        patch.reminderHour !== undefined,
       ],
     );
     const changed = Object.entries(patch)

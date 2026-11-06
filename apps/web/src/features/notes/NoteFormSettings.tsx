@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Segmented } from '../../ui/Segmented';
 import { Sheet } from '../../ui/Sheet';
+import { RemindersSettings } from '../reminders/RemindersSettings';
 import { Chip } from './Chip';
 
 /** Rows in the order the form shows them; body is required, so it has no switch. */
@@ -218,6 +219,7 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
               );
             })}
           </ul>
+          <RemindersSettings />
           {save.isError && (
             <p role="alert" className="notice notice-danger mx-5">
               {t('notes.formSettings.error')}

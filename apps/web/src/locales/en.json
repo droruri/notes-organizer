@@ -457,5 +457,19 @@
     "until": "Snoozed until {{date}}",
     "toast": "Snoozed until {{date}}",
     "woke": "Note is back"
+  },
+  "reminders": {
+    "title": "Reminders",
+    "on": "Notifications on this device",
+    "hour": "Reminder hour",
+    "send": "Send test",
+    "sending": "Sending…",
+    "sent": "Test notification sent.",
+    "noDevice": "No registered device found.",
+    "denied": "Notifications are blocked in the browser. Allow them in site settings and try again.",
+    "unsupported": "This browser does not support notifications. On iPhone, add the app to the Home Screen first.",
+    "notConfigured": "Notifications are not set up on this server.",
+    "error": "Could not update notifications. Try again.",
+    "hourOption": "{{hour}}:00"
   }
 }
