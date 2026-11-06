@@ -12,7 +12,13 @@ export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai, webOrigin: stri
     const body = ChatRequest.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_body' });
     if (!isTodayPlausible(body.data.today)) return reply.code(400).send({ error: 'invalid_today' });
-    const result = ai.chat(chatArgs({ db, userId: currentUser(req).id }, body.data));
+    let result: ReturnType<Ai['chat']>;
+    try {
+      result = ai.chat(await chatArgs({ db, userId: currentUser(req).id }, body.data));
+    } catch (err) {
+      req.log.error(err);
+      return reply.code(500).send({ error: 'chat_failed' });
+    }
     reply.hijack();
     const raw = reply.raw;
     raw.writeHead(200, {
