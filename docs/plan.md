@@ -19,7 +19,7 @@ status steps · notes list with free-text search, filters and a saved sort · ch
 questions + propose-only taxonomy changes) · import of old notes · offline outbox ·
 Web Share Target · Android app via TWA · hosted deploy.
 
-**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders (being added; see Checklists/Snooze/Reminders epic).
+**Not in v1:** email/password sign-in · persisted chat history · sharing notes between users · notifications/reminders beyond Web Push (due-date reminders: `POST /cron/reminders`, hit every 5 min by cron-job.org with `x-cron-secret`; one send per note per due date via `reminder_sends`).
 
 Decisions taken with the user:
 
