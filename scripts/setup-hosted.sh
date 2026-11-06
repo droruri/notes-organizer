@@ -197,7 +197,8 @@ finish() {
 
 # Every key this wizard owns, appended (empty) to .env.example when missing. Never a secret.
 HOSTED_KEYS=(SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD SUPABASE_ACCESS_TOKEN GOOGLE_CLIENT_ID
-  GOOGLE_CLIENT_SECRET RENDER_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CRONJOB_API_KEY)
+  GOOGLE_CLIENT_SECRET RENDER_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID CRONJOB_API_KEY
+  VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT CRON_SECRET VITE_VAPID_PUBLIC_KEY)
 
 # Creates .env from .env.example when missing; appends missing key names to .env.example.
 prepare_files() {
@@ -236,7 +237,7 @@ need() {
 
 run_wizard() {
 
-TOTAL_STAGES=10
+TOTAL_STAGES=11
 
 banner "Hosted setup"
 prepare_files
@@ -303,6 +304,35 @@ stage "cron-job.org"
 open_url "https://console.cron-job.org/settings"
 step "Settings → API → Create API key, copy it."
 need CRONJOB_API_KEY secret "cron-job.org API key:"
+
+stage "Push reminders"
+say "Web Push needs a VAPID key pair and a shared secret for the reminders cron job."
+if filled VAPID_PUBLIC_KEY && filled VAPID_PRIVATE_KEY; then
+  note "VAPID keys already set — skipping"
+elif command -v npx >/dev/null 2>&1 && command -v jq >/dev/null 2>&1 \
+  && vapid=$(npx --yes web-push generate-vapid-keys --json 2>/dev/null) \
+  && pub=$(jq -r '.publicKey // empty' <<<"$vapid") && priv=$(jq -r '.privateKey // empty' <<<"$vapid") \
+  && [[ -n "$pub" && -n "$priv" ]]; then
+  write_env VAPID_PUBLIC_KEY "$pub"
+  write_env VAPID_PRIVATE_KEY "$priv"
+  say "generated a VAPID key pair"
+else
+  SKIPPED+=("VAPID keys (run: npx web-push generate-vapid-keys, put them in .env; deploy skips push)")
+  warn "could not generate VAPID keys; reminders stay disabled until you add them"
+fi
+if ! filled VITE_VAPID_PUBLIC_KEY && filled VAPID_PUBLIC_KEY; then
+  write_env VITE_VAPID_PUBLIC_KEY "$(_existing VAPID_PUBLIC_KEY)"
+fi
+need VAPID_SUBJECT plain "VAPID subject (mailto:you@example.com):" optional
+if filled CRON_SECRET; then
+  note "CRON_SECRET already set — skipping"
+elif secret=$(openssl rand -hex 24 2>/dev/null) && [[ -n "$secret" ]]; then
+  write_env CRON_SECRET "$secret"
+  say "generated CRON_SECRET"
+else
+  SKIPPED+=("CRON_SECRET (openssl missing; set a random string in .env)")
+  warn "could not generate CRON_SECRET"
+fi
 
 stage "Jina Reader (optional)"
 open_url "https://jina.ai/reader"
