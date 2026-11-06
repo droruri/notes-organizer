@@ -19,6 +19,7 @@ import {
 import { LogEnv, registerRequestLogging, withoutQueryInRequestLog } from './requestLog';
 import { attachmentsRoutes } from './routes/attachments';
 import { chatRoutes } from './routes/chat';
+import { cronRoutes } from './routes/cron';
 import { healthRoutes } from './routes/health';
 import { importsRoutes } from './routes/imports';
 import { linksRoutes } from './routes/links';
@@ -38,6 +39,8 @@ export function buildServer({
   ai: rawAi,
   links: rawLinks = createLinkReader(),
   push: rawPush = createFakePush(),
+  cronSecret,
+  now,
   verifyToken,
   allowedEmails,
   webOrigin = DEFAULT_WEB_ORIGIN,
@@ -49,6 +52,10 @@ export function buildServer({
   links?: LinkReader;
   /** Sends Web Push; defaults to a fake that records sends. */
   push?: Push;
+  /** `x-cron-secret` for `/cron/*`; unset means those routes answer 503. */
+  cronSecret?: string | undefined;
+  /** Clock for the reminder cron; tests fix it. */
+  now?: () => Date;
   verifyToken: VerifyToken;
   /** Bootstrap admins: inserted into `allowed_users` on startup, never removed. */
   allowedEmails: ReadonlySet<string>;
@@ -79,6 +86,7 @@ export function buildServer({
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
   healthRoutes(app, db);
+  cronRoutes(app, db, push, cronSecret, now);
   // Every route registered in this scope requires a signed-in, allowed user.
   void app.register(async (authed) => {
     authed.addHook(
@@ -113,6 +121,7 @@ const Env = AiEnv.and(LinkEnv)
       WEB_ORIGIN: z.url(),
       SUPABASE_URL: z.url(),
       ALLOWED_EMAILS: z.string().min(1),
+      CRON_SECRET: z.string().min(1).optional(),
       PORT: z.coerce.number().int().positive().default(3000),
     }),
   );
@@ -127,6 +136,7 @@ async function main(): Promise<void> {
   const app = buildServer({
     db: createPool(env.data.DATABASE_URL),
     push,
+    cronSecret: env.data.CRON_SECRET,
     ai: createAi(env.data),
     links: createLinkReader({ jinaApiKey: env.data.JINA_API_KEY }),
     verifyToken: createTokenVerifier(env.data.SUPABASE_URL),
