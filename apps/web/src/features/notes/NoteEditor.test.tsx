@@ -589,3 +589,24 @@ describe('updated date', () => {
     screen.getByText(/^עודכן /);
   });
 });
+
+describe('NoteEditor Claude checklist', () => {
+  it('offers Claude’s items and applies them only on tap', () => {
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={{ ...EMPTY_SUGGESTION, checklist: ['milk', 'Dan', 'bill'] }}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={() => undefined}
+        onCancel={() => undefined}
+        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+      />,
+    );
+    const body = () => screen.getByLabelText<HTMLTextAreaElement>('Text');
+    expect(body().value).toBe('pay rent');
+    fireEvent.click(screen.getByRole('button', { name: 'Make checklist (3 items)' }));
+    expect(body().value).toBe('- [ ] milk\n- [ ] Dan\n- [ ] bill');
+  });
+});

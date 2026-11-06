@@ -27,6 +27,7 @@ const proposal: ImportProposal = {
         tagIds: [],
         newCategories: [],
         newTags: [],
+        checklist: [],
         dueDate: null,
         importance: null,
         urgency: null,

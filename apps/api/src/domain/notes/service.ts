@@ -72,6 +72,7 @@ export function createDraft(
           tags: draft.suggestion.tagIds.length,
           newCategories: draft.suggestion.newCategories.length,
           newTags: draft.suggestion.newTags.length,
+          checklistItems: draft.suggestion.checklist.length,
         },
         'draft saved',
       );
@@ -121,7 +122,13 @@ async function createDraftUntimed(
   });
   // null = a concurrent request with the same clientId won the insert.
   const note = rowOrThrow(await repo.findNoteByClientId(db, userId, input.clientId));
-  return { created: id !== null, note, suggestion: suggestionOf(note) };
+  // The checklist is not stored; only the creating request carries Claude's proposal.
+  const stored = suggestionOf(note);
+  return {
+    created: id !== null,
+    note,
+    suggestion: id !== null ? { ...stored, checklist: suggestion.checklist } : stored,
+  };
 }
 
 /** Load the user's taxonomy and workspaces and ask the AI about `body`. */

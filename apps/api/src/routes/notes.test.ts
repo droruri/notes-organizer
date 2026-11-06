@@ -645,6 +645,32 @@ describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () =
     await pool.end();
   });
 
+  it('logs checklistItems on draft saved and warns when Claude’s checklist is malformed', async () => {
+    const { app, lines } = captureLogs({
+      db: pool,
+      turns: [
+        { value: { body: 'x', checklist: ['milk', 'Dan', 'bill'] } },
+        { value: { body: 'x', checklist: 'milk, Dan' } },
+      ],
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    for (const _ of [1, 2])
+      await app.inject({
+        method: 'POST',
+        url: '/notes',
+        headers,
+        payload: { body: 'secret note text', clientId: crypto.randomUUID(), today, locale: 'en' },
+      });
+    await app.close();
+    const saved = lines.filter((l) => l.msg === 'draft saved');
+    expect(saved.map((l) => l.checklistItems)).toEqual([3, 0]);
+    const dropped = lines.filter((l) => l.msg === 'checklist dropped');
+    expect(dropped).toHaveLength(1);
+    expect(dropped[0]).toMatchObject({ level: 40 });
+    expect(JSON.stringify(lines)).not.toContain('Dan');
+  });
+
   it('logs draft saved, draft duplicate, note updated, deleted and restored', async () => {
     const { app, lines } = captureLogs({
       db: pool,
@@ -677,6 +703,7 @@ describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () =
       tags: 0,
       newCategories: 0,
       newTags: 0,
+      checklistItems: 0,
     });
     expect(lines.find((l) => l.msg === 'draft duplicate')).toMatchObject({ noteId });
     expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({

@@ -19,6 +19,7 @@ const suggestion = {
   workspaceId: null,
   tracksStatus: true,
   unreadLinks: [],
+  checklist: [],
 };
 const proposal: ImportProposal = {
   newCategories: ['Home'],
