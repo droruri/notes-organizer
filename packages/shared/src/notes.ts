@@ -238,8 +238,11 @@ export const TaxonomyFailure = z.enum([
 ]);
 export type TaxonomyFailure = z.infer<typeof TaxonomyFailure>;
 
+/** Most chat cards one batch may carry: the agent's `propose_change` input and `ActionsBody`. */
+export const MAX_ACTIONS = 20;
+
 /** `POST /taxonomy/actions`: apply the approved chat cards in order, one result per action. */
-export const ActionsBody = z.object({ actions: z.array(AgentAction).min(1).max(20) });
+export const ActionsBody = z.object({ actions: z.array(AgentAction).min(1).max(MAX_ACTIONS) });
 export type ActionsBody = z.infer<typeof ActionsBody>;
 
 export const ActionResult = z.union([

@@ -4,7 +4,7 @@ import type { Ai } from '../ai/provider';
 import { currentUser } from '../auth';
 import type { Db } from '../db';
 import { llmRateLimit } from './rateLimit';
-import { chatArgs, proposedAction } from '../domain/chat/agent';
+import { chatArgs, proposedActions } from '../domain/chat/agent';
 import { isTodayPlausible } from '../domain/notes/note';
 
 export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai, webOrigin: string): void {
@@ -23,8 +23,7 @@ export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai, webOrigin: stri
     try {
       for await (const part of result.toUIMessageStream()) {
         raw.write(`data: ${JSON.stringify(part)}\n\n`);
-        const action = proposedAction(part);
-        if (action) {
+        for (const action of proposedActions(part)) {
           raw.write(`data: ${JSON.stringify({ type: 'data-actions', data: [action] })}\n\n`);
         }
       }

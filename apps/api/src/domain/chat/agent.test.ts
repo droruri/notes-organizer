@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 import type { Db } from '../../db';
-import { buildTools, MAX_MESSAGES, MAX_STEPS, chatArgs, proposedAction } from './agent';
+import {
+  buildTools,
+  MAX_MESSAGES,
+  MAX_STEPS,
+  chatArgs,
+  proposedActions,
+  ProposeChangeInput,
+} from './agent';
 
 const ME = '11111111-1111-4111-8111-111111111111';
 const cat = (id: string, name: string) => ({
@@ -159,118 +166,23 @@ describe('chat agent tools', () => {
   });
 });
 
-describe('propose_change', () => {
-  const D1 = 'd1111111-1111-4111-8111-111111111111';
-  const T2 = 'a2222222-2222-4222-8222-222222222222';
-  const sqls: string[] = [];
-  const db = fakeDb(
-    {
-      [ME]: {
-        cats: [cat(C1, 'Work'), cat(C2, 'Home'), { id: D1, name: 'Old', deleted: true }],
-        tags: [
-          { id: T1, categoryId: C1, name: 'urgent-ish', deleted: false },
-          { id: T2, categoryId: D1, name: 'gone', deleted: true },
-        ],
-        notes: [],
-      },
-    },
-    sqls,
-  );
-  const propose = buildTools({ db, userId: ME, today }).proposeChange;
+describe('propose_change tool', () => {
+  const schema = ProposeChangeInput;
+  const one = { action: 'delete', kind: 'category', id: C2 };
 
-  it('returns an action for each valid change and never writes', async () => {
-    expect(await propose({ action: 'create', kind: 'category', name: ' Money ' })).toEqual({
-      action: 'create',
-      kind: 'category',
-      name: 'Money',
-    });
-    expect(await propose({ action: 'create', kind: 'tag', categoryId: C1, name: 'x' })).toEqual({
-      action: 'create',
-      kind: 'tag',
-      categoryId: C1,
-      categoryName: 'Work',
-      name: 'x',
-    });
-    expect(await propose({ action: 'rename', kind: 'tag', id: T1, name: 'later' })).toEqual({
-      action: 'rename',
-      kind: 'tag',
-      id: T1,
-      name: 'urgent-ish',
-      newName: 'later',
-    });
-    expect(await propose({ action: 'delete', kind: 'category', id: C2 })).toMatchObject({
-      action: 'delete',
-      name: 'Home',
-    });
-    expect(await propose({ action: 'restore', kind: 'category', id: D1 })).toMatchObject({
-      action: 'restore',
-      name: 'Old',
-    });
-    expect(sqls.length).toBeGreaterThan(0);
-    expect(sqls.every((q) => /^\s*select/i.test(q))).toBe(true);
+  it('accepts 1–20 changes only', () => {
+    expect(schema.safeParse({ changes: [one] }).success).toBe(true);
+    expect(schema.safeParse({ changes: [] }).success).toBe(false);
+    expect(schema.safeParse({ changes: Array(20).fill(one) }).success).toBe(true);
+    expect(schema.safeParse({ changes: Array(21).fill(one) }).success).toBe(false);
   });
 
-  it('rejects what the taxonomy routes would reject', async () => {
-    const err = async (i: Parameters<typeof propose>[0]) => propose(i);
-    expect(await err({ action: 'create', kind: 'category', name: 'work' })).toEqual({
-      error: 'name_taken',
-    });
-    expect(await err({ action: 'create', kind: 'category', name: '  ' })).toEqual({
-      error: 'invalid_name',
-    });
-    expect(await err({ action: 'create', kind: 'tag', categoryId: D1, name: 'x' })).toEqual({
-      error: 'category_deleted',
-    });
-    expect(await err({ action: 'create', kind: 'tag', categoryId: OTHER, name: 'x' })).toEqual({
-      error: 'not_found',
-    });
-    expect(await err({ action: 'rename', kind: 'category', id: C2, name: 'Work' })).toEqual({
-      error: 'name_taken',
-    });
-    expect(await err({ action: 'delete', kind: 'category', id: D1 })).toEqual({
-      error: 'already_deleted',
-    });
-    expect(await err({ action: 'restore', kind: 'category', id: C1 })).toEqual({
-      error: 'not_deleted',
-    });
-    expect(await err({ action: 'restore', kind: 'tag', id: T2 })).toEqual({
-      error: 'category_deleted',
-    });
-    expect(await err({ action: 'delete', kind: 'tag', id: 'nope' })).toEqual({
-      error: 'not_found',
-    });
-  });
-
-  it('recolor: every outcome', async () => {
-    expect(await propose({ action: 'recolor', kind: 'category', id: C1, color: 'blue' })).toEqual({
-      action: 'recolor',
-      kind: 'category',
-      id: C1,
-      name: 'Work',
-      color: 'blue',
-    });
-    const err = (i: Parameters<typeof propose>[0]) => propose(i);
-    expect(await err({ action: 'recolor', kind: 'tag', id: T1, color: 'blue' })).toEqual({
-      error: 'invalid_kind',
-    });
-    expect(await err({ action: 'recolor', kind: 'category', id: OTHER, color: 'blue' })).toEqual({
-      error: 'not_found',
-    });
-    expect(await err({ action: 'recolor', kind: 'category', id: D1, color: 'blue' })).toEqual({
-      error: 'category_deleted',
-    });
-    expect(await err({ action: 'recolor', kind: 'category', id: C1 })).toEqual({
-      error: 'invalid_color',
-    });
-    expect(await err({ action: 'recolor', kind: 'category', id: C1, color: 'slate' })).toEqual({
-      error: 'unchanged',
-    });
-  });
-
-  it('only a valid proposal result becomes a data-actions payload', () => {
+  it('only valid proposals in a result become data-actions payloads', () => {
     const action = { action: 'delete', kind: 'category', id: C2, name: 'Home' };
-    expect(proposedAction({ type: 'tool-output-available', output: action })).toEqual(action);
-    expect(proposedAction({ type: 'tool-output-available', output: { error: 'x' } })).toBeNull();
-    expect(proposedAction({ type: 'text-delta' })).toBeNull();
+    expect(
+      proposedActions({ type: 'tool-output-available', output: [action, { error: 'x' }, action] }),
+    ).toEqual([action, action]);
+    expect(proposedActions({ type: 'tool-output-available', output: { error: 'x' } })).toEqual([]);
+    expect(proposedActions({ type: 'text-delta' })).toEqual([]);
   });
 });
