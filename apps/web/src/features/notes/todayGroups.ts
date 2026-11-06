@@ -1,4 +1,4 @@
-import { isOverdue, sortNotes, type Note, type NoteSort } from '@notes/shared';
+import { isOverdue, isSnoozed, sortNotes, type Note, type NoteSort } from '@notes/shared';
 
 export type TodayGroups = {
   overdue: Note[];
@@ -27,6 +27,7 @@ export function todayGroups(notes: Note[], today: string, sort: NoteSort): Today
   const byDate = new Map<string, Note[]>();
   for (const n of notes) {
     if (n.status === 'draft' || n.status === 'done') continue;
+    if (isSnoozed(n, today)) continue;
     if (isOverdue(n, today)) overdue.push(n);
     else if (n.dueDate === today) dueToday.push(n);
     else if (n.status === 'in_progress') inProgress.push(n);

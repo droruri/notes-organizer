@@ -33,6 +33,7 @@ const mk = (n: number, createdAt: string): Note => ({
   importance: null,
   urgency: null,
   dueDate: null,
+  snoozedUntil: null,
   proposed: null,
   unreadLinks: [],
   categoryIds: [],

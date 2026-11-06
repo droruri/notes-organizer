@@ -144,7 +144,7 @@ erDiagram
   user_settings { uuid user_id PK "FK auth.users" text note_sort "urgency|due_date|newest|oldest" jsonb note_form "nullable, null = defaults" }
   categories { uuid id PK uuid user_id FK text name importance importance "optional default" category_color color boolean pinned timestamptz deleted_at timestamptz created_at }
   tags { uuid id PK uuid category_id FK text name timestamptz deleted_at timestamptz created_at }
-  notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
+  notes { uuid id PK uuid user_id FK uuid client_id "offline idempotency" text body note_status status importance importance urgency urgency date due_date date snoozed_until "hidden until this day" jsonb proposed "new names, draft only" text_array unread_links "links Claude could not read" timestamptz created_at timestamptz updated_at timestamptz deleted_at }
   note_categories { uuid note_id PK uuid category_id PK }
   note_tags { uuid note_id PK uuid tag_id PK }
   note_audio { uuid note_id PK text mime bytea data }
@@ -154,7 +154,7 @@ erDiagram
 
 - Enums: `note_status (draft, todo, in_progress, done)`, `importance (important, not_important)`,
   `urgency (not_critical, medium, critical, urgent)`,
-  `category_color (blue, green, purple, amber, teal, pink, red, slate)`. `importance`, `urgency`, `due_date` nullable.
+  `category_color (blue, green, purple, amber, teal, pink, red, slate)`. `importance`, `urgency`, `due_date`, `snoozed_until` nullable (snoozed notes are hidden from the list and Today until that day; the "Snoozed" filter shows them).
 - Unique active names: `unique (user_id, lower(name)) where deleted_at is null` on categories;
   `unique (category_id, lower(name)) where deleted_at is null` on tags;
   `unique (user_id, client_id)` on notes.

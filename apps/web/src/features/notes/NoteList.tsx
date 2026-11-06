@@ -14,6 +14,7 @@ export function NoteList({
   onOpen,
   onStatus,
   onToggleItem,
+  onSnooze,
   hiddenStatuses,
   statusPendingId,
   onAdd,
@@ -28,6 +29,7 @@ export function NoteList({
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
   onToggleItem?: ((note: Note, index: number) => void) | undefined;
+  onSnooze?: ((note: Note, day: string | null) => void) | undefined;
   hiddenStatuses: readonly NoteStatus[];
   /** Id of the note whose status save is pending. */
   statusPendingId?: string | undefined;
@@ -82,6 +84,7 @@ export function NoteList({
           onOpen={onOpen}
           onStatus={onStatus}
           onToggleItem={onToggleItem}
+          onSnooze={onSnooze}
           hiddenStatuses={hiddenStatuses}
           statusPending={statusPendingId === n.id}
           workspaceName={workspaceNames?.get(n.workspaceId)}

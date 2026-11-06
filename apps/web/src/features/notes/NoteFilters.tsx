@@ -239,6 +239,14 @@ export function NoteFilters({
                 onClick={() => set({ unreadLinksOnly: !filter.unreadLinksOnly })}
               />,
             )}
+            {group(
+              t('snooze.filter'),
+              <Chip
+                label={t('snooze.filter')}
+                selected={filter.snoozedOnly}
+                onClick={() => set({ snoozedOnly: !filter.snoozedOnly })}
+              />,
+            )}
             {date(t('notes.created'), 'createdFrom', 'createdTo')}
             {date(t('notes.dueDate'), 'dueFrom', 'dueTo')}
             <button

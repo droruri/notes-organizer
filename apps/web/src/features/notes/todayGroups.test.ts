@@ -16,6 +16,7 @@ const note = (o: Partial<Note> = {}): Note => {
     importance: null,
     urgency: null,
     dueDate: null,
+    snoozedUntil: null,
     proposed: null,
     unreadLinks: [],
     categoryIds: [],
@@ -28,6 +29,14 @@ const note = (o: Partial<Note> = {}): Note => {
   };
 };
 const ids = (ns: Note[]) => ns.map((n) => n.id);
+
+describe('todayGroups snooze', () => {
+  it('skips notes snoozed past today but keeps those waking today', () => {
+    const hidden = note({ dueDate: TODAY, snoozedUntil: '2026-11-11' });
+    const awake = note({ dueDate: TODAY, snoozedUntil: TODAY });
+    expect(ids(todayGroups([hidden, awake], TODAY, 'urgency').dueToday)).toEqual([awake.id]);
+  });
+});
 
 describe('todayGroups', () => {
   it('excludes drafts and done notes', () => {

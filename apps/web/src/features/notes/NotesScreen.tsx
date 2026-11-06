@@ -55,6 +55,7 @@ import { TodayList } from './TodayList';
 import { todayCount, todayGroups } from './todayGroups';
 import { rankCategories } from './categoryRank';
 import { toggleItem } from './checklist';
+import { formatDate } from './formatDate';
 import { NoteList } from './NoteList';
 import { recordOpen } from './recent';
 import { ComposeForm } from './ComposeForm';
@@ -387,6 +388,20 @@ export function NotesScreen({
       await queryClient.invalidateQueries({ queryKey: ['notes'] });
     },
   });
+  const [snoozeUndo, setSnoozeUndo] = useState<{ id: string; day: string } | null>(null);
+  const snooze = useMutation({
+    mutationFn: ({ id, day }: { id: string; day: string | null; fromUndo?: boolean }) =>
+      api.updateNote(id, { snoozedUntil: day }),
+    onSuccess: async (_saved, { id, day, fromUndo }) => {
+      setSnoozeUndo(day !== null && !fromUndo ? { id, day } : null);
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
+  });
+  useEffect(() => {
+    if (snoozeUndo === null) return;
+    const timer = setTimeout(() => setSnoozeUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [snoozeUndo]);
   const undo = useMutation({
     mutationFn: api.restoreNote,
     onSuccess: async () => {
@@ -539,6 +554,7 @@ export function NotesScreen({
           onCancel={goBack}
           onReanalyze={() => reanalyze(note.id)}
           onDelete={() => remove.mutate(note.id)}
+          today={localToday()}
           attachable
           workspaces={workspaces.data}
         />
@@ -782,6 +798,7 @@ export function NotesScreen({
               open(notePath(note.id));
             }}
             onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+            onSnooze={(note, day) => snooze.mutate({ id: note.id, day })}
             onToggleItem={(note, index) =>
               toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
             }
@@ -804,6 +821,7 @@ export function NotesScreen({
               open(notePath(note.id));
             }}
             onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+            onSnooze={(note, day) => snooze.mutate({ id: note.id, day })}
             onToggleItem={(note, index) =>
               toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
             }
@@ -815,7 +833,7 @@ export function NotesScreen({
           />
         )}
       </div>
-      {(changeStatus.isError || toggle.isError) && (
+      {(changeStatus.isError || toggle.isError || snooze.isError) && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>
@@ -868,6 +886,21 @@ export function NotesScreen({
             }
           >
             {t('notes.savedIn', { name: savedIn })}
+          </Toast>
+        )}
+        {snoozeUndo !== null && (
+          <Toast
+            actions={
+              <button
+                type="button"
+                onClick={() => snooze.mutate({ id: snoozeUndo.id, day: null, fromUndo: true })}
+                className="btn btn-sm"
+              >
+                {t('notes.undo')}
+              </button>
+            }
+          >
+            {t('snooze.toast', { date: formatDate(snoozeUndo.day, i18n.language) })}
           </Toast>
         )}
         {undoId !== null && (
