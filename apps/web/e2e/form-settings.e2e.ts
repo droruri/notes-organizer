@@ -22,7 +22,7 @@ test('hiding the due date applies to the open form, the other form and survives 
   await page.getByRole('textbox', { name: 'טקסט' }).fill(`${draft} extra`);
   const dialog = await openFormSettings(page);
   await expect(dialog.getByText('תמיד מוצג')).toBeVisible();
-  await expect(dialog.getByRole('switch')).toHaveCount(9); // 5 fields + in-progress status + 3 quick actions
+  await expect(dialog.getByRole('switch')).toHaveCount(10); // 5 fields + in-progress status + 3 quick actions + push reminders
   await dialog.getByRole('switch', { name: 'הצגת תאריך יעד' }).uncheck();
   await dialog.getByRole('button', { name: 'שמירת הגדרות' }).click();
   await expect(dialog).toHaveCount(0);

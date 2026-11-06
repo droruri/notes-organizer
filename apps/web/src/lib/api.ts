@@ -29,6 +29,8 @@ import {
   NoteCreated,
   NoteEdit,
   NoteList,
+  type PushSubscriptionBody,
+  PushTestResult,
   Settings,
   type SettingsPatch,
   Suggestion,
@@ -216,6 +218,11 @@ export const api = {
   },
   health: () => request('GET', '/health', HealthResponse),
   settings: () => request('GET', '/settings', Settings),
+  subscribePush: (sub: PushSubscriptionBody) =>
+    request('POST', '/push/subscriptions', NoContent, sub),
+  unsubscribePush: (endpoint: string) =>
+    request('DELETE', '/push/subscriptions', NoContent, { endpoint }),
+  sendPushTest: () => request('POST', '/push/test', PushTestResult, {}),
   saveSettings: (patch: SettingsPatch) => request('PUT', '/settings', Settings, patch),
   taxonomy: () => request('GET', '/taxonomy', Taxonomy),
   workspaces: () => request('GET', '/workspaces', WorkspaceList),

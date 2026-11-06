@@ -148,6 +148,8 @@ describe('settings logs', () => {
         status: { hiddenValues: [] },
       },
       quickActions: ['record'],
+      timezone: null,
+      reminderHour: null,
     });
     expect(lines.find((l) => l.msg === 'stored settings invalid')).toMatchObject({
       level: 40,

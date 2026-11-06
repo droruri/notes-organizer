@@ -14,6 +14,8 @@ export default defineConfig({
       // Keep the Google Font (IBM Plex Sans Hebrew) available offline. The lazy screen chunks
       // are precached by the default globPatterns.
       workbox: {
+        // Push + notificationclick handlers live in public/push-sw.js.
+        importScripts: ['push-sw.js'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com',

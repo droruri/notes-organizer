@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { AiEnv, createAi, withLogging, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
+import { createPush, PushEnv, withPushLogging, createFakePush, type Push } from './push/provider';
 import { createPool, type Db } from './db';
 import { findAllowed, seedAdmins } from './domain/users/users';
 import {
@@ -22,6 +23,7 @@ import { healthRoutes } from './routes/health';
 import { importsRoutes } from './routes/imports';
 import { linksRoutes } from './routes/links';
 import { notesRoutes } from './routes/notes';
+import { pushRoutes } from './routes/push';
 import { settingsRoutes } from './routes/settings';
 import { taxonomyRoutes } from './routes/taxonomy';
 import { usersRoutes } from './routes/users';
@@ -35,6 +37,7 @@ export function buildServer({
   db,
   ai: rawAi,
   links: rawLinks = createLinkReader(),
+  push: rawPush = createFakePush(),
   verifyToken,
   allowedEmails,
   webOrigin = DEFAULT_WEB_ORIGIN,
@@ -44,6 +47,8 @@ export function buildServer({
   ai: Ai;
   /** Fetches links safely; defaults to the real network. */
   links?: LinkReader;
+  /** Sends Web Push; defaults to a fake that records sends. */
+  push?: Push;
   verifyToken: VerifyToken;
   /** Bootstrap admins: inserted into `allowed_users` on startup, never removed. */
   allowedEmails: ReadonlySet<string>;
@@ -53,6 +58,7 @@ export function buildServer({
 }): FastifyInstance {
   const ai = withLogging(rawAi);
   const links = withLinkLogging(rawLinks);
+  const push = withPushLogging(rawPush);
   const app = Fastify({ logger: withoutQueryInRequestLog(logger) });
   registerRequestLogging(app);
   // Seeds once; a failure is retried by the next request instead of locking the owner out.
@@ -86,6 +92,7 @@ export function buildServer({
     void authed.register(multipart, { limits: { fileSize: MAX_AUDIO_BYTES, files: 1 } });
     usersRoutes(authed, db);
     settingsRoutes(authed, db);
+    pushRoutes(authed, db, push);
     taxonomyRoutes(authed, db);
     workspacesRoutes(authed, db);
     notesRoutes(authed, db, ai, links);
@@ -98,6 +105,7 @@ export function buildServer({
 }
 
 const Env = AiEnv.and(LinkEnv)
+  .and(PushEnv)
   .and(LogEnv)
   .and(
     z.object({
@@ -115,8 +123,10 @@ async function main(): Promise<void> {
     console.error(`Invalid environment:\n${z.prettifyError(env.error)}`);
     process.exit(1);
   }
+  const push = createPush(env.data);
   const app = buildServer({
     db: createPool(env.data.DATABASE_URL),
+    push,
     ai: createAi(env.data),
     links: createLinkReader({ jinaApiKey: env.data.JINA_API_KEY }),
     verifyToken: createTokenVerifier(env.data.SUPABASE_URL),
@@ -124,6 +134,7 @@ async function main(): Promise<void> {
     webOrigin: env.data.WEB_ORIGIN,
     logger: { level: env.data.LOG_LEVEL },
   });
+  if (!push.enabled) app.log.warn('push disabled: no VAPID keys');
   await app.listen({ port: env.data.PORT, host: '0.0.0.0' });
 }
 
