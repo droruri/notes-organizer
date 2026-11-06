@@ -813,11 +813,10 @@ describe('NotesScreen checklist toggle', () => {
     setup((id, patch) => Promise.resolve({ ...note(1, patch.body ?? '', []), id }));
     fireEvent.click(await screen.findByRole('button', { name: 'Expand' }));
     fireEvent.click(await screen.findByRole('checkbox', { name: 'milk' }));
-    await waitFor(() =>
-      expect((screen.getByRole('checkbox', { name: 'milk' }) as HTMLInputElement).checked).toBe(
-        true,
-      ),
-    );
+    await waitFor(() => {
+      const box = screen.getByRole('checkbox', { name: 'milk' });
+      expect(box instanceof HTMLInputElement && box.checked).toBe(true);
+    });
     expect(api.updateNote).toHaveBeenCalledWith(note(1, body, []).id, {
       body: '- [x] milk\n- [ ] Dan',
     });
@@ -828,8 +827,7 @@ describe('NotesScreen checklist toggle', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Expand' }));
     fireEvent.click(await screen.findByRole('checkbox', { name: 'milk' }));
     await screen.findByRole('alert');
-    expect((screen.getByRole('checkbox', { name: 'milk' }) as HTMLInputElement).checked).toBe(
-      false,
-    );
+    const box = screen.getByRole('checkbox', { name: 'milk' });
+    expect(box instanceof HTMLInputElement && box.checked).toBe(false);
   });
 });

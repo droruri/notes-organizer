@@ -2,7 +2,7 @@ export type Line =
   | { kind: 'text'; text: string }
   | { kind: 'item'; checked: boolean; text: string; index: number };
 
-const ITEM = /^(\s*[-*] \[)( |x|X)(\] )(.*)$/;
+import { CHECKLIST_LINE as ITEM } from '@notes/shared';
 
 export function parseBody(body: string): Line[] {
   return body.split('\n').map((line, index): Line => {

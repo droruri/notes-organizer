@@ -31,8 +31,9 @@ export function NoteCard({
   today: string;
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
-  /** Statuses the status button skips over. */
+  /** Tap on a checklist box: toggle the item on line `index`. */
   onToggleItem?: ((note: Note, index: number) => void) | undefined;
+  /** Statuses the status button skips over. */
   hiddenStatuses: readonly NoteStatus[];
   /** This note's status save is in flight. */
   statusPending?: boolean;

@@ -508,6 +508,47 @@ describe('NoteEditor status switch', () => {
   });
 });
 
+describe('NoteEditor checklist', () => {
+  const withBody = (body: string) => ({ ...note(null), body });
+  const renderWith = (body: string) =>
+    render(
+      <NoteEditor
+        note={withBody(body)}
+        suggestion={EMPTY_SUGGESTION}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={vi.fn()}
+        onCancel={() => undefined}
+        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+      />,
+    );
+  const bodyBox = () => screen.getByLabelText<HTMLTextAreaElement>('Text');
+
+  it('offers Make checklist for two or more lines and converts them on tap', () => {
+    renderWith('milk\ncall Dan');
+    fireEvent.click(screen.getByRole('button', { name: 'Make checklist (2 items)' }));
+    expect(bodyBox().value).toBe('- [ ] milk\n- [ ] call Dan');
+  });
+
+  it('hides Make checklist for a single line', () => {
+    renderWith('pay rent');
+    expect(screen.queryByRole('button', { name: /Make checklist/ })).toBeNull();
+  });
+
+  it('hides Make checklist when the body already has items', () => {
+    renderWith('- [ ] milk\n- [ ] call Dan');
+    expect(screen.queryByRole('button', { name: /Make checklist/ })).toBeNull();
+  });
+
+  it('Undo restores the previous body', () => {
+    renderWith('milk\ncall Dan');
+    fireEvent.click(screen.getByRole('button', { name: 'Make checklist (2 items)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo checklist' }));
+    expect(bodyBox().value).toBe('milk\ncall Dan');
+  });
+});
+
 describe('updated date', () => {
   const open = (n: Note) =>
     render(

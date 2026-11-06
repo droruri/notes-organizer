@@ -322,8 +322,7 @@ describe('NoteCard checklist', () => {
   it('disables boxes while pending', () => {
     renderList(vi.fn(), true);
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
-    expect((screen.getByRole('checkbox', { name: 'call Dan' }) as HTMLInputElement).disabled).toBe(
-      true,
-    );
+    const box = screen.getByRole('checkbox', { name: 'call Dan' });
+    expect(box instanceof HTMLInputElement && box.disabled).toBe(true);
   });
 });
