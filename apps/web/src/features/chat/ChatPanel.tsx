@@ -24,14 +24,14 @@ export function ChatPanel({
   notes,
   onOpenNote,
   onClose,
-  onTaxonomyChanged,
+  onApplied,
   stream = api.chat,
 }: {
   notes: Note[];
   onOpenNote: (note: Note) => void;
   onClose: () => void;
   /** Called after an approved action, to refresh the taxonomy and notes queries. */
-  onTaxonomyChanged?: () => void;
+  onApplied?: () => void;
   /** The network call; tests pass a scripted one. */
   stream?: StreamChat;
 }) {
@@ -134,7 +134,7 @@ export function ChatPanel({
             ) : (
               <>
                 <ChatAnswer text={m.content} notes={notes} onOpenNote={openNote} />
-                <ActionGroup actions={actions[i] ?? []} onApplied={() => onTaxonomyChanged?.()} />
+                <ActionGroup actions={actions[i] ?? []} onApplied={() => onApplied?.()} />
               </>
             )}
           </div>

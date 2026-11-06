@@ -28,7 +28,7 @@ and urgency. It never changes anything by itself.
 _Avoid_: Classification result, prediction
 
 **Status**:
-Where a submitted note stands: `todo`, `in_progress` or `done`. A note moves one step at a time.
+Where a submitted note stands: `todo`, `in_progress` or `done`. A submitted note can move between any of them, or stop tracking status. It never goes back to draft.
 _Avoid_: State, stage
 
 **Due date**:
@@ -91,8 +91,12 @@ _Avoid_: Queue, offline drafts
 ## Chat
 
 **Agent**:
-The chat assistant that answers questions about the user's notes and proposes taxonomy changes.
+The chat assistant that answers questions about the user's notes and proposes taxonomy changes and note changes.
 _Avoid_: Bot, assistant
+
+**Note change**:
+An action card that changes one note's status, due date, importance, urgency, categories or tags. It never changes the body.
+_Avoid_: note edit card, task update
 
 **Action card**:
 A change the agent proposes, shown to the user, applied only when the user approves it.

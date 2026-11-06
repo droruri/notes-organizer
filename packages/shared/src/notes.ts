@@ -197,7 +197,7 @@ export type ChatRequest = z.infer<typeof ChatRequest>;
  * web app, which then calls the normal taxonomy route. `name` is the current/target name shown on
  * the card; `newName` is the rename target.
  */
-export const AgentAction = z.union([
+export const TaxonomyAction = z.union([
   z.object({ action: z.literal('create'), kind: z.literal('category'), name: z.string() }),
   z.object({
     action: z.literal('create'),
@@ -227,6 +227,35 @@ export const AgentAction = z.union([
     color: CategoryColor,
   }),
 ]);
+export type TaxonomyAction = z.infer<typeof TaxonomyAction>;
+
+/** The fields a note change card may edit; at least one is set. */
+export const NoteChange = NoteEdit.pick({
+  status: true,
+  dueDate: true,
+  importance: true,
+  urgency: true,
+  categoryIds: true,
+  tagIds: true,
+}).refine((e) => Object.values(e).some((v) => v !== undefined), { message: 'empty change' });
+export type NoteChange = z.infer<typeof NoteChange>;
+
+/**
+ * A change to one existing note the agent proposes. The web app applies it on approval through
+ * `PATCH /notes/:id`. `name` is the note heading; `labels` the display names of `edit`'s lists.
+ */
+export const NoteAction = z.object({
+  action: z.literal('update'),
+  kind: z.literal('note'),
+  id: z.uuid(),
+  name: z.string(),
+  edit: NoteChange,
+  labels: z.object({ categories: z.array(z.string()), tags: z.array(z.string()) }),
+});
+export type NoteAction = z.infer<typeof NoteAction>;
+
+/** Anything the chat agent proposes as a card. */
+export const AgentAction = z.union([TaxonomyAction, NoteAction]);
 export type AgentAction = z.infer<typeof AgentAction>;
 
 /** Why a taxonomy change was refused. */
@@ -242,7 +271,7 @@ export type TaxonomyFailure = z.infer<typeof TaxonomyFailure>;
 export const MAX_ACTIONS = 20;
 
 /** `POST /taxonomy/actions`: apply the approved chat cards in order, one result per action. */
-export const ActionsBody = z.object({ actions: z.array(AgentAction).min(1).max(MAX_ACTIONS) });
+export const ActionsBody = z.object({ actions: z.array(TaxonomyAction).min(1).max(MAX_ACTIONS) });
 export type ActionsBody = z.infer<typeof ActionsBody>;
 
 export const ActionResult = z.union([

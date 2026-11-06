@@ -263,6 +263,10 @@
       "dismissed": "נדחה",
       "nameTaken": "השם כבר קיים.",
       "categoryDeleted": "הקטגוריה מחוקה.",
+      "invalidTransition": "שינוי הסטטוס הזה אינו אפשרי.",
+      "noteNotFound": "הפתק כבר לא קיים.",
+      "categories": "קטגוריות",
+      "tags": "תגיות",
       "failed": "הפעולה נכשלה.",
       "create": {
         "category": "ליצור קטגוריה \"{{name}}\"",
@@ -278,6 +282,9 @@
       },
       "recolor": {
         "category": "לצבוע את הקטגוריה \"{{name}}\" ב{{color}}"
+      },
+      "update": {
+        "note": "לעדכן את «{{name}}»"
       },
       "restore": {
         "category": "לשחזר את הקטגוריה \"{{name}}\"",

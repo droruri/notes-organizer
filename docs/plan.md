@@ -35,7 +35,7 @@ Decisions taken with the user:
 | Deleting a category/tag | Soft delete: not offered for new choices, shown disabled on notes that have it, restorable. A deleted category makes its tags unavailable too. |
 | Notes | Every field editable after submit; soft delete with an Undo toast; "Re-analyze" re-runs Claude and fills the editor without writing. |
 | Link preview | YouTube/Vimeo play in an iframe; articles show an OG card; tap opens a server-extracted reader view. |
-| Chat writes | Propose-only: the agent returns action cards; the user approves one or all; the web sends one `POST /taxonomy/actions`. |
+| Chat writes | Propose-only: the agent returns action cards; the user approves one or all; the web sends one `POST /taxonomy/actions` for taxonomy cards and one `PATCH /notes/:id` per note card (`propose_note_changes`). |
 | Chat history | Session only (browser memory). No chat tables. |
 | Import | One review screen: proposed new categories/tags and split notes, all with checkboxes, notes editable. Confirm writes everything in one transaction as submitted notes (`todo`). |
 | Offline | Text in `localStorage`, audio in IndexedDB. On reconnect a dialog lists queued notes; each opens in the add-note editor; confirm sends it; normal draft review follows. |
@@ -348,7 +348,8 @@ and Re-analyze are the safety net.
 - **Delete** → Undo toast (5 s) → `POST /notes/:id/restore`.
 - **Chat:** recolor cards show a `.cat-pill` preview in the new color. Side panel on desktop, full-screen sheet on phone; streaming answers; action cards with
   Approve / Dismiss; the cards of one answer form an action group, with "Approve all (N)" sending
-  one `POST /taxonomy/actions`.
+  one `POST /taxonomy/actions` for the taxonomy cards; note change cards (`kind: 'note'`) are applied
+  through `PATCH /notes/:id`, one call per card, each succeeding or failing on its own.
 - **Import:** paste into a textarea or pick a `.txt` file → analyze → review (new categories, new
   tags, notes — checkboxes; each note row opens the NoteEditor) → confirm. When some links were
   not read, a banner on the review screen says so ("Claude read 30 of 47 links. 17 notes have

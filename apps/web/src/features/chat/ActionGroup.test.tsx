@@ -2,6 +2,7 @@ import type { ActionsBody, ActionsResponse, AgentAction } from '@notes/shared';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { ApiRequestError } from '../../lib/api';
 import { ActionGroup } from './ActionGroup';
 
 afterEach(cleanup);
@@ -114,5 +115,64 @@ describe('ActionGroup', () => {
     fireEvent.click(screen.getByRole('button', { name: /דחייה|dismiss/i }));
     expect(fn).not.toHaveBeenCalled();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('ActionGroup note cards', () => {
+  const id = (n: number) => `${n}`.repeat(8) + '-1111-4111-8111-111111111111';
+  const note = (n: number, name: string): AgentAction => ({
+    action: 'update',
+    kind: 'note',
+    id: id(n),
+    name,
+    edit: { status: 'done', categoryIds: [id(9)] },
+    labels: { categories: ['Work'], tags: [] },
+  });
+
+  it('shows the changed fields on a note card', () => {
+    render(<ActionGroup actions={[note(1, 'Dentist')]} onApplied={vi.fn()} />);
+    expect(screen.getByText(/Dentist/)).toBeTruthy();
+    expect(screen.getByText(/Work/)).toBeTruthy();
+  });
+
+  it('approve-all sends one applyActions and one updateNote per note card', async () => {
+    const apply = vi.fn(async (b: ActionsBody) => ({
+      results: b.actions.map(() => ({ ok: true as const })),
+    }));
+    const applyNote = vi.fn(async () => ({}));
+    const onApplied = vi.fn();
+    const actions = [mk('A'), note(1, 'Dentist'), note(2, 'Groceries')];
+    render(
+      <ActionGroup actions={actions} apply={apply} applyNote={applyNote} onApplied={onApplied} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: allBtn }));
+    await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1));
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(apply).toHaveBeenCalledWith({ actions: [mk('A')] });
+    expect(applyNote).toHaveBeenCalledTimes(2);
+    expect(applyNote).toHaveBeenCalledWith(
+      id(1),
+      actions[1] && 'edit' in actions[1] ? actions[1].edit : null,
+    );
+    expect(screen.getAllByText(/בוצע|done/i)).toHaveLength(3);
+  });
+
+  it('a 404 on one note card errors that card only', async () => {
+    const applyNote = vi.fn(async (noteId: string) => {
+      if (noteId === id(1)) throw new ApiRequestError(404, 'not_found', 'nf');
+      return {};
+    });
+    const onApplied = vi.fn();
+    render(
+      <ActionGroup
+        actions={[note(1, 'Dentist'), note(2, 'Groceries')]}
+        applyNote={applyNote}
+        onApplied={onApplied}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: allBtn }));
+    await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getAllByText(/בוצע|done/i)).toHaveLength(1);
   });
 });

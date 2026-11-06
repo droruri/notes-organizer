@@ -1,10 +1,19 @@
-import { CategoryColor } from '@notes/shared';
-import type { AgentAction, Taxonomy } from '@notes/shared';
+import {
+  CategoryColor,
+  DateString,
+  Importance,
+  NoteStatus,
+  Urgency,
+  isValidTransition,
+  noteHeading,
+} from '@notes/shared';
+import type { AgentAction, NoteChange, Taxonomy } from '@notes/shared';
 import { z } from 'zod';
 import type { Db } from '../../db';
 import { timed, log } from '../../requestLog';
+import * as noteRepo from '../notes/repository';
 import * as taxonomy from '../taxonomy/service';
-import { normalizeName } from '../taxonomy/taxonomy';
+import { isUsable, normalizeName } from '../taxonomy/taxonomy';
 
 export const ProposeInput = z.object({
   action: z.enum(['create', 'rename', 'delete', 'restore', 'recolor']),
@@ -114,6 +123,112 @@ export function proposeTaxonomyChanges(
     });
     const rejected = results.filter((r) => 'error' in r).length;
     log().info({ proposed: results.length - rejected, rejected }, 'taxonomy changes proposed');
+    return results;
+  });
+}
+
+export const NoteProposeInput = z.object({
+  noteId: z.string(),
+  status: NoteStatus.nullable().optional(),
+  dueDate: DateString.nullable().optional(),
+  importance: Importance.nullable().optional(),
+  urgency: Urgency.nullable().optional(),
+  addCategoryIds: z.array(z.string()).optional(),
+  removeCategoryIds: z.array(z.string()).optional(),
+  addTagIds: z.array(z.string()).optional(),
+  removeTagIds: z.array(z.string()).optional(),
+});
+export type NoteProposeInput = z.infer<typeof NoteProposeInput>;
+
+const sameSet = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((x) => b.includes(x));
+
+/** The note's list with `remove` dropped and `add` appended (no duplicates). */
+const patchList = (current: string[], add: string[] = [], remove: string[] = []) => [
+  ...new Set([...current.filter((id) => !remove.includes(id)), ...add]),
+];
+
+function validateNote(
+  tax: Taxonomy,
+  notes: Map<string, Awaited<ReturnType<typeof noteRepo.listNotes>>[number]>,
+  input: NoteProposeInput,
+): Proposal {
+  const note = notes.get(input.noteId);
+  if (!note) return { error: 'not_found' };
+  if (note.status === 'draft') return { error: 'draft' };
+  if (input.status !== undefined && !isValidTransition(note.status, input.status)) {
+    return { error: 'invalid_transition' };
+  }
+  const categories = new Map(tax.categories.map((c) => [c.id, c]));
+  const tags = new Map(tax.categories.flatMap((c) => c.tags.map((t) => [t.id, { t, c }] as const)));
+  const catUsable = (id: string) => {
+    const c = categories.get(id);
+    return c !== undefined && !c.deleted;
+  };
+  const tagUsable = (id: string) => {
+    const e = tags.get(id);
+    return e !== undefined && isUsable(e.t, e.c);
+  };
+  if (!(input.addCategoryIds ?? []).every(catUsable) || !(input.addTagIds ?? []).every(tagUsable)) {
+    return { error: 'unknown_taxonomy' };
+  }
+
+  const categoryIds = patchList(note.categoryIds, input.addCategoryIds, input.removeCategoryIds);
+  const tagIds = patchList(note.tagIds, input.addTagIds, input.removeTagIds);
+  const edit: NoteChange = {
+    ...(input.status !== undefined && input.status !== note.status ? { status: input.status } : {}),
+    ...(input.dueDate !== undefined && input.dueDate !== note.dueDate
+      ? { dueDate: input.dueDate }
+      : {}),
+    ...(input.importance !== undefined && input.importance !== note.importance
+      ? { importance: input.importance }
+      : {}),
+    ...(input.urgency !== undefined && input.urgency !== note.urgency
+      ? { urgency: input.urgency }
+      : {}),
+    ...(sameSet(categoryIds, note.categoryIds) ? {} : { categoryIds }),
+    ...(sameSet(tagIds, note.tagIds) ? {} : { tagIds }),
+  };
+  if (Object.keys(edit).length === 0) return { error: 'unchanged' };
+  return {
+    action: 'update',
+    kind: 'note',
+    id: note.id,
+    name: noteHeading(note).text,
+    edit,
+    labels: {
+      categories: (edit.categoryIds ?? []).map((id) => categories.get(id)?.name ?? id),
+      tags: (edit.tagIds ?? []).map((id) => tags.get(id)?.t.name ?? id),
+    },
+  };
+}
+
+/**
+ * Validates every note change against one read of the notes and the taxonomy; one result per
+ * input, in order. Reads only: the web app applies an approved card through `PATCH /notes/:id`.
+ */
+export function proposeNoteChanges(
+  db: Db,
+  userId: string,
+  inputs: NoteProposeInput[],
+): Promise<Proposal[]> {
+  return timed('proposeNoteChanges', { count: inputs.length }, async () => {
+    const [all, tax] = await Promise.all([
+      noteRepo.listNotes(db, userId),
+      taxonomy.getTaxonomy(db, userId),
+    ]);
+    const byId = new Map(all.map((n) => [n.id, n]));
+    const results = inputs.map((input) => validateNote(tax, byId, input));
+    results.forEach((r, index) => {
+      if ('error' in r) {
+        log().warn(
+          { index, noteId: inputs[index]?.noteId, error: r.error },
+          'note proposal rejected',
+        );
+      }
+    });
+    const rejected = results.filter((r) => 'error' in r).length;
+    log().info({ proposed: results.length - rejected, rejected }, 'note changes proposed');
     return results;
   });
 }
