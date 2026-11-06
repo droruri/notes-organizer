@@ -24,6 +24,23 @@ describe('POST /chat', () => {
     expect(res.body).toContain('hello from fake');
   });
 
+  it('returns a clean 500 when loading the taxonomy fails', async () => {
+    const failing = buildServer({
+      db: {
+        query: async (sql: string) => {
+          if (sql.includes('allowed_users')) return { rows: [{ is_admin: false }] };
+          throw new Error('db down');
+        },
+      } as unknown as Parameters<typeof buildServer>[0]['db'],
+      ai: createFakeAi([], 'x', 'hello'),
+      verifyToken: fakeVerifyToken,
+      allowedEmails,
+    });
+    const res = await failing.inject({ method: 'POST', url: '/chat', headers, payload });
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toEqual({ error: 'chat_failed' });
+  });
+
   it('rejects a bad body, a missing token, and the 31st request in a minute', async () => {
     const bad = await app.inject({ method: 'POST', url: '/chat', headers, payload: {} });
     expect(bad.statusCode).toBe(400);

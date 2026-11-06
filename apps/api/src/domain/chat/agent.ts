@@ -121,14 +121,18 @@ export function buildTools({ db, userId, today }: { db: Db; userId: string; toda
 
 type TaxonomyList = Awaited<ReturnType<typeof listTaxonomy>>;
 
+const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
+
 function taxonomyBlock(list: TaxonomyList): string {
   if (list.length === 0) return 'The user has no categories yet.';
   return [
     "The user's categories and tags (data):",
     ...list.map(
       (c) =>
-        `category ${c.id} | ${c.name} | ${c.color}` +
-        (c.tags.length ? `; tags ${c.tags.map((t) => `${t.id}: ${t.name}`).join(', ')}` : ''),
+        `category ${c.id} | ${oneLine(c.name)} | ${c.color}` +
+        (c.tags.length
+          ? `; tags ${c.tags.map((t) => `${t.id}: ${oneLine(t.name)}`).join(', ')}`
+          : ''),
     ),
   ].join('\n');
 }

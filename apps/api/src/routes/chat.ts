@@ -2,6 +2,7 @@ import { ChatRequest } from '@notes/shared';
 import type { FastifyInstance } from 'fastify';
 import type { Ai } from '../ai/provider';
 import { currentUser } from '../auth';
+import { log } from '../requestLog';
 import type { Db } from '../db';
 import { llmRateLimit } from './rateLimit';
 import { chatArgs, proposedActions } from '../domain/chat/agent';
@@ -15,8 +16,8 @@ export function chatRoutes(app: FastifyInstance, db: Db, ai: Ai, webOrigin: stri
     let result: ReturnType<Ai['chat']>;
     try {
       result = ai.chat(await chatArgs({ db, userId: currentUser(req).id }, body.data));
-    } catch (err) {
-      req.log.error(err);
+    } catch {
+      log().warn({ stage: 'chat_args' }, 'chat setup failed');
       return reply.code(500).send({ error: 'chat_failed' });
     }
     reply.hijack();

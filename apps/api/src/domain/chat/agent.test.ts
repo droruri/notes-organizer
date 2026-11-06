@@ -149,6 +149,40 @@ describe('chat agent tools', () => {
     expect(Object.keys(args.tools)).not.toContain('list_taxonomy');
   });
 
+  it('system prompt omits deleted categories, tags of deleted categories, and newlines', async () => {
+    const D = 'd3333333-3333-4333-8333-333333333333';
+    const db3 = fakeDb({
+      [ME]: {
+        notes: [],
+        cats: [
+          { ...cat(C1, 'Wo\nrk'), deleted: false },
+          { ...cat(D, 'Gone'), deleted: true },
+        ],
+        tags: [
+          { id: T1, categoryId: C1, name: 'ok', deleted: false },
+          {
+            id: 'e4444444-4444-4444-8444-444444444444',
+            categoryId: D,
+            name: 'orphan',
+            deleted: false,
+          },
+          {
+            id: 'f5555555-5555-4555-8555-555555555555',
+            categoryId: C1,
+            name: 'dead',
+            deleted: true,
+          },
+        ],
+      },
+    });
+    const { system } = await chatArgs(
+      { db: db3, userId: ME },
+      { messages: [], today, locale: 'en' },
+    );
+    expect(system).toContain(`category ${C1} | Wo rk | slate`);
+    for (const x of ['Gone', 'orphan', 'dead']) expect(system).not.toContain(x);
+  });
+
   it('list taxonomy returns usable categories with tags', async () => {
     const list = await listTaxonomy(db, ME);
     expect(list.map((c) => c.name).sort()).toEqual(['Home', 'Work']);
