@@ -853,3 +853,67 @@ describe('NotesScreen checklist toggle', () => {
     expect(box instanceof HTMLInputElement && box.checked).toBe(false);
   });
 });
+
+describe('NotesScreen checklist in view mode', () => {
+  const A = '00000000-0000-4000-8000-0000000000c1';
+  const B = '00000000-0000-4000-8000-0000000000c2';
+  const items = [
+    { id: A, text: 'milk', done: true },
+    { id: B, text: 'eggs', done: false },
+  ];
+  const setup = () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const n = { ...note(1, 'shopping', []), checklist: items };
+    vi.spyOn(api, 'notes').mockResolvedValue([n]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[`/notes/${n.id}`]}>
+          <Routes>
+            <Route path="/" element={<NotesScreen />}>
+              <Route path="notes/:id" element={null} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    return n;
+  };
+
+  it('sends the full updated list and updates optimistically', async () => {
+    const n = setup();
+    const saved = { ...n, checklist: items.map((i) => ({ ...i, done: true })) };
+    const update = vi.spyOn(api, 'updateNote').mockImplementation(async () => {
+      vi.spyOn(api, 'notes').mockResolvedValue([saved]);
+      return saved;
+    });
+    await screen.findByText('1/2');
+    const box = screen.getAllByRole('checkbox')[1] as HTMLInputElement;
+    fireEvent.click(box);
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(n.id, {
+        checklist: [
+          { id: A, text: 'milk', done: true },
+          { id: B, text: 'eggs', done: true },
+        ],
+      }),
+    );
+    await screen.findByText('2/2');
+  });
+
+  it('rolls back and shows an error when saving fails', async () => {
+    const n = setup();
+    vi.spyOn(api, 'updateNote').mockRejectedValue(new Error('boom'));
+    await screen.findByText('1/2');
+    fireEvent.click(screen.getAllByRole('checkbox')[1] as HTMLInputElement);
+    await screen.findAllByRole('alert');
+    await screen.findByText('1/2');
+    expect(n.checklist[1]?.done).toBe(false);
+  });
+});

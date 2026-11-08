@@ -8,6 +8,7 @@ import {
   filterNotes,
   sortNotes,
   NoteCreated,
+  type ChecklistItem,
   type Note,
   type NoteFilter,
   DEFAULT_NOTE_FORM,
@@ -367,6 +368,27 @@ export function NotesScreen({
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
   });
+  const toggleChecklist = useMutation({
+    mutationFn: ({ id, checklist }: { id: string; checklist: ChecklistItem[] }) =>
+      api.updateNote(id, { checklist }),
+    onMutate: async ({ id, checklist }) => {
+      await queryClient.cancelQueries({ queryKey: ['notes'] });
+      const previous = queryClient.getQueryData<Note[]>(['notes']);
+      queryClient.setQueryData<Note[]>(['notes'], (old) =>
+        old?.map((n) => (n.id === id ? { ...n, checklist } : n)),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['notes'], ctx.previous);
+    },
+    onSuccess: (saved) => {
+      queryClient.setQueryData<Note[]>(['notes'], (old) =>
+        old?.map((n) => (n.id === saved.id ? saved : n)),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
+  });
   const pendingId = changeStatus.isPending
     ? changeStatus.variables.id
     : toggle.isPending
@@ -374,6 +396,7 @@ export function NotesScreen({
       : undefined;
   const clearErrors = () => {
     toggle.reset();
+    toggleChecklist.reset();
     submit.reset();
     remove.reset();
     changeStatus.reset();
@@ -548,6 +571,14 @@ export function NotesScreen({
           toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
         }
         togglePending={toggle.isPending}
+        onToggleChecklist={(note, itemId) =>
+          toggleChecklist.mutate({
+            id: note.id,
+            checklist: note.checklist.map((i) => (i.id === itemId ? { ...i, done: !i.done } : i)),
+          })
+        }
+        checklistDisabled={!online}
+        checklistError={toggleChecklist.isError}
         workspaceName={workspaces.data?.find((w) => w.id === viewed.workspaceId)?.name}
       />
     );
