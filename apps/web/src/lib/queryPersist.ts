@@ -5,6 +5,7 @@ import { del, get, set } from 'idb-keyval';
 import { z, type ZodType } from 'zod';
 import { settingsKeys } from '../api/settings.queries';
 import { taxonomyKeys } from '../api/taxonomy.queries';
+import { workspacesKeys } from '../api/workspaces.queries';
 import { clearNotes, loadNotes } from './noteStore';
 
 const KEY = 'notes-query-cache-v1';
@@ -16,7 +17,7 @@ export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 const SCHEMAS: Record<string, ZodType> = {
   [taxonomyKeys.all[0]]: Taxonomy,
   [settingsKeys.all[0]]: Settings,
-  workspaces: WorkspaceList,
+  [workspacesKeys.all[0]]: WorkspaceList,
 };
 
 function schemaFor(queryKey: readonly unknown[]): ZodType | undefined {

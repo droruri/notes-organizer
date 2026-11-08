@@ -10,7 +10,6 @@ import {
   NoteCreated,
   type Note,
   type NoteFilter,
-  type SavedFilter,
   DEFAULT_NOTE_FORM,
   type NoteStatus,
   type Workspace,
@@ -28,7 +27,14 @@ import {
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router';
-import { taxonomyKeys, useSaveSettings, useSettings, useTaxonomy } from '../../api';
+import {
+  taxonomyKeys,
+  useEditWorkspace,
+  useSaveSettings,
+  useSettings,
+  useTaxonomy,
+  useWorkspaces,
+} from '../../api';
 import { api, ApiNetworkError } from '../../lib/api';
 import { syncNotes } from '../../lib/noteStore';
 import type { ImportResult } from '../import/ImportDialog';
@@ -135,7 +141,7 @@ export function NotesScreen({
   });
   const taxonomy = useTaxonomy();
   const settings = useSettings();
-  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
+  const workspaces = useWorkspaces();
   // Mobile quick actions next to "New Note", in canonical order; the default while settings load.
   const quickActions = QuickAction.options.filter(
     (a) =>
@@ -197,14 +203,7 @@ export function NotesScreen({
     setAppliedFor(workspace?.id);
     setFilter({ ...EMPTY_FILTER, ...workspace?.defaultFilter });
   }
-  const saveDefault = useMutation({
-    mutationFn: ({ id, defaultFilter }: { id: string; defaultFilter: SavedFilter }) =>
-      api.editWorkspace(id, { defaultFilter }),
-    onSuccess: (saved) =>
-      queryClient.setQueryData<Workspace[]>(['workspaces'], (list) =>
-        list?.map((w) => (w.id === saved.id ? saved : w)),
-      ),
-  });
+  const editWorkspace = useEditWorkspace();
   const saveSort = useSaveSettings();
 
   const meta = (clientId: string = crypto.randomUUID(), workspaceId = workspace?.id) => ({
@@ -712,7 +711,7 @@ export function NotesScreen({
             {...(workspace && {
               onSaveDefault: () => {
                 const { text: _text, ...defaultFilter } = filter;
-                saveDefault.mutate({ id: workspace.id, defaultFilter });
+                editWorkspace.mutate({ id: workspace.id, patch: { defaultFilter } });
               },
             })}
             sort={
@@ -764,7 +763,7 @@ export function NotesScreen({
           {t('notes.error')}
         </p>
       )}
-      {saveDefault.isError && (
+      {editWorkspace.isError && (
         <p role="alert" className="notice notice-danger">
           {t('notes.error')}
         </p>
