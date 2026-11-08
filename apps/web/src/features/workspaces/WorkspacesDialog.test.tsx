@@ -145,7 +145,8 @@ describe('workspaces dialog', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(edit).toHaveBeenCalledWith(KNOWLEDGE.id, { name: 'ידע2' }));
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Actions for ידע' }));
+    // The edit patched the cache, so the row now carries the new name.
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Actions for ידע2' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Rename' }));
     const input2 = within(dialog).getByLabelText('Workspace name');
     fireEvent.change(input2, { target: { value: 'ידע3' } });
