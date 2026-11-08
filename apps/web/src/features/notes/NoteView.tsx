@@ -38,12 +38,12 @@ export function NoteView({
           </button>
         }
       />
-      <h3
+      <h2
         dir="auto"
-        className={`text-2xl leading-snug font-bold break-words ${heading.fallback ? 'truncate' : ''}`}
+        className={`text-2xl leading-snug font-bold break-words lg:text-4xl ${heading.fallback ? 'truncate' : ''}`}
       >
         {heading.text}
-      </h3>
+      </h2>
       {note.status && note.status !== 'draft' && (
         <span className="pill self-start">{t(`notes.status.${note.status}`)}</span>
       )}

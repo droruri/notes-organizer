@@ -12,15 +12,20 @@ beforeEach(async () => {
 afterEach(cleanup);
 
 const TAG = '00000000-0000-4000-8000-0000000000a1';
+const CATEGORY_ID = '00000000-0000-4000-8000-000000000001';
 const taxonomy: Taxonomy = {
   categories: [
     {
-      id: '00000000-0000-4000-8000-000000000001',
+      id: CATEGORY_ID,
       name: 'Home',
-      tags: [{ id: TAG, name: 'garden' }],
+      deleted: false,
+      importance: null,
+      color: 'blue',
+      pinned: false,
+      tags: [{ id: TAG, categoryId: CATEGORY_ID, name: 'garden', deleted: false }],
     },
   ],
-} as unknown as Taxonomy;
+};
 const note = (o: Partial<Note> = {}): Note => ({
   id: '00000000-0000-4000-8000-000000000001',
   clientId: '00000000-0000-4000-8000-100000000001',
@@ -65,6 +70,27 @@ describe('NoteView', () => {
     expect(screen.getByText(/water plants/)).toBeTruthy();
     expect(screen.queryByText('Due date')).toBeNull();
     expect(screen.queryByText('Workspace')).toBeNull();
+  });
+
+  it('shows attachments and unread links', () => {
+    view(
+      note({
+        attachments: [
+          {
+            id: '00000000-0000-4000-8000-0000000000b1',
+            name: 'scan.pdf',
+            mime: 'application/pdf',
+            size: 1024,
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ],
+        unreadLinks: ['https://example.com/read'],
+      }),
+    );
+    expect(screen.getByText('scan.pdf')).toBeTruthy();
+    expect(screen.getByTitle('https://example.com/read').getAttribute('href')).toBe(
+      'https://example.com/read',
+    );
   });
 
   it('shows set fields', () => {
