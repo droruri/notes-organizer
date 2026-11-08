@@ -1,16 +1,13 @@
 import {
   MAX_IMPORT_CHARS,
-  type ImportAnalyze,
-  type ImportConfirm,
   type ImportCreated,
   type ImportProposal,
   type Taxonomy,
   type Workspace,
 } from '@notes/shared';
-import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useAnalyzeImport, useConfirmImport } from '../../api';
 import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { useEscape } from '../../ui/useEscape';
@@ -27,8 +24,6 @@ export function ImportDialog({
   locale,
   onClose,
   onImported,
-  analyze = api.analyzeImport,
-  confirm = api.confirmImport,
 }: {
   taxonomy: Taxonomy;
   /** Offered in a picker when there is a choice; the batch is imported into the picked one. */
@@ -38,17 +33,14 @@ export function ImportDialog({
   locale: 'he' | 'en';
   onClose: () => void;
   onImported: (result: ImportResult) => void;
-  analyze?: (input: ImportAnalyze) => Promise<ImportProposal>;
-  confirm?: (input: ImportConfirm) => Promise<ImportCreated>;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const picked = workspaceId ?? currentWorkspaceId ?? '';
   const [proposal, setProposal] = useState<ImportProposal | null>(null);
-  const analysis = useMutation({ mutationFn: analyze, onSuccess: setProposal });
-  const saving = useMutation({
-    mutationFn: confirm,
+  const analysis = useAnalyzeImport({ onSuccess: setProposal });
+  const saving = useConfirmImport({
     onSuccess: (done, body) =>
       onImported({
         created: done.created,

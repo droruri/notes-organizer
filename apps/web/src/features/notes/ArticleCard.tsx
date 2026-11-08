@@ -1,19 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useLinkPreview } from '../../api';
 import { ReaderSheet } from './ReaderSheet';
 
 export function ArticleCard({ url }: { url: string }) {
   const { t } = useTranslation();
   const [reading, setReading] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const preview = useQuery({
-    queryKey: ['link-preview', url],
-    queryFn: () => api.linkPreview(url),
-    staleTime: 60 * 60 * 1000,
-    retry: false,
-  });
+  const preview = useLinkPreview(url);
   if (preview.data?.kind !== 'article') return null;
   const { title, description, image, siteName } = preview.data;
   return (
