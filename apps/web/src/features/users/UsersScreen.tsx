@@ -21,9 +21,9 @@ export function UsersScreen({ onBack }: { onBack: () => void }) {
     const code = err instanceof ApiRequestError ? err.code : undefined;
     setError(t(`users.errors.${code && KNOWN_ERRORS.includes(code) ? code : 'generic'}`));
   };
-  const add = useAddUser();
-  const toggle = useSetUserAdmin();
-  const remove = useRemoveUser();
+  const add = useAddUser({ onError });
+  const toggle = useSetUserAdmin({ onError });
+  const remove = useRemoveUser({ onError });
 
   return (
     <section className="enter-rise detail-screen flex flex-col gap-5">
@@ -41,7 +41,6 @@ export function UsersScreen({ onBack }: { onBack: () => void }) {
                 setEmail('');
                 setAdmin(false);
               },
-              onError,
             },
           );
         }}
@@ -117,10 +116,7 @@ export function UsersScreen({ onBack }: { onBack: () => void }) {
                       setError(null);
                       remove.mutate(u.email, {
                         onSuccess: () => setConfirming(null),
-                        onError: (err) => {
-                          setConfirming(null);
-                          onError(err);
-                        },
+                        onError: () => setConfirming(null),
                       });
                     }}
                     className="btn btn-sm btn-danger"
@@ -142,7 +138,7 @@ export function UsersScreen({ onBack }: { onBack: () => void }) {
                     type="button"
                     onClick={() => {
                       setError(null);
-                      toggle.mutate(u, { onError });
+                      toggle.mutate(u);
                     }}
                     className="btn btn-ghost btn-sm"
                   >
