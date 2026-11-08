@@ -2,10 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { ApiRequestError } from '../../lib/api';
+import { api, ApiRequestError } from '../../lib/api';
 import { UsersScreen } from './UsersScreen';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const row = (email: string, isAdmin: boolean) => ({
   email,
@@ -13,19 +16,26 @@ const row = (email: string, isAdmin: boolean) => ({
   createdAt: '2026-01-01T00:00:00.000Z',
 });
 
-function setup(overrides: Partial<Parameters<typeof UsersScreen>[0]['usersApi'] & object> = {}) {
+function setup(overrides: { add?: () => Promise<never>; remove?: () => Promise<never> } = {}) {
   const usersApi = {
-    list: vi.fn(async () => [row('me@x.com', true), row('dana@x.com', false)]),
-    add: vi.fn(async (i: { email: string }) => row(i.email, false)),
-    setAdmin: vi.fn(async (email: string, isAdmin: boolean) => row(email, isAdmin)),
-    remove: vi.fn(async () => undefined),
-    ...overrides,
+    list: vi
+      .spyOn(api, 'users')
+      .mockResolvedValue([row('me@x.com', true), row('dana@x.com', false)]),
+    add: vi
+      .spyOn(api, 'addUser')
+      .mockImplementation(overrides.add ?? (async (i: { email: string }) => row(i.email, false))),
+    setAdmin: vi
+      .spyOn(api, 'setUserAdmin')
+      .mockImplementation(async (email: string, isAdmin: boolean) => row(email, isAdmin)),
+    remove: vi
+      .spyOn(api, 'removeUser')
+      .mockImplementation(overrides.remove ?? (async () => undefined)),
   };
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <UsersScreen onBack={() => undefined} usersApi={usersApi} />
+      <UsersScreen onBack={() => undefined} />
     </QueryClientProvider>,
   );
   return usersApi;

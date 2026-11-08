@@ -14,10 +14,9 @@ import {
   type Taxonomy,
   type Workspace,
 } from '@notes/shared';
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useSettings } from '../../api';
 import { Icon } from '../../ui/Icon';
 import { NavBar } from '../../ui/NavBar';
 import { useSlow } from '../../ui/useSlow';
@@ -81,7 +80,7 @@ export function NoteEditor({
   const canChecklist =
     undoBody === null && checklistProgress(body) === null && bodyItems.length >= 2;
   const slow = useSlow(busy);
-  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const settings = useSettings();
   const noteForm = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
   const hidden = new Set<HideableField>(noteForm.hiddenFields);
   const gridCols = (['dueDate', 'importance', 'urgency'] satisfies HideableField[]).filter(

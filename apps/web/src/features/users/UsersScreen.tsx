@@ -1,74 +1,29 @@
-import type { AddUserBody, AllowedUser } from '@notes/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ApiRequestError } from '../../lib/api';
+import { useAddUser, useRemoveUser, useSetUserAdmin, useUsers } from '../../api';
+import { ApiRequestError } from '../../lib/api';
 import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
 
-type UsersApi = {
-  list: () => Promise<AllowedUser[]>;
-  add: (input: AddUserBody) => Promise<AllowedUser>;
-  setAdmin: (email: string, isAdmin: boolean) => Promise<AllowedUser>;
-  remove: (email: string) => Promise<undefined>;
-};
-
-const defaultApi: UsersApi = {
-  list: api.users,
-  add: api.addUser,
-  setAdmin: api.setUserAdmin,
-  remove: api.removeUser,
-};
-
 const KNOWN_ERRORS = ['exists', 'invalid_email', 'last_admin', 'cannot_change_self'];
 
 /** Admin screen: the allow list, with add, role toggle and remove. */
-export function UsersScreen({
-  onBack,
-  usersApi = defaultApi,
-}: {
-  onBack: () => void;
-  usersApi?: UsersApi;
-}) {
+export function UsersScreen({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
   const [admin, setAdmin] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const users = useQuery({ queryKey: ['users'], queryFn: usersApi.list });
+  const users = useUsers();
 
   const onError = (err: unknown) => {
     const code = err instanceof ApiRequestError ? err.code : undefined;
     setError(t(`users.errors.${code && KNOWN_ERRORS.includes(code) ? code : 'generic'}`));
   };
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['users'] });
-  const add = useMutation({
-    mutationFn: (input: AddUserBody) => usersApi.add(input),
-    onSuccess: () => {
-      setEmail('');
-      setAdmin(false);
-      return refresh();
-    },
-    onError,
-  });
-  const toggle = useMutation({
-    mutationFn: (u: AllowedUser) => usersApi.setAdmin(u.email, !u.isAdmin),
-    onSuccess: refresh,
-    onError,
-  });
-  const remove = useMutation({
-    mutationFn: (userEmail: string) => usersApi.remove(userEmail),
-    onSuccess: () => {
-      setConfirming(null);
-      return refresh();
-    },
-    onError: (err) => {
-      setConfirming(null);
-      onError(err);
-    },
-  });
+  const add = useAddUser();
+  const toggle = useSetUserAdmin();
+  const remove = useRemoveUser();
 
   return (
     <section className="enter-rise detail-screen flex flex-col gap-5">
@@ -79,7 +34,16 @@ export function UsersScreen({
         onSubmit={(e) => {
           e.preventDefault();
           setError(null);
-          add.mutate({ email, isAdmin: admin });
+          add.mutate(
+            { email, isAdmin: admin },
+            {
+              onSuccess: () => {
+                setEmail('');
+                setAdmin(false);
+              },
+              onError,
+            },
+          );
         }}
       >
         <input
@@ -151,7 +115,13 @@ export function UsersScreen({
                     type="button"
                     onClick={() => {
                       setError(null);
-                      remove.mutate(u.email);
+                      remove.mutate(u.email, {
+                        onSuccess: () => setConfirming(null),
+                        onError: (err) => {
+                          setConfirming(null);
+                          onError(err);
+                        },
+                      });
                     }}
                     className="btn btn-sm btn-danger"
                   >
@@ -172,7 +142,7 @@ export function UsersScreen({
                     type="button"
                     onClick={() => {
                       setError(null);
-                      toggle.mutate(u);
+                      toggle.mutate(u, { onError });
                     }}
                     className="btn btn-ghost btn-sm"
                   >

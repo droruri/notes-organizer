@@ -28,6 +28,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router';
+import { useSaveSettings, useSettings } from '../../api';
 import { api, ApiNetworkError } from '../../lib/api';
 import { syncNotes } from '../../lib/noteStore';
 import type { ImportResult } from '../import/ImportDialog';
@@ -133,7 +134,7 @@ export function NotesScreen({
     queryFn: () => syncNotes(queryClient.getQueryData<Note[]>(['notes'])),
   });
   const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
-  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const settings = useSettings();
   const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
   // Mobile quick actions next to "New Note", in canonical order; the default while settings load.
   const quickActions = QuickAction.options.filter(
@@ -204,10 +205,7 @@ export function NotesScreen({
         list?.map((w) => (w.id === saved.id ? saved : w)),
       ),
   });
-  const saveSort = useMutation({
-    mutationFn: api.saveSettings,
-    onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
-  });
+  const saveSort = useSaveSettings();
 
   const meta = (clientId: string = crypto.randomUUID(), workspaceId = workspace?.id) => ({
     clientId,
