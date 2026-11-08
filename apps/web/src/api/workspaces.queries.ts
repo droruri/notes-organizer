@@ -1,6 +1,7 @@
 import type { Workspace, WorkspaceEdit } from '@notes/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { notesKeys } from './notes.queries';
 
 export const workspacesKeys = {
   all: ['workspaces'] as const,
@@ -45,7 +46,7 @@ export function useDeleteWorkspace({ onSuccess }: { onSuccess?: (id: string) => 
       onSuccess?.(id);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: workspacesKeys.all }),
-        queryClient.invalidateQueries({ queryKey: ['notes'] }),
+        queryClient.invalidateQueries({ queryKey: notesKeys.all }),
       ]);
     },
   });

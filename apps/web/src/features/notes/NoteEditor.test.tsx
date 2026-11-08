@@ -56,10 +56,12 @@ const note = (title: string | null): Note => ({
 
 function setup(title: string | null, next: Suggestion) {
   let resolve: (s: Suggestion) => void = () => undefined;
-  const onReanalyze = () =>
-    new Promise<Suggestion>((r) => {
-      resolve = r;
-    });
+  const spy = vi.spyOn(api, 'analyzeNote').mockImplementation(
+    () =>
+      new Promise<Suggestion>((r) => {
+        resolve = r;
+      }),
+  );
   const onSubmit = vi.fn();
   render(
     <NoteEditor
@@ -70,13 +72,14 @@ function setup(title: string | null, next: Suggestion) {
       failed={false}
       onSubmit={onSubmit}
       onCancel={() => undefined}
-      onReanalyze={onReanalyze}
+      canReanalyze
     />,
   );
   const input = () => screen.getByLabelText<HTMLInputElement>('Title (optional)');
   const analyze = async (whileRunning?: () => void) => {
     fireEvent.click(screen.getByRole('button', { name: 'Re-analyze' }));
     whileRunning?.();
+    await waitFor(() => expect(spy).toHaveBeenCalled());
     resolve(next);
     await waitFor(() =>
       expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Re-analyze' }).disabled).toBe(
@@ -98,7 +101,7 @@ describe('NoteEditor title', () => {
         failed={false}
         onSubmit={() => undefined}
         onCancel={() => undefined}
-        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+        canReanalyze
       />,
     );
     expect(screen.queryByText('Suggested by Claude')).toBeNull();
@@ -114,7 +117,7 @@ describe('NoteEditor title', () => {
         failed={false}
         onSubmit={() => undefined}
         onCancel={() => undefined}
-        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+        canReanalyze
       />,
     );
     expect(screen.getByText('Suggested by Claude')).toBeTruthy();
@@ -159,7 +162,7 @@ describe('attachments gate', () => {
           failed={false}
           onSubmit={vi.fn()}
           onCancel={() => undefined}
-          onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+          canReanalyze
           attachable={attachable}
         />
       </QueryClientProvider>,
@@ -523,7 +526,7 @@ describe('NoteEditor checklist', () => {
         failed={false}
         onSubmit={vi.fn()}
         onCancel={() => undefined}
-        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+        canReanalyze
       />,
     );
   const bodyBox = () => screen.getByLabelText<HTMLTextAreaElement>('Text');
@@ -563,7 +566,7 @@ describe('updated date', () => {
         failed={false}
         onSubmit={vi.fn()}
         onCancel={() => undefined}
-        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+        canReanalyze
       />,
     );
 
@@ -604,7 +607,7 @@ describe('NoteEditor Claude checklist', () => {
         failed={false}
         onSubmit={() => undefined}
         onCancel={() => undefined}
-        onReanalyze={() => new Promise<Suggestion>(() => undefined)}
+        canReanalyze
       />,
     );
     const body = () => screen.getByLabelText<HTMLTextAreaElement>('Text');
@@ -648,6 +651,7 @@ describe('NoteEditor checklist', () => {
   });
 
   it('keeps the checklist on Re-analyze', async () => {
+    vi.spyOn(api, 'analyzeNote').mockResolvedValue({ ...EMPTY_SUGGESTION, checklist: ['a', 'b'] });
     render(
       <NoteEditor
         note={withItems()}
@@ -657,7 +661,7 @@ describe('NoteEditor checklist', () => {
         failed={false}
         onSubmit={() => undefined}
         onCancel={() => undefined}
-        onReanalyze={() => Promise.resolve({ ...EMPTY_SUGGESTION, checklist: ['a', 'b'] })}
+        canReanalyze
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Re-analyze' }));
