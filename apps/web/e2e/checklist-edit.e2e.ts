@@ -75,7 +75,10 @@ test.describe('desktop', () => {
     await box.focus();
     await page.keyboard.press('Space');
     await expect(box).toBeChecked();
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.evaluate(() => {
+      const el = document.activeElement;
+      if (el instanceof HTMLElement) el.blur();
+    });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('group', { name: 'רשימת משימות' })).toBeHidden();
     await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
