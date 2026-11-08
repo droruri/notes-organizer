@@ -25,6 +25,7 @@ const draftOf = (e: OutboxEntry): Note => ({
   tagIds: [],
   hasAudio: false,
   attachments: [],
+  checklist: [],
   createdAt: e.createdAt,
   updatedAt: e.createdAt,
 });

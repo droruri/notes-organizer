@@ -31,6 +31,7 @@ const note = (o: Partial<Note> = {}): Note => {
     tagIds: [],
     hasAudio: false,
     attachments: [],
+    checklist: [],
     createdAt: '2026-10-01T10:00:00.000Z',
     updatedAt: '2026-10-01T10:00:00.000Z',
     ...o,

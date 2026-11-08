@@ -387,6 +387,28 @@ describe.skipIf(!databaseUrl)('notes routes against the local stack', () => {
     expect(JSON.stringify(logged.lines)).not.toContain('snooze me');
   });
 
+  it('round-trips, keeps and clears the checklist', async () => {
+    const id = await submitted('list note');
+    expect(Note.parse((await send(mine, 'GET', '/notes')).json()[0]).checklist).toEqual([]);
+    const checklist = [
+      { id: crypto.randomUUID(), text: 'milk', done: false },
+      { id: crypto.randomUUID(), text: 'bread', done: true },
+    ];
+    const set = await send(mine, 'PATCH', `/notes/${id}`, { checklist });
+    expect(Note.parse(set.json()).checklist).toEqual(checklist);
+    const kept = await send(mine, 'PATCH', `/notes/${id}`, { title: 'T' });
+    expect(Note.parse(kept.json()).checklist).toEqual(checklist);
+    const cleared = await send(mine, 'PATCH', `/notes/${id}`, { checklist: [] });
+    expect(Note.parse(cleared.json()).checklist).toEqual([]);
+    const bad = await send(mine, 'PATCH', `/notes/${id}`, { checklist: [{ text: 'x' }] });
+    expect(bad.statusCode).toBe(400);
+  });
+
+  it('returns an empty checklist on a new draft', async () => {
+    const { res } = await draft('fresh draft');
+    expect(NoteCreated.parse(res.json()).note.checklist).toEqual([]);
+  });
+
   it('soft-deletes, hides from the list, and restores', async () => {
     const id = await submitted('delete me');
     expect((await send(mine, 'DELETE', `/notes/${id}`)).statusCode).toBe(204);
@@ -692,6 +714,38 @@ describe.skipIf(!databaseUrl)('notes outcome logs against the local stack', () =
     expect(dropped).toHaveLength(1);
     expect(dropped[0]).toMatchObject({ level: 40 });
     expect(JSON.stringify(lines)).not.toContain('Dan');
+  });
+
+  it('logs checklistItems on note updated, warns on unreadable checklist, never logs item text', async () => {
+    const { app, lines } = captureLogs({
+      db: pool,
+      turns: [{ value: { body: 'x' } }],
+      verifyToken,
+      allowedEmails: new Set([ME.email]),
+    });
+    const created = await app.inject({
+      method: 'POST',
+      url: '/notes',
+      headers,
+      payload: { body: 'body text', clientId: crypto.randomUUID(), today, locale: 'en' },
+    });
+    const id = Note.shape.id.parse(created.json().note.id);
+    await app.inject({
+      method: 'PATCH',
+      url: `/notes/${id}`,
+      headers,
+      payload: {
+        status: 'todo',
+        checklist: [{ id: crypto.randomUUID(), text: 'secret item', done: false }],
+      },
+    });
+    await pool.query(`update notes set checklist = '"junk"'::jsonb where id = $1`, [id]);
+    const read = await app.inject({ method: 'GET', url: '/notes', headers });
+    await app.close();
+    expect(lines.find((l) => l.msg === 'note updated')).toMatchObject({ checklistItems: 1 });
+    expect(lines.filter((l) => l.msg === 'note checklist unreadable').length).toBeGreaterThan(0);
+    expect(Note.parse(read.json()[0]).checklist).toEqual([]);
+    expect(JSON.stringify(lines)).not.toContain('secret item');
   });
 
   it('logs draft saved, draft duplicate, note updated, deleted and restored', async () => {
