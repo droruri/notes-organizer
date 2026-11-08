@@ -1,8 +1,6 @@
-import type { SettingsPatch } from '@notes/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useSaveSettings, useSendPushTest, useSetPushEnabled, useSettings } from '../../api';
 import { currentSubscription, isPushSupported, subscribe, unsubscribe } from './pushSubscription';
 
 const DEFAULT_HOUR = 8;
@@ -13,9 +11,8 @@ type Notice = 'denied' | 'unconfigured' | 'error' | 'sent' | 'noDevice' | null;
 /** Settings sheet section: turn push on/off for this device, pick the reminder hour, send a test. */
 export function RemindersSettings() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const supported = isPushSupported();
-  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const settings = useSettings();
   const [on, setOn] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -27,35 +24,20 @@ export function RemindersSettings() {
     );
   }, [supported]);
 
-  const saveSettings = useMutation({
-    mutationFn: (patch: SettingsPatch) => api.saveSettings(patch),
-    onSuccess: (saved) => queryClient.setQueryData(['settings'], saved),
-    onError: () => setNotice('error'),
-  });
+  const saveSettings = useSaveSettings();
 
-  const toggle = useMutation({
-    mutationFn: async (next: boolean) => {
-      if (!next) {
-        await unsubscribe();
-        return 'off' as const;
-      }
-      const outcome = await subscribe();
-      if (outcome === 'subscribed') {
-        await saveSettings.mutateAsync({
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        });
-      }
-      return outcome;
+  const toggle = useSetPushEnabled(
+    { subscribe, unsubscribe },
+    {
+      onSuccess: (outcome) => {
+        setNotice(outcome === 'denied' || outcome === 'unconfigured' ? outcome : null);
+        setOn(outcome === 'subscribed');
+      },
+      onError: () => setNotice('error'),
     },
-    onSuccess: (outcome) => {
-      setNotice(outcome === 'denied' || outcome === 'unconfigured' ? outcome : null);
-      setOn(outcome === 'subscribed');
-    },
-    onError: () => setNotice('error'),
-  });
+  );
 
-  const test = useMutation({
-    mutationFn: () => api.sendPushTest(),
+  const test = useSendPushTest({
     onSuccess: (r) => setNotice(r.sent > 0 ? 'sent' : 'noDevice'),
     onError: () => setNotice('error'),
   });
@@ -91,7 +73,12 @@ export function RemindersSettings() {
                 className="ms-auto"
                 value={settings.data?.reminderHour ?? DEFAULT_HOUR}
                 disabled={!settings.data || saveSettings.isPending}
-                onChange={(e) => saveSettings.mutate({ reminderHour: Number(e.target.value) })}
+                onChange={(e) =>
+                  saveSettings.mutate(
+                    { reminderHour: Number(e.target.value) },
+                    { onError: () => setNotice('error') },
+                  )
+                }
               >
                 {HOURS.map((h) => (
                   <option key={h} value={h}>
