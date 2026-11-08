@@ -161,7 +161,12 @@
     "checklist": {
       "progress": "Checklist progress",
       "make": "Make checklist ({{count}} items)",
-      "undo": "Undo checklist"
+      "undo": "Undo checklist",
+      "title": "Checklist",
+      "add": "Add item",
+      "delete": "Delete item",
+      "itemText": "Item text",
+      "toggle": "Done"
     }
   },
   "categoryStrip": {

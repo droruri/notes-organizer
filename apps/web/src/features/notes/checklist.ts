@@ -2,7 +2,7 @@ export type Line =
   | { kind: 'text'; text: string }
   | { kind: 'item'; checked: boolean; text: string; index: number };
 
-import { CHECKLIST_LINE as ITEM } from '@notes/shared';
+import { CHECKLIST_LINE as ITEM, type ChecklistItem } from '@notes/shared';
 
 export function parseBody(body: string): Line[] {
   return body.split('\n').map((line, index): Line => {
@@ -43,4 +43,9 @@ export function linesToItems(body: string): string[] {
     .split('\n')
     .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim())
     .filter((l) => l !== '');
+}
+
+/** Items with text; the editor keeps blank rows while typing, the payload does not. */
+export function nonEmptyItems(items: readonly ChecklistItem[]): ChecklistItem[] {
+  return items.filter((i) => i.text.trim() !== '').map((i) => ({ ...i, text: i.text.trim() }));
 }
