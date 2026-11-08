@@ -4,3 +4,4 @@ export * from './users.queries';
 export * from './links.queries';
 export * from './imports.queries';
 export * from './attachments.queries';
+export * from './workspaces.queries';

@@ -1,8 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Workspace, WorkspaceEdit } from '@notes/shared';
+import type { Workspace } from '@notes/shared';
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ApiRequestError } from '../../lib/api';
+import { useCreateWorkspace, useDeleteWorkspace, useEditWorkspace } from '../../api';
+import { ApiRequestError } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { Sheet } from '../../ui/Sheet';
 
@@ -21,15 +21,8 @@ export function WorkspacesDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [name, setName] = useState('');
-  const add = useMutation({
-    mutationFn: (n: string) => api.createWorkspace(n),
-    onSuccess: async () => {
-      setName('');
-      await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-    },
-  });
+  const add = useCreateWorkspace({ onSuccess: () => setName('') });
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim() && !add.isPending) add.mutate(name);
@@ -39,24 +32,12 @@ export function WorkspacesDialog({
   );
   const [renameValue, setRenameValue] = useState('');
   const defaultName = workspaces.find((w) => w.isDefault)?.name ?? '';
-  const edit = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: WorkspaceEdit }) =>
-      api.editWorkspace(id, patch),
-    onSuccess: async () => {
-      setActive(null);
-      await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-    },
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => api.deleteWorkspace(id),
-    onSuccess: async (_, id) => {
+  const edit = useEditWorkspace({ onSuccess: () => setActive(null) });
+  const remove = useDeleteWorkspace({
+    onSuccess: (id) => {
       setActive(null);
       const fallback = workspaces.find((w) => w.isDefault);
       if (id === currentId && fallback) onPick(fallback.id);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['workspaces'] }),
-        queryClient.invalidateQueries({ queryKey: ['notes'] }),
-      ]);
     },
   });
   const rowError = (err: unknown) => {

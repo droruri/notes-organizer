@@ -1,9 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
 import { resolveWorkspace } from '@notes/shared';
 import { lazy, Suspense, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
-import { api } from '../../lib/api';
+import { useWorkspaces } from '../../api';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
 import { NoteFormSettings } from '../notes/NoteFormSettings';
@@ -32,7 +31,7 @@ export function Screens() {
   const [params] = useSearchParams();
   // The key remounts the list with the tag filter from `?tag=`.
   const tagId = params.get('tag');
-  const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
+  const workspaces = useWorkspaces();
   // null = the default workspace.
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
