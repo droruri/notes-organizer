@@ -75,6 +75,17 @@ export const Suggestion = Proposed.extend({
 });
 export type Suggestion = z.infer<typeof Suggestion>;
 
+export const MAX_CHECKLIST_ITEMS = 100;
+export const MAX_CHECKLIST_TEXT = 200;
+
+/** One structured checklist line on a note. */
+export const ChecklistItem = z.object({
+  id: z.uuid(),
+  text: z.string().min(1).max(MAX_CHECKLIST_TEXT),
+  done: z.boolean(),
+});
+export type ChecklistItem = z.infer<typeof ChecklistItem>;
+
 export const Note = z.object({
   id: z.uuid(),
   clientId: z.uuid(),
@@ -95,6 +106,7 @@ export const Note = z.object({
   tagIds: z.array(z.uuid()),
   hasAudio: z.boolean(),
   attachments: z.array(Attachment),
+  checklist: z.array(ChecklistItem).max(MAX_CHECKLIST_ITEMS).default([]),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -170,6 +182,8 @@ export const NoteEdit = z.object({
   workspaceId: z.uuid().optional(),
   /** Replaces the stored list; the web sends the suggestion's list on submit / save. */
   unreadLinks: z.array(z.string().max(2000)).max(100).optional(),
+  /** Replaces the whole checklist; `[]` clears it. */
+  checklist: z.array(ChecklistItem).max(MAX_CHECKLIST_ITEMS).optional(),
 });
 export type NoteEdit = z.infer<typeof NoteEdit>;
 

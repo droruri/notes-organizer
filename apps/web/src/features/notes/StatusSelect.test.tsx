@@ -12,7 +12,7 @@ describe('StatusSelect', () => {
     const onChange = vi.fn();
     render(<StatusSelect status="todo" hiddenValues={[]} onChange={onChange} />);
     expect(options()).toEqual(['לביצוע', 'בתהליך', 'הושלם']);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'done' } });
+    fireEvent.change(screen.getByLabelText('סטטוס'), { target: { value: 'done' } });
     expect(onChange).toHaveBeenCalledWith('done');
   });
 
@@ -33,6 +33,6 @@ describe('StatusSelect', () => {
 
   it('can be disabled', () => {
     render(<StatusSelect status="todo" hiddenValues={[]} disabled onChange={() => undefined} />);
-    expect(screen.getByRole('combobox')).toHaveProperty('disabled', true);
+    expect(screen.getByLabelText('סטטוס')).toHaveProperty('disabled', true);
   });
 });

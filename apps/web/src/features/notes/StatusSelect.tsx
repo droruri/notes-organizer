@@ -1,7 +1,7 @@
-import { NoteStatus, TRACKED_STATUSES, statusClass } from '@notes/shared';
+import { NoteStatus, TRACKED_STATUSES } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 
-/** A native select styled as the status pill; picks any tracked status. */
+/** A native select as a form field; picks any tracked status. */
 export function StatusSelect({
   status,
   onChange,
@@ -15,23 +15,25 @@ export function StatusSelect({
 }) {
   const { t } = useTranslation();
   return (
-    <select
-      aria-label={t('notes.status.label')}
-      value={status ?? ''}
-      disabled={disabled}
-      onChange={(e) => {
-        const parsed = NoteStatus.nullable().safeParse(
-          e.target.value === '' ? null : e.target.value,
-        );
-        if (parsed.success) onChange(parsed.data);
-      }}
-      className={`pill pill-dot ${statusClass(status)} cursor-pointer`}
-    >
-      {TRACKED_STATUSES.filter((s) => !hiddenValues.includes(s) || s === status).map((s) => (
-        <option key={s} value={s}>
-          {t(`notes.status.${s}`)}
-        </option>
-      ))}
-    </select>
+    <label className="label">
+      {t('notes.status.label')}
+      <select
+        value={status ?? ''}
+        disabled={disabled}
+        onChange={(e) => {
+          const parsed = NoteStatus.nullable().safeParse(
+            e.target.value === '' ? null : e.target.value,
+          );
+          if (parsed.success) onChange(parsed.data);
+        }}
+        className="field text-fg"
+      >
+        {TRACKED_STATUSES.filter((s) => !hiddenValues.includes(s) || s === status).map((s) => (
+          <option key={s} value={s}>
+            {t(`notes.status.${s}`)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

@@ -41,6 +41,7 @@ const mk = (n: number, createdAt: string): Note => ({
   tagIds: [],
   hasAudio: false,
   attachments: [],
+  checklist: [],
   createdAt,
   updatedAt: createdAt,
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { NoteForm, Settings } from './index';
+import { ImportNote, NoteEdit, NoteForm, Settings } from './index';
 
 describe('NoteForm', () => {
   it('parses a stored form without importance/urgency to dropdowns', () => {
@@ -46,5 +46,24 @@ describe('NoteForm hiddenValues', () => {
   it('rejects an unknown value', () => {
     expect(NoteForm.safeParse({ urgency: { hiddenValues: ['nope'] } }).success).toBe(false);
     expect(NoteForm.safeParse({ importance: { hiddenValues: ['medium'] } }).success).toBe(false);
+  });
+});
+
+describe('checklist limits', () => {
+  const item = { id: crypto.randomUUID(), text: 'milk', done: false };
+  it('accepts valid items and rejects bad ones', () => {
+    expect(NoteEdit.safeParse({ checklist: [item] }).success).toBe(true);
+    expect(NoteEdit.safeParse({ checklist: [] }).success).toBe(true);
+    expect(NoteEdit.safeParse({ checklist: [{ ...item, id: 'x' }] }).success).toBe(false);
+    expect(NoteEdit.safeParse({ checklist: [{ ...item, text: '' }] }).success).toBe(false);
+    expect(NoteEdit.safeParse({ checklist: [{ ...item, text: 'a'.repeat(201) }] }).success).toBe(
+      false,
+    );
+    expect(NoteEdit.safeParse({ checklist: Array(101).fill(item) }).success).toBe(false);
+    expect(NoteEdit.safeParse({ checklist: Array(100).fill(item) }).success).toBe(true);
+  });
+  it('ImportNote drops checklist', () => {
+    const parsed = ImportNote.parse({ body: 'x', checklist: [item] });
+    expect(parsed).not.toHaveProperty('checklist');
   });
 });

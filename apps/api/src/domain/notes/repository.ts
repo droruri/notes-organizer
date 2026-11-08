@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
   Attachment,
+  ChecklistItem,
+  MAX_CHECKLIST_ITEMS,
   Proposed,
   type Importance,
   type Note,
@@ -13,9 +15,10 @@ import type { Links } from './note';
 
 // SQL for notes and their category/tag links.
 
-type NoteRow = Omit<Note, 'proposed' | 'attachments' | 'createdAt' | 'updatedAt'> & {
+type NoteRow = Omit<Note, 'proposed' | 'attachments' | 'checklist' | 'createdAt' | 'updatedAt'> & {
   proposed: unknown;
   attachments: unknown;
+  checklist: unknown;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -26,7 +29,7 @@ const NOTE_SELECT = `
     n.importance, n.urgency,
     to_char(n.due_date, 'YYYY-MM-DD') as "dueDate",
     to_char(n.snoozed_until, 'YYYY-MM-DD') as "snoozedUntil",
-    to_char(n.remind_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "remindAt", n.proposed, n.unread_links as "unreadLinks",
+    to_char(n.remind_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "remindAt", n.proposed, n.checklist, n.unread_links as "unreadLinks",
     n.created_at as "createdAt", n.updated_at as "updatedAt",
     coalesce((select array_agg(nc.category_id::text) from note_categories nc where nc.note_id = n.id), '{}') as "categoryIds",
     coalesce((select array_agg(nt.tag_id::text) from note_tags nt where nt.note_id = n.id), '{}') as "tagIds",
@@ -38,8 +41,11 @@ function toNote(row: NoteRow): Note {
   const proposed = Proposed.safeParse(row.proposed);
   const attachments = z.array(Attachment).safeParse(row.attachments);
   if (!attachments.success) log().warn({ noteId: row.id }, 'note attachments unreadable');
+  const checklist = z.array(ChecklistItem).max(MAX_CHECKLIST_ITEMS).safeParse(row.checklist);
+  if (!checklist.success) log().warn({ noteId: row.id }, 'note checklist unreadable');
   return {
     ...row,
+    checklist: checklist.success ? checklist.data : [],
     proposed: proposed.success ? proposed.data : null,
     attachments: attachments.success
       ? attachments.data.map((a) => ({ ...a, createdAt: new Date(a.createdAt).toISOString() }))
@@ -164,6 +170,7 @@ export type NoteChange = {
   /** `null` clears it. */
   proposed?: null;
   unreadLinks?: string[];
+  checklist?: ChecklistItem[];
   workspaceId?: string;
 };
 
@@ -178,6 +185,7 @@ const COLUMNS = {
   urgency: 'urgency',
   proposed: 'proposed',
   unreadLinks: 'unread_links',
+  checklist: 'checklist',
   workspaceId: 'workspace_id',
 } satisfies Record<keyof NoteChange, string>;
 
@@ -187,8 +195,8 @@ export async function updateNote(db: Queryable, id: string, change: NoteChange):
   for (const key of Object.keys(COLUMNS) as (keyof NoteChange)[]) {
     const value = change[key];
     if (value === undefined) continue;
-    values.push(value);
-    sets.push(`${COLUMNS[key]} = $${values.length}`);
+    values.push(key === 'checklist' ? JSON.stringify(value) : value);
+    sets.push(`${COLUMNS[key]} = $${values.length}${key === 'checklist' ? '::jsonb' : ''}`);
   }
   await db.query(`update notes set ${sets.join(', ')} where id = $1`, values);
 }

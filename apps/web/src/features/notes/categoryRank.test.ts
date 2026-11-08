@@ -29,6 +29,7 @@ const note = (categoryIds: string[], updatedAt: string, status: Note['status'] =
   tagIds: [],
   hasAudio: false,
   attachments: [],
+  checklist: [],
   createdAt: updatedAt,
   updatedAt,
 });
