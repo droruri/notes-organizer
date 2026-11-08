@@ -16,7 +16,7 @@ export function ChecklistView({
   const done = items.filter((i) => i.done).length;
   return (
     <section className="flex flex-col gap-1" aria-label={t('notes.checklist.title')}>
-      <p className="label" aria-label={t('notes.checklist.progress')}>
+      <p className="label">
         {done}/{items.length}
       </p>
       <ul className="card flex flex-col px-3 lg:px-0">

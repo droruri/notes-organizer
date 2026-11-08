@@ -129,13 +129,16 @@ describe('NoteView', () => {
       expect(screen.getByText('1/2')).toBeTruthy();
       const boxes = screen.getAllByRole('checkbox');
       expect(boxes).toHaveLength(2);
-      fireEvent.click(boxes[1] as HTMLElement);
+      const eggs = boxes[1];
+      if (!eggs) throw new Error('expected a second checkbox');
+      fireEvent.click(eggs);
       expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ id: note().id }), B);
       expect(screen.getByText('milk').className).toContain('line-through');
     });
     it('renders nothing for an empty list and disables when offline', () => {
       view(note());
       expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+      expect(screen.queryByText(/\d+\/\d+/)).toBeNull();
       cleanup();
       wrap(
         <NoteView
@@ -147,7 +150,8 @@ describe('NoteView', () => {
           checklistDisabled
         />,
       );
-      expect((screen.getAllByRole('checkbox')[0] as HTMLInputElement).disabled).toBe(true);
+      const first = screen.getAllByRole('checkbox')[0];
+      expect(first instanceof HTMLInputElement && first.disabled).toBe(true);
     });
   });
 });

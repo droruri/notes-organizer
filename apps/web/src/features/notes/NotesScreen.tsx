@@ -369,6 +369,8 @@ export function NotesScreen({
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
   });
   const toggleChecklist = useMutation({
+    // Same scope → taps are saved one after another, so the last full list always wins.
+    scope: { id: 'checklist' },
     mutationFn: ({ id, checklist }: { id: string; checklist: ChecklistItem[] }) =>
       api.updateNote(id, { checklist }),
     onMutate: async ({ id, checklist }) => {
