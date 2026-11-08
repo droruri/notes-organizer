@@ -28,7 +28,7 @@ export function ChecklistView({
             >
               <input
                 type="checkbox"
-                className="check pointer-coarse:h-[22px] pointer-coarse:w-[22px]"
+                className="check shrink-0 pointer-coarse:h-[22px] pointer-coarse:w-[22px]"
                 checked={item.done}
                 disabled={disabled}
                 onChange={() => onToggle(item.id)}
