@@ -236,6 +236,7 @@ export function updateNote(
           to: result.value.note.status,
           workspaceChanged: result.value.workspaceChanged,
           snoozed: typeof edit.snoozedUntil === 'string',
+          checklistItems: result.value.note.checklist.length,
         },
         'note updated',
       );
@@ -303,6 +304,7 @@ async function updateNoteUntimed(
       ...(edit.importance !== undefined ? { importance: edit.importance } : {}),
       ...(edit.urgency !== undefined ? { urgency: edit.urgency } : {}),
       ...(edit.unreadLinks !== undefined ? { unreadLinks: edit.unreadLinks } : {}),
+      ...(edit.checklist !== undefined ? { checklist: edit.checklist } : {}),
       ...(workspaceChanged && edit.workspaceId !== undefined
         ? { workspaceId: edit.workspaceId }
         : {}),

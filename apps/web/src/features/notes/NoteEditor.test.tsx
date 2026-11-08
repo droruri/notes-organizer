@@ -49,6 +49,7 @@ const note = (title: string | null): Note => ({
   tagIds: [],
   hasAudio: false,
   attachments: [],
+  checklist: [],
   createdAt: '',
   updatedAt: '',
 });

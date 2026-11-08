@@ -23,7 +23,9 @@ export const ImportProposal = z.object({
 export type ImportProposal = z.infer<typeof ImportProposal>;
 
 /** One chosen note. `newCategories` / `newTags` may only name items listed in `categories` / `tags`. */
-export const ImportNote = NoteEdit.omit({ status: true, body: true }).extend({ body: NoteBody });
+export const ImportNote = NoteEdit.omit({ status: true, body: true, checklist: true }).extend({
+  body: NoteBody,
+});
 export type ImportNote = z.infer<typeof ImportNote>;
 
 /** Body of `POST /imports/confirm`: the chosen taxonomy and notes, saved together. */
