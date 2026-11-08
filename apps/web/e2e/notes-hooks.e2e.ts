@@ -81,6 +81,8 @@ test('notes hooks: offline create is queued and resent exactly once', async ({ p
   await dialog.getByRole('button', { name: 'שמירה', exact: true }).click();
   await expect(dialog).toBeHidden();
   await page.screenshot({ path: '/tmp/e2e-shots/hooks-offline-after.png' });
+  // The resent note reaches the list once its review is saved (as before this change).
+  await save(page);
   await find(page, body);
   await expect(card(page, body)).toBeVisible();
   await page.waitForTimeout(1000);
