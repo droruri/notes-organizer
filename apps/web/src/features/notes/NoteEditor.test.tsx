@@ -613,3 +613,61 @@ describe('NoteEditor Claude checklist', () => {
     expect(body().value).toBe('- [ ] milk\n- [ ] Dan\n- [ ] bill');
   });
 });
+
+const at = <T,>(list: T[], i: number): T => {
+  const v = list[i];
+  if (v === undefined) throw new Error(`no element ${i}`);
+  return v;
+};
+
+describe('NoteEditor checklist', () => {
+  const withItems = (): Note => ({
+    ...note(null),
+    checklist: [{ id: '00000000-0000-4000-8000-0000000000a1', text: 'milk', done: false }],
+  });
+
+  it('submits the checklist, dropping empty rows', () => {
+    const onSubmit = vi.fn();
+    render(
+      <NoteEditor
+        note={withItems()}
+        suggestion={EMPTY_SUGGESTION}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={onSubmit}
+        onCancel={() => undefined}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    fireEvent.click(at(screen.getAllByRole('checkbox', { name: 'Done' }), 0));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSubmit.mock.calls[0]?.[0].checklist).toEqual([
+      { id: '00000000-0000-4000-8000-0000000000a1', text: 'milk', done: true },
+    ]);
+  });
+
+  it('keeps the checklist on Re-analyze', async () => {
+    render(
+      <NoteEditor
+        note={withItems()}
+        suggestion={EMPTY_SUGGESTION}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={() => undefined}
+        onCancel={() => undefined}
+        onReanalyze={() => Promise.resolve({ ...EMPTY_SUGGESTION, checklist: ['a', 'b'] })}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Re-analyze' }));
+    await waitFor(() =>
+      expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Re-analyze' }).disabled).toBe(
+        false,
+      ),
+    );
+    expect(screen.getAllByLabelText<HTMLInputElement>('Item text').map((i) => i.value)).toEqual([
+      'milk',
+    ]);
+  });
+});

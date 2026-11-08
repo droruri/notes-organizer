@@ -6,6 +6,7 @@ import {
   isSnoozed,
   Urgency,
   raiseImportance,
+  type ChecklistItem,
   type Note,
   type NoteEdit,
   type NoteStatus,
@@ -22,7 +23,8 @@ import { NavBar } from '../../ui/NavBar';
 import { useSlow } from '../../ui/useSlow';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
-import { checklistProgress, linesToItems, toChecklist } from './checklist';
+import { ChecklistEdit } from './ChecklistItems';
+import { checklistProgress, linesToItems, nonEmptyItems, toChecklist } from './checklist';
 import { ChoiceField } from './ChoiceField';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
@@ -71,6 +73,7 @@ export function NoteEditor({
   const updated = updatedDate(note.createdAt, note.updatedAt, i18n.language);
   const [title, setTitle] = useState(note.title ?? '');
   const [body, setBody] = useState(note.body);
+  const [items, setItems] = useState<ChecklistItem[]>(note.checklist);
   const [undoBody, setUndoBody] = useState<string | null>(null);
   const [aiChecklist, setAiChecklist] = useState(suggestion.checklist);
   // Claude's items win over the body's own lines; the body changes only on tap.
@@ -167,6 +170,7 @@ export function NoteEditor({
     onSubmit({
       title: title.trim() || null,
       body,
+      checklist: nonEmptyItems(items),
       ...picked,
       dueDate: dueDate || null,
       ...(snoozedUntil !== note.snoozedUntil ? { snoozedUntil } : {}),
@@ -247,6 +251,7 @@ export function NoteEditor({
           className={`${field} text-[1.0625rem] text-fg`}
         />
       </label>
+      <ChecklistEdit items={items} onChange={setItems} />
       {unreadLinks.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <UnreadLinkChips links={unreadLinks} />
