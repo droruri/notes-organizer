@@ -1,13 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { notesKeys } from './notes.queries';
 
 export const attachmentsKeys = {
   file: (id: string) => ['attachment', id] as const,
   audio: (noteId: string) => ['audio', noteId] as const,
 };
-
-// TODO(notes ticket): swap this literal for notesKeys.all.
-const NOTES_KEY = ['notes'] as const;
 
 /** The object URL lives as long as the cached query, like the audio player's. */
 export const useAttachmentFile = (noteId: string, id: string) =>
@@ -33,7 +31,7 @@ export function useUploadAttachment() {
   return useMutation({
     mutationFn: (v: { noteId: string; file: File }) => api.uploadAttachment(v.noteId, v.file),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+      void queryClient.invalidateQueries({ queryKey: notesKeys.all });
     },
   });
 }
@@ -43,7 +41,7 @@ export function useDeleteAttachment() {
   return useMutation({
     mutationFn: (v: { noteId: string; id: string }) => api.deleteAttachment(v.noteId, v.id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+      void queryClient.invalidateQueries({ queryKey: notesKeys.all });
     },
   });
 }

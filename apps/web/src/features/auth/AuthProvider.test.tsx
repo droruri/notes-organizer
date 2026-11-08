@@ -10,12 +10,17 @@ const h = vi.hoisted(() => ({
   me: vi.fn(),
   clear: vi.fn(),
   del: vi.fn(async () => {}),
+  client: null as null | { getQueryCache: () => { clear: () => void } },
 }));
 
-vi.mock('@tanstack/react-query', async (orig) => ({
-  ...(await orig<typeof import('@tanstack/react-query')>()),
-  useQueryClient: () => ({ clear: h.clear }),
-}));
+vi.mock('@tanstack/react-query', async (orig) => {
+  const lib = await orig<typeof import('@tanstack/react-query')>();
+  // A real client (AuthProvider fetches `me` through it); only clear() is observed.
+  const client = new lib.QueryClient();
+  client.clear = h.clear;
+  h.client = client;
+  return { ...lib, useQueryClient: () => client };
+});
 // Only the IndexedDB store is faked; clearCache runs for real and must delete the stored key.
 vi.mock('idb-keyval', () => ({ del: h.del, get: vi.fn(), set: vi.fn() }));
 
@@ -61,6 +66,8 @@ async function fire(event: string, s: Session | null) {
 afterEach(() => {
   cleanup();
   h.me.mockReset();
+  // A never-settling /me from one test must not be joined by the next test's fetch.
+  h.client?.getQueryCache().clear();
 });
 
 describe('AuthProvider', () => {

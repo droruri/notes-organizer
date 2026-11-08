@@ -1,93 +1,41 @@
-import {
-  type AgentAction,
-  type ChatMessage,
-  type ChatPart,
-  type ChatRequest,
-  type Note,
-} from '@notes/shared';
-import { useRef, useState } from 'react';
+import { type Note } from '@notes/shared';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionGroup } from './ActionGroup';
 import { ChatAnswer } from './ChatAnswer';
-import { api } from '../../lib/api';
+import { useChat } from '../../api';
 import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { useSlow } from '../../ui/useSlow';
 import { useEscape } from '../../ui/useEscape';
 import { useExit } from '../../ui/useExit';
 
-type StreamChat = (input: ChatRequest, onPart: (part: ChatPart) => void) => Promise<void>;
-
-const localToday = () => new Date().toLocaleDateString('en-CA');
-
 export function ChatPanel({
   notes,
   onOpenNote,
   onClose,
   onApplied,
-  stream = api.chat,
 }: {
   notes: Note[];
   onOpenNote: (note: Note) => void;
   onClose: () => void;
   /** Called after an approved action, to refresh the taxonomy and notes queries. */
   onApplied?: () => void;
-  /** The network call; tests pass a scripted one. */
-  stream?: StreamChat;
 }) {
   const { t, i18n } = useTranslation();
-  // History lives only in this component: closing the panel clears it.
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { messages, busy, tool, failed, actions, send } = useChat(i18n.language);
   const [input, setInput] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [tool, setTool] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [actions, setActions] = useState<Record<number, AgentAction[]>>({});
   const slow = useSlow(busy);
-  const history = useRef<ChatMessage[]>([]);
   const { closing, exit, onTransitionEnd } = useExit();
   const close = () => exit(onClose);
   const openNote = (note: Note) => exit(() => onOpenNote(note));
   useEscape(close);
 
-  const send = async () => {
+  const submit = () => {
     const content = input.trim();
     if (!content || busy) return;
-    const next: ChatMessage[] = [...history.current, { role: 'user', content }];
-    history.current = [...next, { role: 'assistant', content: '' }];
-    setMessages(history.current);
     setInput('');
-    setBusy(true);
-    setFailed(false);
-    const append = (delta: string) => {
-      const last = history.current.at(-1);
-      if (!last) return;
-      history.current = [
-        ...history.current.slice(0, -1),
-        { ...last, content: last.content + delta },
-      ];
-      setMessages(history.current);
-    };
-    try {
-      await stream(
-        { messages: next, today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' },
-        (part) => {
-          if (part.type === 'text-delta') {
-            setTool(false);
-            append(part.delta);
-          } else if (part.type === 'data-actions') {
-            const index = history.current.length - 1;
-            setActions((prev) => ({ ...prev, [index]: [...(prev[index] ?? []), ...part.data] }));
-          } else if (part.type === 'tool-input-start') setTool(true);
-          else setFailed(true);
-        },
-      );
-    } catch {
-      setFailed(true);
-    } finally {
-      setBusy(false);
-      setTool(false);
-    }
+    void send(content);
   };
 
   return (
@@ -155,7 +103,7 @@ export function ChatPanel({
         className="flex gap-2 border-t border-line p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         onSubmit={(e) => {
           e.preventDefault();
-          void send();
+          submit();
         }}
       >
         <input

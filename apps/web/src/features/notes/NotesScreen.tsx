@@ -1,4 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DEFAULT_NOTE_SORT,
   DEFAULT_QUICK_ACTIONS,
@@ -8,11 +7,9 @@ import {
   filterNotes,
   sortNotes,
   NoteCreated,
-  type ChecklistItem,
-  type Note,
+  type NoteEdit,
   type NoteFilter,
   DEFAULT_NOTE_FORM,
-  type NoteStatus,
   type Workspace,
   suggestionOf,
 } from '@notes/shared';
@@ -29,15 +26,25 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router';
 import {
-  taxonomyKeys,
+  useChangeNoteStatus,
+  useCreateNote,
+  useCreateVoiceNote,
+  useDeleteNote,
   useEditWorkspace,
+  useFilterFromText,
+  useNotes,
+  useRefreshNotes,
+  useRestoreNote,
   useSaveSettings,
   useSettings,
+  useSnoozeNote,
   useTaxonomy,
+  useToggleNoteChecklist,
+  useToggleNoteItem,
+  useUpdateNote,
   useWorkspaces,
 } from '../../api';
-import { api, ApiNetworkError } from '../../lib/api';
-import { syncNotes } from '../../lib/noteStore';
+import { ApiNetworkError } from '../../lib/api';
 import type { ImportResult } from '../import/ImportDialog';
 import { OutboxDialog } from '../offline/OutboxDialog';
 import {
@@ -108,7 +115,6 @@ export function NotesScreen({
   onWorkspaces?: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const queryClient = useQueryClient();
   // A share from another app opens the add-note editor with the shared text.
   const [shared] = useState(peekSharedNote);
   useEffect(clearSharedNote, []);
@@ -139,10 +145,7 @@ export function NotesScreen({
   const autoRecord = z.object({ record: z.literal(true) }).safeParse(state).success;
   const [text, setText] = useState(shared ?? '');
   const [title, setTitle] = useState('');
-  const notes = useQuery({
-    queryKey: ['notes'],
-    queryFn: () => syncNotes(queryClient.getQueryData<Note[]>(['notes'])),
-  });
+  const notes = useNotes();
   const taxonomy = useTaxonomy();
   const settings = useSettings();
   const workspaces = useWorkspaces();
@@ -181,6 +184,7 @@ export function NotesScreen({
     kind: 'offline' | 'failed';
     text: string;
   } | null>(null);
+  const smartMutation = useFilterFromText();
   const smartSearch = (text: string) => {
     if (!online) {
       setSmartNotice({ kind: 'offline', text: filter.text });
@@ -188,17 +192,20 @@ export function NotesScreen({
     }
     setSmartNotice(null);
     setSmartPending(true);
-    api
-      .filterFromText({ text, today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' })
-      .then((res) => {
-        setFilter(res.filter);
-        setUnderstood(res.filter);
-      })
-      .catch((err: unknown) => {
-        if (err instanceof ApiNetworkError) reportNetworkFailure();
-        setSmartNotice({ kind: 'failed', text: filter.text });
-      })
-      .finally(() => setSmartPending(false));
+    smartMutation.mutate(
+      { text, today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' },
+      {
+        onSuccess: (res) => {
+          setFilter(res.filter);
+          setUnderstood(res.filter);
+        },
+        onError: (err) => {
+          if (err instanceof ApiNetworkError) reportNetworkFailure();
+          setSmartNotice({ kind: 'failed', text: filter.text });
+        },
+        onSettled: () => setSmartPending(false),
+      },
+    );
   };
   // Apply a workspace's saved default when the workspace changes (adjusting state during render,
   // so open child routes are not remounted).
@@ -218,7 +225,6 @@ export function NotesScreen({
   });
   /** The draft is ready: review it. From compose it replaces the page, so back returns to the list. */
   const onDraft = async (draft: NoteCreated, fromCompose = true) => {
-    await queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
     clearErrors();
     open(ROUTES.review, fromCompose, draft);
   };
@@ -279,19 +285,27 @@ export function NotesScreen({
       await saveOffline(body, audio, clientId, title);
     }
   };
-  const create = useMutation({
-    mutationFn: ({ body, title, clientId }: { body: string; title: string; clientId: string }) =>
-      api.createNote({ body, ...(title.trim() ? { title } : {}), ...meta(clientId) }),
-    onSuccess: (draft) => onDraft(draft),
-    onError: (err, vars) =>
-      queueOnNetworkError(err, vars.body, vars.clientId, undefined, vars.title),
-  });
-  const createVoice = useMutation({
-    mutationFn: ({ audio, title, clientId }: { audio: Blob; title: string; clientId: string }) =>
-      api.createVoiceNote(audio, { ...(title.trim() ? { title } : {}), ...meta(clientId) }),
-    onSuccess: (draft) => onDraft(draft),
-    onError: (err, vars) => queueOnNetworkError(err, '', vars.clientId, vars.audio, vars.title),
-  });
+  const create = useCreateNote();
+  const createVoice = useCreateVoiceNote();
+  // Separate instances for the outbox resend, so its failures never show on the compose form.
+  const resend = useCreateNote();
+  const resendVoice = useCreateVoiceNote();
+  const sendNote = (body: string, title: string, clientId: string) =>
+    create.mutate(
+      { body, ...(title.trim() ? { title } : {}), ...meta(clientId) },
+      {
+        onSuccess: (draft) => onDraft(draft),
+        onError: (err) => queueOnNetworkError(err, body, clientId, undefined, title),
+      },
+    );
+  const sendVoice = (audio: Blob, title: string, clientId: string) =>
+    createVoice.mutate(
+      { audio, meta: { ...(title.trim() ? { title } : {}), ...meta(clientId) } },
+      {
+        onSuccess: (draft) => onDraft(draft),
+        onError: (err) => queueOnNetworkError(err, '', clientId, audio, title),
+      },
+    );
 
   /** Send one queued note with its own `clientId`; it leaves the outbox only after success. */
   const sendQueued = async (entry: OutboxEntry, body: string) => {
@@ -306,12 +320,12 @@ export function NotesScreen({
         setOutbox(readOutbox());
         return;
       }
-      draft = await api.createVoiceNote(audio, {
-        ...(entry.title ? { title: entry.title } : {}),
-        ...queued,
+      draft = await resendVoice.mutateAsync({
+        audio,
+        meta: { ...(entry.title ? { title: entry.title } : {}), ...queued },
       });
     } else {
-      draft = await api.createNote({
+      draft = await resend.mutateAsync({
         body,
         ...(entry.title ? { title: entry.title } : {}),
         ...queued,
@@ -321,76 +335,25 @@ export function NotesScreen({
     setOutbox(readOutbox());
     await onDraft(draft, false);
   };
-  const submit = useMutation({
-    mutationFn: ({ id, edit }: { id: string; edit: Parameters<typeof api.updateNote>[1] }) =>
-      api.updateNote(id, edit),
-    onSuccess: async (saved) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['notes'] }),
-        queryClient.invalidateQueries({ queryKey: taxonomyKeys.all }),
-      ]);
-      if (workspace && saved.workspaceId !== workspace.id) {
-        setSavedIn(workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null);
-      }
-      setText('');
-      setTitle('');
-      goBack();
-    },
-  });
-
-  const changeStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: NoteStatus | null }) =>
-      api.updateNote(id, { status }),
-    onSuccess: async (saved) => {
-      queryClient.setQueryData<Note[]>(['notes'], (old) =>
-        old?.map((n) => (n.id === saved.id ? saved : n)),
-      );
-      await queryClient.invalidateQueries({ queryKey: ['notes'] });
-    },
-  });
-  const toggle = useMutation({
-    mutationFn: ({ id, body }: { id: string; body: string }) => api.updateNote(id, { body }),
-    onMutate: async ({ id, body }) => {
-      await queryClient.cancelQueries({ queryKey: ['notes'] });
-      const previous = queryClient.getQueryData<Note[]>(['notes']);
-      queryClient.setQueryData<Note[]>(['notes'], (old) =>
-        old?.map((n) => (n.id === id ? { ...n, body } : n)),
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['notes'], ctx.previous);
-    },
-    onSuccess: (saved) => {
-      queryClient.setQueryData<Note[]>(['notes'], (old) =>
-        old?.map((n) => (n.id === saved.id ? saved : n)),
-      );
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  });
-  const toggleChecklist = useMutation({
-    // Same scope → taps are saved one after another, so the last full list always wins.
-    scope: { id: 'checklist' },
-    mutationFn: ({ id, checklist }: { id: string; checklist: ChecklistItem[] }) =>
-      api.updateNote(id, { checklist }),
-    onMutate: async ({ id, checklist }) => {
-      await queryClient.cancelQueries({ queryKey: ['notes'] });
-      const previous = queryClient.getQueryData<Note[]>(['notes']);
-      queryClient.setQueryData<Note[]>(['notes'], (old) =>
-        old?.map((n) => (n.id === id ? { ...n, checklist } : n)),
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['notes'], ctx.previous);
-    },
-    onSuccess: (saved) => {
-      queryClient.setQueryData<Note[]>(['notes'], (old) =>
-        old?.map((n) => (n.id === saved.id ? saved : n)),
-      );
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  });
+  const refreshNotes = useRefreshNotes();
+  const submit = useUpdateNote();
+  const saveEdit = (id: string, edit: NoteEdit) =>
+    submit.mutate(
+      { id, edit },
+      {
+        onSuccess: (saved) => {
+          if (workspace && saved.workspaceId !== workspace.id) {
+            setSavedIn(workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null);
+          }
+          setText('');
+          setTitle('');
+          goBack();
+        },
+      },
+    );
+  const changeStatus = useChangeNoteStatus();
+  const toggle = useToggleNoteItem();
+  const toggleChecklist = useToggleNoteChecklist();
   const pendingId = changeStatus.isPending
     ? changeStatus.variables.id
     : toggle.isPending
@@ -404,45 +367,35 @@ export function NotesScreen({
     changeStatus.reset();
   };
 
-  const remove = useMutation({
-    mutationFn: api.deleteNote,
-    onSuccess: async (_, id) => {
-      // Leave the editor before the refetch can drop the note and redirect over it.
-      goBack();
-      setUndoId(id);
-      await queryClient.invalidateQueries({ queryKey: ['notes'] });
-    },
-  });
+  const remove = useDeleteNote();
+  const removeNote = (id: string) =>
+    remove.mutate(id, {
+      onSuccess: () => {
+        // Leave the editor before the refetch can drop the note and redirect over it.
+        goBack();
+        setUndoId(id);
+      },
+    });
   const [snoozeUndo, setSnoozeUndo] = useState<{ id: string; day: string } | null>(null);
-  const snooze = useMutation({
-    mutationFn: ({ id, day }: { id: string; day: string | null; fromUndo?: boolean }) =>
-      api.updateNote(id, { snoozedUntil: day }),
-    onSuccess: async (_saved, { id, day, fromUndo }) => {
-      setSnoozeUndo(day !== null && !fromUndo ? { id, day } : null);
-      await queryClient.invalidateQueries({ queryKey: ['notes'] });
-    },
-  });
+  const snooze = useSnoozeNote();
+  const snoozeNote = (id: string, day: string | null, fromUndo = false) =>
+    snooze.mutate(
+      { id, day },
+      { onSuccess: () => setSnoozeUndo(day !== null && !fromUndo ? { id, day } : null) },
+    );
   useEffect(() => {
     if (snoozeUndo === null) return;
     const timer = setTimeout(() => setSnoozeUndo(null), UNDO_MS);
     return () => clearTimeout(timer);
   }, [snoozeUndo]);
-  const undo = useMutation({
-    mutationFn: api.restoreNote,
-    onSuccess: async () => {
-      setUndoId(null);
-      await queryClient.invalidateQueries({ queryKey: ['notes'] });
-    },
-    onError: () => setUndoId(null),
-  });
+  const undo = useRestoreNote();
+  const restore = (id: string) =>
+    undo.mutate(id, { onSuccess: () => setUndoId(null), onError: () => setUndoId(null) });
   useEffect(() => {
     if (undoId === null) return;
     const timer = setTimeout(() => setUndoId(null), UNDO_MS);
     return () => clearTimeout(timer);
   }, [undoId]);
-
-  const reanalyze = (id: string) =>
-    api.analyzeNote(id, { today: localToday(), locale: i18n.language === 'en' ? 'en' : 'he' });
 
   // The "saved on this device" toast has done its job once the queue has been sent.
   const offlineToast = offlineNotice !== null &&
@@ -474,12 +427,12 @@ export function NotesScreen({
       saveFailed={offlineNotice === 'failed'}
       autoRecord={autoRecord}
       onSuggest={() => {
-        if (online) create.mutate({ body: text, title, clientId: crypto.randomUUID() });
+        if (online) sendNote(text, title, crypto.randomUUID());
         else void saveOffline(text, undefined, undefined, title);
       }}
       onVoice={(audio) =>
         online
-          ? createVoice.mutate({ audio, title, clientId: crypto.randomUUID() })
+          ? sendVoice(audio, title, crypto.randomUUID())
           : void saveOffline('', audio, undefined, title)
       }
       onCancel={goBack}
@@ -601,10 +554,10 @@ export function NotesScreen({
           taxonomy={taxonomy.data}
           busy={submit.isPending}
           failed={submit.isError || remove.isError}
-          onSubmit={(edit) => submit.mutate({ id: note.id, edit })}
+          onSubmit={(edit) => saveEdit(note.id, edit)}
           onCancel={goBack}
-          onReanalyze={() => reanalyze(note.id)}
-          onDelete={() => remove.mutate(note.id)}
+          canReanalyze
+          onDelete={() => removeNote(note.id)}
           today={localToday()}
           attachable
           workspaces={workspaces.data}
@@ -622,8 +575,7 @@ export function NotesScreen({
         }}
         onClose={goBack}
         onApplied={() => {
-          void queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
-          void queryClient.invalidateQueries({ queryKey: ['notes'] });
+          void refreshNotes();
         }}
       />
     </Suspense>
@@ -671,8 +623,7 @@ export function NotesScreen({
             onImported={(result) => {
               goBack();
               setImported(result);
-              void queryClient.invalidateQueries({ queryKey: ['notes'] });
-              void queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
+              void refreshNotes();
             }}
           />
         </Suspense>
@@ -849,7 +800,7 @@ export function NotesScreen({
               open(notePath(note.id));
             }}
             onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-            onSnooze={(note, day) => snooze.mutate({ id: note.id, day })}
+            onSnooze={(note, day) => snoozeNote(note.id, day)}
             onToggleItem={(note, index) =>
               toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
             }
@@ -872,7 +823,7 @@ export function NotesScreen({
               open(notePath(note.id));
             }}
             onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-            onSnooze={(note, day) => snooze.mutate({ id: note.id, day })}
+            onSnooze={(note, day) => snoozeNote(note.id, day)}
             onToggleItem={(note, index) =>
               toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
             }
@@ -944,7 +895,7 @@ export function NotesScreen({
             actions={
               <button
                 type="button"
-                onClick={() => snooze.mutate({ id: snoozeUndo.id, day: null, fromUndo: true })}
+                onClick={() => snoozeNote(snoozeUndo.id, null, true)}
                 className="btn btn-sm"
               >
                 {t('notes.undo')}
@@ -957,7 +908,7 @@ export function NotesScreen({
         {undoId !== null && (
           <Toast
             actions={
-              <button type="button" onClick={() => undo.mutate(undoId)} className="btn btn-sm">
+              <button type="button" onClick={() => restore(undoId)} className="btn btn-sm">
                 {t('notes.undo')}
               </button>
             }

@@ -3,6 +3,7 @@ import { dehydrate, QueryClient, type Query } from '@tanstack/react-query';
 import { Settings, Taxonomy, WorkspaceList } from '@notes/shared';
 import { del, get, set } from 'idb-keyval';
 import { z, type ZodType } from 'zod';
+import { notesKeys } from '../api/notes.queries';
 import { settingsKeys } from '../api/settings.queries';
 import { taxonomyKeys } from '../api/taxonomy.queries';
 import { workspacesKeys } from '../api/workspaces.queries';
@@ -88,7 +89,7 @@ export const persister: Persister = {
       };
       // dataUpdatedAt 0 makes it stale, so it syncs right after first paint.
       const qc = new QueryClient();
-      qc.setQueryData(['notes'], notes, { updatedAt: 0 });
+      qc.setQueryData(notesKeys.all, notes, { updatedAt: 0 });
       client.clientState.queries.push(...dehydrate(qc).queries);
       return client;
     } catch (err) {

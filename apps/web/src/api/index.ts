@@ -6,3 +6,6 @@ export * from './workspaces.queries';
 export * from './links.queries';
 export * from './imports.queries';
 export * from './attachments.queries';
+export * from './notes.queries';
+export * from './auth.queries';
+export * from './chat.queries';

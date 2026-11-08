@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { ActionsBody, ActionsResponse, AgentAction } from '@notes/shared';
+import type { ActionsBody, ActionsResponse, AgentAction, Note } from '@notes/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../lib/i18n';
@@ -126,6 +126,29 @@ describe('ActionGroup', () => {
   });
 });
 
+const noteFixture: Note = {
+  id: '11111111-1111-4111-8111-111111111111',
+  title: null,
+  clientId: '11111111-1111-4111-8111-111111111111',
+  body: 'x',
+  status: 'done',
+  workspaceId: '00000000-0000-4000-8000-0000000000f1',
+  importance: null,
+  urgency: null,
+  dueDate: null,
+  snoozedUntil: null,
+  remindAt: null,
+  proposed: null,
+  unreadLinks: [],
+  categoryIds: [],
+  tagIds: [],
+  hasAudio: false,
+  attachments: [],
+  checklist: [],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
 describe('ActionGroup note cards', () => {
   const id = (n: number) => `${n}`.repeat(8) + '-1111-4111-8111-111111111111';
   const note = (n: number, name: string): AgentAction => ({
@@ -147,10 +170,10 @@ describe('ActionGroup note cards', () => {
     const apply = vi.spyOn(api, 'applyActions').mockImplementation(async (b: ActionsBody) => ({
       results: b.actions.map(() => ({ ok: true as const })),
     }));
-    const applyNote = vi.fn(async () => ({}));
+    const applyNote = vi.spyOn(api, 'updateNote').mockResolvedValue(noteFixture);
     const onApplied = vi.fn();
     const actions = [mk('A'), note(1, 'Dentist'), note(2, 'Groceries')];
-    renderGroup(<ActionGroup actions={actions} applyNote={applyNote} onApplied={onApplied} />);
+    renderGroup(<ActionGroup actions={actions} onApplied={onApplied} />);
     fireEvent.click(screen.getByRole('button', { name: allBtn }));
     await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1));
     expect(apply).toHaveBeenCalledTimes(1);
@@ -164,15 +187,15 @@ describe('ActionGroup note cards', () => {
   });
 
   it('a 404 on one note card errors that card only', async () => {
-    const applyNote = vi.fn(async (noteId: string) => {
+    vi.spyOn(api, 'updateNote').mockImplementation(async (noteId: string) => {
       if (noteId === id(1)) throw new ApiRequestError(404, 'not_found', 'nf');
-      return {};
+      return noteFixture;
     });
     const onApplied = vi.fn();
     renderGroup(
       <ActionGroup
         actions={[note(1, 'Dentist'), note(2, 'Groceries')]}
-        applyNote={applyNote}
+
         onApplied={onApplied}
       />,
     );
