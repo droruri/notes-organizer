@@ -39,7 +39,7 @@ describe('useEditWorkspace', () => {
 
 describe('useDeleteWorkspace', () => {
   it('invalidates both workspaces and notes', async () => {
-    vi.spyOn(api, 'deleteWorkspace').mockResolvedValue(undefined as never);
+    vi.spyOn(api, 'deleteWorkspace').mockResolvedValue(undefined);
     const { client, wrapper } = setup();
     const spy = vi.spyOn(client, 'invalidateQueries');
     const { result } = renderHook(() => useDeleteWorkspace(), { wrapper });
