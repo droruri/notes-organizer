@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { ApiRequestError, api } from '../../lib/api';
 import { ActionGroup } from './ActionGroup';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const mk = (name: string): AgentAction => ({ action: 'create', kind: 'category', name });
 const A = [mk('A'), mk('B'), mk('C')];
