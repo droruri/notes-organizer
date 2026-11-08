@@ -28,7 +28,7 @@ export function TabBar({ onPick }: { onPick: (id: NavId) => void }) {
           type="button"
           onClick={() => onPick(item.id)}
           {...(item.id === current ? { 'aria-current': 'page' as const } : {})}
-          className={`flex h-[49px] min-w-11 flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-semibold active:opacity-60 ${item.id === current ? 'text-accent' : 'text-muted'}`}
+          className={`flex h-[var(--tab-h)] min-w-11 flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-semibold active:opacity-60 ${item.id === current ? 'text-accent' : 'text-muted'}`}
         >
           <Icon name={item.icon} size={24} />
           {t(item.label)}

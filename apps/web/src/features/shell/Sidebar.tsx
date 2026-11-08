@@ -54,7 +54,7 @@ export function Sidebar({
   return (
     <aside className="border-line bg-surface fixed inset-y-0 start-0 z-20 hidden w-64 flex-col gap-3 overflow-y-auto overscroll-contain [&>*]:shrink-0 border-e p-3 lg:flex">
       <div className="flex items-center gap-2.5 px-2 pt-1 text-lg font-bold tracking-tight">
-        <span className="bg-accent grid size-8 place-items-center rounded-[9px] text-[var(--accent-fg)] shadow-sm">
+        <span className="bg-accent grid size-8 place-items-center rounded-[var(--r-sm)] text-[var(--accent-fg)] shadow-sm">
           <Icon name="note" size={18} />
         </span>
         {t('app.name')}

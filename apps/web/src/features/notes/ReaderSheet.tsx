@@ -24,7 +24,7 @@ export function ReaderSheet({ url, onClose }: { url: string; onClose: () => void
       }}
     >
       <div
-        className={`enter-sheet ${closing ? 'closing ' : ''}flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[20px] bg-surface text-fg shadow-2xl sm:rounded-[20px]`}
+        className={`enter-sheet ${closing ? 'closing ' : ''}flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[var(--r-xl)] bg-surface text-fg shadow-2xl sm:rounded-[var(--r-xl)]`}
       >
         <div className="flex items-center gap-2 border-b border-line px-5 py-3">
           <a

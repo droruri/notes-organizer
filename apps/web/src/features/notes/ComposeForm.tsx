@@ -88,7 +88,7 @@ export function ComposeForm({
           dir={inputDir(title)}
           aria-label={t('notes.noteTitle')}
           placeholder={t('notes.noteTitle')}
-          className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
+          className="w-full bg-transparent px-1 py-1 text-[1.0625rem] font-semibold pointer-coarse:min-h-11 outline-none placeholder:font-normal placeholder:text-muted focus-visible:outline-none"
         />
         <textarea
           autoFocus

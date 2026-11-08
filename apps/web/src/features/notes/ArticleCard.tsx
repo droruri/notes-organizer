@@ -15,7 +15,7 @@ export function ArticleCard({ url }: { url: string }) {
       <button
         type="button"
         onClick={() => setReading(true)}
-        className="flex w-full items-stretch overflow-hidden rounded-[10px] border border-line bg-surface-2 text-start transition-colors duration-150 hover:bg-surface-hover"
+        className="flex w-full items-stretch overflow-hidden rounded-[var(--r-md)] border border-line bg-surface-2 text-start transition-colors duration-150 hover:bg-surface-hover"
       >
         {image && !imageFailed && (
           // Many sites block hotlinked images when a Referer is sent.

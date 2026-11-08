@@ -657,7 +657,7 @@ export function NotesScreen({
             <Icon name="mic" size={16} />
             {t('voice.record')}
           </button>
-          <div className="max-lg:fixed max-lg:end-4 max-lg:bottom-[calc(49px+1rem+env(safe-area-inset-bottom))] max-lg:z-20 max-lg:flex max-lg:flex-row-reverse max-lg:items-center max-lg:gap-1.5 lg:contents">
+          <div className="max-lg:fixed max-lg:end-4 max-lg:bottom-[calc(var(--tab-h)+1rem+env(safe-area-inset-bottom))] max-lg:z-20 max-lg:flex max-lg:flex-row-reverse max-lg:items-center max-lg:gap-1.5 lg:contents">
             <button
               type="button"
               onClick={() => open(ROUTES.compose)}
