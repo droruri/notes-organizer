@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { NoteEdit, NoteForm, Settings } from './index';
+import { ImportNote, NoteEdit, NoteForm, Settings } from './index';
 
 describe('NoteForm', () => {
   it('parses a stored form without importance/urgency to dropdowns', () => {
@@ -61,5 +61,9 @@ describe('checklist limits', () => {
     );
     expect(NoteEdit.safeParse({ checklist: Array(101).fill(item) }).success).toBe(false);
     expect(NoteEdit.safeParse({ checklist: Array(100).fill(item) }).success).toBe(true);
+  });
+  it('ImportNote drops checklist', () => {
+    const parsed = ImportNote.parse({ body: 'x', checklist: [item] });
+    expect(parsed).not.toHaveProperty('checklist');
   });
 });
