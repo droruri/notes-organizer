@@ -63,10 +63,12 @@ export function ChecklistEdit({
             className={`field min-w-0 flex-1 ${item.done ? 'text-muted line-through' : 'text-fg'}`}
             onChange={(e) => patch(item.id, { text: e.target.value })}
             onKeyDown={(e) => {
+              // Enter/Backspace during IME composition belong to the input method.
+              if (e.nativeEvent.isComposing) return;
               if (e.key === 'Enter') {
                 e.preventDefault();
                 addAfter(index);
-              } else if (e.key === 'Backspace' && item.text === '') {
+              } else if (e.key === 'Backspace' && item.text.trim() === '') {
                 e.preventDefault();
                 remove(index);
               }

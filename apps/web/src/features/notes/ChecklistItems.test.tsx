@@ -74,6 +74,12 @@ describe('ChecklistEdit', () => {
     expect(latest.map((i) => i.text)).toEqual(['item 1']);
   });
 
+  it('Backspace also removes a whitespace-only row', () => {
+    render(<Harness initial={[item(1), item(2, '   ')]} />);
+    fireEvent.keyDown(at(texts(), 1), { key: 'Backspace' });
+    expect(latest.map((i) => i.text)).toEqual(['item 1']);
+  });
+
   it('enforces the max item count', () => {
     const many = Array.from({ length: MAX_CHECKLIST_ITEMS }, (_, n) => ({
       id: crypto.randomUUID(),
