@@ -32,7 +32,9 @@ export function useUploadAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (v: { noteId: string; file: File }) => api.uploadAttachment(v.noteId, v.file),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: NOTES_KEY }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+    },
   });
 }
 
@@ -40,7 +42,9 @@ export function useDeleteAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (v: { noteId: string; id: string }) => api.deleteAttachment(v.noteId, v.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: NOTES_KEY }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: NOTES_KEY });
+    },
   });
 }
 

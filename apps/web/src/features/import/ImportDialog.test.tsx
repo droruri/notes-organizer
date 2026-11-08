@@ -6,7 +6,10 @@ import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
 import { ImportDialog } from './ImportDialog';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const ws = (id: string, name: string, isDefault: boolean): Workspace => ({
   id,
