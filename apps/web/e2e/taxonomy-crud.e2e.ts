@@ -24,7 +24,9 @@ test('taxonomy screen: category and tag CRUD, color, pin, importance, restore', 
     .getByRole('radio', { name: 'ירוק' })
     .click();
   await expect(
-    page.getByRole('radiogroup', { name: `צבע של ${renamed}` }).getByRole('radio', { name: 'ירוק' }),
+    page
+      .getByRole('radiogroup', { name: `צבע של ${renamed}` })
+      .getByRole('radio', { name: 'ירוק' }),
   ).toHaveAttribute('aria-checked', 'true');
 
   await page.getByRole('button', { name: `נעיצת ${renamed}` }).click();
