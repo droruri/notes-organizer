@@ -1,6 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useLinkReader } from '../../api';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
 import { useEscape } from '../../ui/useEscape';
@@ -8,12 +7,7 @@ import { useExit } from '../../ui/useExit';
 
 export function ReaderSheet({ url, onClose }: { url: string; onClose: () => void }) {
   const { t } = useTranslation();
-  const reader = useQuery({
-    queryKey: ['link-reader', url],
-    queryFn: () => api.linkPreview(url, true),
-    staleTime: 60 * 60 * 1000,
-    retry: false,
-  });
+  const reader = useLinkReader(url);
   const { closing, exit, onTransitionEnd } = useExit();
   const close = () => exit(onClose);
   useEscape(close);

@@ -1,20 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useNoteAudio } from '../../api';
 import { Icon } from '../../ui/Icon';
 
 /** A note's recording: fetched (with the auth token) only once the user asks to play it. */
 export function AudioPlayer({ noteId }: { noteId: string }) {
   const { t } = useTranslation();
   const [wanted, setWanted] = useState(false);
-  const audio = useQuery({
-    queryKey: ['audio', noteId],
-    // The object URL lives as long as the cached query, so the player can be reopened.
-    queryFn: async () => URL.createObjectURL(await api.noteAudio(noteId)),
-    enabled: wanted,
-    staleTime: Infinity,
-  });
+  const audio = useNoteAudio(noteId, wanted);
   if (audio.data)
     return (
       <audio

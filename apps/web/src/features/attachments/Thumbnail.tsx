@@ -1,8 +1,7 @@
 import type { Attachment } from '@notes/shared';
-import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useAttachmentFile } from '../../api';
 import { FileRow } from './FileRow';
 
 /** An image's thumbnail, fetched when it mounts; a failed load falls back to the file row. */
@@ -17,13 +16,7 @@ export function Thumbnail({
 }) {
   const { t } = useTranslation();
   const [broken, setBroken] = useState(false);
-  const image = useQuery({
-    queryKey: ['attachment', a.id],
-    // The object URL lives as long as the cached query, like the audio player's.
-    queryFn: async () => URL.createObjectURL(await api.attachmentFile(noteId, a.id)),
-    staleTime: Infinity,
-    retry: false,
-  });
+  const image = useAttachmentFile(noteId, a.id);
   if (image.isError || broken) {
     return <FileRow a={a} onOpen={onDownload} label={t('attachments.open', { name: a.name })} />;
   }

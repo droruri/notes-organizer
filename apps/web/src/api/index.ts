@@ -3,3 +3,6 @@ export * from './health.queries';
 export * from './users.queries';
 export * from './taxonomy.queries';
 export * from './workspaces.queries';
+export * from './links.queries';
+export * from './imports.queries';
+export * from './attachments.queries';

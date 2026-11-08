@@ -1,8 +1,8 @@
 import { ATTACHMENT_MIMES, AttachmentError, type Attachment } from '@notes/shared';
-import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ApiRequestError } from '../../lib/api';
+import { useDeleteAttachment, useDownloadAttachment, useUploadAttachment } from '../../api';
+import { ApiRequestError } from '../../lib/api';
 import { Icon } from '../../ui/Icon';
 import { FileRow } from './FileRow';
 import { shrinkImage } from './shrinkImage';
@@ -21,7 +21,9 @@ export function Attachments({
   editable: boolean;
 }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
+  const upload = useUploadAttachment();
+  const del = useDeleteAttachment();
+  const downloadFile = useDownloadAttachment();
   const input = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
   // The editor's note is a snapshot, so files added here are kept locally as well.
@@ -29,7 +31,6 @@ export function Attachments({
   const [pending, setPending] = useState<Pending[]>([]);
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<string | null>(null);
-  const [removeFailed, setRemoveFailed] = useState(false);
   const [downloadFailed, setDownloadFailed] = useState(false);
   const nextKey = useRef(0);
   const known = new Set(attachments.map((a) => a.id));
@@ -56,10 +57,9 @@ export function Attachments({
     // One at a time; a failure stays on its own row and the rest continue.
     for (const { key, file } of queued) {
       try {
-        const attachment = await api.uploadAttachment(noteId, await shrinkImage(file));
+        const attachment = await upload.mutateAsync({ noteId, file: await shrinkImage(file) });
         setAdded((a) => [...a, attachment]);
         setPending((p) => p.filter((r) => r.key !== key));
-        void queryClient.invalidateQueries({ queryKey: ['notes'] });
       } catch (err) {
         patch(key, messageFor(err));
       }
@@ -72,29 +72,25 @@ export function Attachments({
       return;
     }
     setConfirming(null);
-    setRemoveFailed(false);
     try {
-      await api.deleteAttachment(noteId, a.id);
+      await del.mutateAsync({ noteId, id: a.id });
     } catch (err) {
       // 404: already gone (removed in another tab), so drop the row as well
       if (!(err instanceof ApiRequestError && err.status === 404)) {
-        setRemoveFailed(true);
         return;
       }
     }
     setRemoved((r) => new Set(r).add(a.id));
-    void queryClient.invalidateQueries({ queryKey: ['notes'] });
   }
 
   async function download(a: Attachment) {
     setDownloadFailed(false);
     try {
-      const url = URL.createObjectURL(await api.attachmentFile(noteId, a.id));
+      const url = await downloadFile.mutateAsync({ noteId, id: a.id });
       const link = document.createElement('a');
       link.href = url;
       link.download = a.name;
       link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch {
       setDownloadFailed(true);
     }
@@ -160,7 +156,7 @@ export function Attachments({
           ))}
         </ul>
       )}
-      {removeFailed && (
+      {del.isError && !(del.error instanceof ApiRequestError && del.error.status === 404) && (
         <p role="alert" className="text-sm text-danger">
           {t('attachments.removeFailed')}
         </p>

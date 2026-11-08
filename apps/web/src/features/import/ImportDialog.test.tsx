@@ -2,10 +2,14 @@ import type { ImportProposal, Workspace } from '@notes/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
 import { ImportDialog } from './ImportDialog';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const ws = (id: string, name: string, isDefault: boolean): Workspace => ({
   id,
@@ -44,7 +48,10 @@ const proposal: ImportProposal = {
 describe('ImportDialog workspace picker', () => {
   it('starts on the current workspace and sends the picked one', async () => {
     void i18n.changeLanguage('en');
-    const confirm = vi.fn().mockResolvedValue({ created: { categories: 0, tags: 0, notes: 1 } });
+    vi.spyOn(api, 'analyzeImport').mockResolvedValue(proposal);
+    const confirm = vi
+      .spyOn(api, 'confirmImport')
+      .mockResolvedValue({ created: { categories: 0, tags: 0, notes: 1 } });
     render(
       <QueryClientProvider client={new QueryClient()}>
         <ImportDialog
@@ -55,8 +62,6 @@ describe('ImportDialog workspace picker', () => {
           locale="en"
           onClose={vi.fn()}
           onImported={vi.fn()}
-          analyze={vi.fn().mockResolvedValue(proposal)}
-          confirm={confirm}
         />
       </QueryClientProvider>,
     );
