@@ -62,6 +62,7 @@ for (const [label, viewport] of [
 
     // Clean up: delete the note through the UI.
     await done.getByText(body).click();
+    await page.getByRole('button', { name: 'עריכה', exact: true }).click();
     await page.getByRole('button', { name: 'מחיקה', exact: true }).click();
     const confirm = page
       .getByRole('alertdialog')

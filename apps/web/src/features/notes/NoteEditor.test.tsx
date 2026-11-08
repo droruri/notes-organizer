@@ -87,6 +87,28 @@ function setup(title: string | null, next: Suggestion) {
   return { input, analyze, onSubmit };
 }
 
+describe('NoteEditor header', () => {
+  it('puts Cancel next to Save in the header and calls onCancel', () => {
+    const onCancel = vi.fn();
+    render(
+      <NoteEditor
+        note={note(null)}
+        suggestion={EMPTY_SUGGESTION}
+        taxonomy={{ categories: [] }}
+        busy={false}
+        failed={false}
+        onSubmit={() => undefined}
+        onCancel={onCancel}
+      />,
+    );
+    const cancel = screen.getByRole('button', { name: 'Cancel' });
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(cancel.parentElement).toBe(save.parentElement);
+    fireEvent.click(cancel);
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+});
+
 describe('NoteEditor title', () => {
   it('no suggested badge when the suggested title is blank', () => {
     render(

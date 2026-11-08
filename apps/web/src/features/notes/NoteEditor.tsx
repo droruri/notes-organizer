@@ -194,14 +194,23 @@ export function NoteEditor({
         title={note.status === 'draft' ? t('notes.reviewTitle') : t('notes.editTitle')}
         onBack={onCancel}
         action={
-          <button
-            type="submit"
-            disabled={busy || body.trim() === ''}
-            className="btn btn-primary min-h-11"
-          >
-            {busy && <span aria-hidden="true" className="spinner" />}
-            {busy ? (slow ? t('notes.submittingSlow') : t('notes.submitting')) : t('notes.submit')}
-          </button>
+          <>
+            <button type="button" onClick={onCancel} className="btn btn-ghost max-lg:hidden">
+              {t('notes.cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={busy || body.trim() === ''}
+              className="btn btn-primary min-h-11 lg:min-h-0"
+            >
+              {busy && <span aria-hidden="true" className="spinner" />}
+              {busy
+                ? slow
+                  ? t('notes.submittingSlow')
+                  : t('notes.submitting')
+                : t('notes.submit')}
+            </button>
+          </>
         }
       />
       {note.status === 'draft' && hasSuggestion && (
@@ -375,10 +384,8 @@ export function NoteEditor({
           {t('notes.error')}
         </p>
       )}
-      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-line bg-bg/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
-        <button type="button" onClick={onCancel} className="btn btn-ghost max-lg:hidden">
-          {t('notes.cancel')}
-        </button>
+      {/* Phones: sticky above the safe area. Desktop: a static footer in the pane. */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-line py-3 max-lg:sticky max-lg:bottom-0 max-lg:-mx-4 max-lg:bg-bg/90 max-lg:px-4 max-lg:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-lg:backdrop-blur-md">
         {today !== undefined && note.status !== 'draft' && (
           <button type="button" onClick={() => setSnoozing(true)} className="btn">
             <Icon name="clock" size={16} />
