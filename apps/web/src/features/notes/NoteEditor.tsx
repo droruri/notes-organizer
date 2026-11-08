@@ -16,7 +16,7 @@ import {
 } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSettings } from '../../api';
+import { useAnalyzeNote, useSettings } from '../../api';
 import { Icon } from '../../ui/Icon';
 import { NavBar } from '../../ui/NavBar';
 import { useSlow } from '../../ui/useSlow';
@@ -45,7 +45,7 @@ export function NoteEditor({
   failed,
   onSubmit,
   onCancel,
-  onReanalyze,
+  canReanalyze,
   onDelete,
   attachable,
   workspaces = [],
@@ -60,8 +60,8 @@ export function NoteEditor({
   failed: boolean;
   onSubmit: (edit: NoteEdit) => void;
   onCancel: () => void;
-  /** Omit to hide the button (import rows are not stored yet). */
-  onReanalyze?: (() => Promise<Suggestion>) | undefined;
+  /** Show the Re-analyze button; omit for notes that are not stored yet (import rows). */
+  canReanalyze?: boolean | undefined;
   onDelete?: (() => void) | undefined;
   /** Show the attachments with an "Add file" button; omit for notes that are not stored yet. */
   attachable?: boolean | undefined;
@@ -115,9 +115,10 @@ export function NoteEditor({
   const [tracksStatus, setTracksStatus] = useState(
     note.status === 'draft' ? suggestedTracks : note.status !== null,
   );
-  const [analyzing, setAnalyzing] = useState(false);
+  const analyze = useAnalyzeNote();
+  const analyzing = analyze.isPending;
   const slowReanalyze = useSlow(analyzing);
-  const [analyzeFailed, setAnalyzeFailed] = useState(false);
+  const analyzeFailed = analyze.isError;
 
   /** Only categories added by this change (directly or via a tag) can raise importance. */
   const changePicked = (next: Picked) => {
@@ -141,29 +142,31 @@ export function NoteEditor({
   };
 
   /** Fill the fields with a fresh suggestion; nothing is saved until Submit. */
-  const reanalyze = async () => {
-    setAnalyzing(true);
-    setAnalyzeFailed(false);
-    try {
-      const next = await onReanalyze?.();
-      if (!next) return;
-      // Functional update: a title typed while the AI ran must not be overwritten.
-      setTitle((cur) => (cur.trim() ? cur : (next.title ?? '')));
-      setPicked(pickedFrom(next));
-      setAiChecklist(next.checklist);
-      setUnreadLinks(next.unreadLinks);
-      if (next.workspaceId) setWorkspaceId(next.workspaceId);
-      if (note.status === 'draft') setTracksStatus(next.tracksStatus);
-      setDueDate(next.dueDate ?? '');
-      setImportance(next.importance);
-      setImportanceHint(null);
-      setUrgency(next.urgency);
-    } catch {
-      setAnalyzeFailed(true);
-    } finally {
-      setAnalyzing(false);
-    }
-  };
+  const reanalyze = () =>
+    analyze.mutate(
+      {
+        id: note.id,
+        input: {
+          today: new Date().toLocaleDateString('en-CA'),
+          locale: i18n.language === 'en' ? 'en' : 'he',
+        },
+      },
+      {
+        onSuccess: (next) => {
+          // Functional update: a title typed while the AI ran must not be overwritten.
+          setTitle((cur) => (cur.trim() ? cur : (next.title ?? '')));
+          setPicked(pickedFrom(next));
+          setAiChecklist(next.checklist);
+          setUnreadLinks(next.unreadLinks);
+          if (next.workspaceId) setWorkspaceId(next.workspaceId);
+          if (note.status === 'draft') setTracksStatus(next.tracksStatus);
+          setDueDate(next.dueDate ?? '');
+          setImportance(next.importance);
+          setImportanceHint(null);
+          setUrgency(next.urgency);
+        },
+      },
+    );
 
   const submit = () =>
     onSubmit({
@@ -393,7 +396,7 @@ export function NoteEditor({
               : t('snooze.button')}
           </button>
         )}
-        {onReanalyze && (
+        {canReanalyze && (
           <button type="button" onClick={reanalyze} disabled={analyzing} className="btn">
             {analyzing ? (
               <span aria-hidden="true" className="spinner" />
