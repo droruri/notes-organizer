@@ -65,7 +65,7 @@ export function NoteCard({
         <button
           type="button"
           onClick={() => onOpen(note)}
-          className="block min-w-0 flex-1 rounded-md text-start"
+          className="block min-w-0 flex-1 rounded-md text-start pointer-coarse:-my-2 pointer-coarse:py-2"
         >
           <span
             dir="auto"
@@ -159,7 +159,7 @@ export function NoteCard({
             type="button"
             aria-label={t('snooze.button')}
             onClick={() => setSnoozing(true)}
-            className="btn btn-sm text-muted"
+            className="btn btn-sm text-muted pointer-coarse:min-w-11"
           >
             <Icon name="clock" size={16} />
           </button>

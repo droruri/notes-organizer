@@ -238,13 +238,13 @@ export function TaxonomyPicker({
           onChange={(e) => setName(e.target.value)}
           aria-label={t('notes.picker.createLabel')}
           placeholder={t('notes.picker.createLabel')}
-          className="field min-h-9 min-w-40 flex-1 py-1 text-sm"
+          className="field pointer-fine:min-h-9 min-w-40 flex-1 py-1 text-sm"
         />
         <select
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           aria-label={t('notes.picker.createIn')}
-          className="field min-h-9 w-auto py-1 text-sm"
+          className="field pointer-fine:min-h-9 w-auto py-1 text-sm"
         >
           <option value={NEW_CATEGORY}>{t('notes.picker.newCategory')}</option>
           {usable.map((c) => (

@@ -26,6 +26,7 @@
   --danger: #b42318;
   --danger-soft: #fdecea;
   --shadow-rgb: 22 36 42;
+  --tab-h: 49px;
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 16px;
@@ -231,6 +232,17 @@
   .btn-icon.btn-sm {
     width: 2rem;
   }
+  /* Touch: every control is at least 44px. */
+  @media (pointer: coarse) {
+    .btn-sm,
+    label:has(> input[role='switch']) {
+      min-height: 2.75rem;
+    }
+    .btn-icon,
+    .btn-icon.btn-sm {
+      width: 2.75rem;
+    }
+  }
   @media (hover: hover) {
     .btn:not(:disabled):hover {
       background: var(--surface-hover);
@@ -412,6 +424,12 @@
     background: transparent;
     cursor: pointer;
   }
+  @media (pointer: coarse) {
+    .swatch {
+      inline-size: 44px;
+      block-size: 44px;
+    }
+  }
   .swatch-dot {
     inline-size: 24px;
     block-size: 24px;
@@ -571,6 +589,11 @@
   }
   .chip-tag {
     border-radius: 6px;
+  }
+  @media (pointer: coarse) {
+    .chip {
+      min-height: 2.75rem;
+    }
   }
   .chip-tag::before {
     content: '#';
@@ -780,6 +803,12 @@
     max-width: 32rem;
     margin-inline: auto;
     pointer-events: none;
+  }
+  /* Below lg the tab bar is fixed at the bottom; keep toasts above it. */
+  @media (width < 64rem) {
+    .toast-stack {
+      bottom: calc(var(--tab-h) + 1rem + env(safe-area-inset-bottom));
+    }
   }
   .toast {
     display: flex;

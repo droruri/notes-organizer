@@ -23,9 +23,9 @@ export function Shell({ children }: { children: ReactNode }) {
             <h1 className="text-lg font-bold tracking-tight">
               <Link
                 to={ROUTES.notes}
-                className="-mx-1.5 flex items-center gap-2.5 rounded-[11px] px-1.5 py-0.5 text-start"
+                className="-mx-1.5 flex items-center gap-2.5 rounded-[var(--r-md)] px-1.5 py-0.5 text-start pointer-coarse:min-h-11"
               >
-                <span className="grid size-8 place-items-center rounded-[9px] bg-accent text-[var(--accent-fg)] shadow-sm">
+                <span className="grid size-8 place-items-center rounded-[var(--r-sm)] bg-accent text-[var(--accent-fg)] shadow-sm">
                   <Icon name="note" size={18} />
                 </span>
                 {t('app.name')}

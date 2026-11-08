@@ -120,7 +120,10 @@ export function ImportReview({
             {t('import.newCategories')}
           </legend>
           {names.categories.map((name) => (
-            <label key={categoryKey(name)} className="flex min-h-9 items-center gap-2.5">
+            <label
+              key={categoryKey(name)}
+              className="flex min-h-9 items-center pointer-coarse:min-h-11 gap-2.5"
+            >
               <input
                 type="checkbox"
                 className="check"
@@ -138,7 +141,10 @@ export function ImportReview({
         <fieldset className="flex flex-col gap-1.5">
           <legend className="mb-2 text-sm font-medium text-muted">{t('import.newTags')}</legend>
           {names.tags.map((tag) => (
-            <label key={tagKey(tag)} className="flex min-h-9 items-center gap-2.5">
+            <label
+              key={tagKey(tag)}
+              className="flex min-h-9 items-center pointer-coarse:min-h-11 gap-2.5"
+            >
               <input
                 type="checkbox"
                 className="check"

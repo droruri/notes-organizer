@@ -21,7 +21,7 @@ import { SearchBox } from './SearchBox';
 const toggle = <T,>(list: T[], x: T): T[] =>
   list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
 
-const field = 'field min-h-9 w-auto py-1 text-sm';
+const field = 'field pointer-fine:min-h-9 w-auto py-1 text-sm';
 
 /** How many filter fields (besides the search text) are set. */
 const activeCount = (filter: NoteFilter) =>

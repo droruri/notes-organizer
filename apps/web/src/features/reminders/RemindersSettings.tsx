@@ -70,7 +70,7 @@ export function RemindersSettings() {
               <label htmlFor="reminder-hour">{t('reminders.hour')}</label>
               <select
                 id="reminder-hour"
-                className="ms-auto"
+                className="ms-auto pointer-coarse:min-h-11"
                 value={settings.data?.reminderHour ?? DEFAULT_HOUR}
                 disabled={!settings.data || saveSettings.isPending}
                 onChange={(e) =>
