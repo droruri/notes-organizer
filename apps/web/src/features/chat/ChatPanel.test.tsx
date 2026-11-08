@@ -1,8 +1,13 @@
 import type { ChatPart, Note } from '@notes/shared';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import type { ReactElement } from 'react';
 import { ChatPanel } from './ChatPanel';
+
+const render = (ui: ReactElement) =>
+  rtlRender(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 
 afterEach(cleanup);
 

@@ -1,28 +1,25 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ApiRequestError } from '../../lib/api';
+import {
+  useCreateCategory,
+  useCreateTag,
+  useDeleteCategory,
+  useDeleteTag,
+  useRenameCategory,
+  useRenameTag,
+  useRestoreCategory,
+  useRestoreTag,
+  useSetCategoryColor,
+  useSetCategoryImportance,
+  useSetCategoryPinned,
+  useTaxonomy,
+} from '../../api';
+import { ApiRequestError } from '../../lib/api';
 import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
 import { Loading } from '../../ui/Loading';
 import { ColorControl } from './ColorControl';
 import { ImportanceControl } from './ImportanceControl';
-
-type TaxonomyApi = Pick<
-  typeof api,
-  | 'taxonomy'
-  | 'createCategory'
-  | 'renameCategory'
-  | 'deleteCategory'
-  | 'restoreCategory'
-  | 'setCategoryImportance'
-  | 'setCategoryColor'
-  | 'setCategoryPinned'
-  | 'createTag'
-  | 'renameTag'
-  | 'deleteTag'
-  | 'restoreTag'
->;
 
 type Kind = 'category' | 'tag';
 /** What the inline form is open for: renaming an item, or adding a tag to a category. */
@@ -32,44 +29,70 @@ type Editing = { type: 'rename'; kind: Kind; id: string } | { type: 'addTag'; ca
 export function TaxonomyScreen({
   onBack,
   onTag,
-  taxonomyApi = api,
 }: {
   onBack: () => void;
   /** Open the notes list filtered to this tag. */
   onTag: (tagId: string) => void;
-  taxonomyApi?: TaxonomyApi;
 }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [newCategory, setNewCategory] = useState('');
   const [editing, setEditing] = useState<Editing | null>(null);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: taxonomyApi.taxonomy });
+  const taxonomy = useTaxonomy();
+  const createCategory = useCreateCategory();
+  const renameCategory = useRenameCategory();
+  const setColor = useSetCategoryColor();
+  const setPinned = useSetCategoryPinned();
+  const setImportance = useSetCategoryImportance();
+  const deleteCategory = useDeleteCategory();
+  const restoreCategory = useRestoreCategory();
+  const createTag = useCreateTag();
+  const renameTag = useRenameTag();
+  const deleteTag = useDeleteTag();
+  const restoreTag = useRestoreTag();
+  const busy = [
+    createCategory,
+    renameCategory,
+    setColor,
+    setPinned,
+    setImportance,
+    deleteCategory,
+    restoreCategory,
+    createTag,
+    renameTag,
+    deleteTag,
+    restoreTag,
+  ].some((m) => m.isPending);
 
-  const run = useMutation({
-    mutationFn: (write: () => Promise<unknown>) => write(),
-    onSuccess: async () => {
-      setEditing(null);
-      setDraft('');
-      await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+  const showError = (err: unknown) => {
+    const code = err instanceof ApiRequestError ? err.code : undefined;
+    setError(
+      code === 'name_taken'
+        ? t('chat.action.nameTaken')
+        : code === 'category_deleted'
+          ? t('taxonomy.errors.categoryDeleted')
+          : code === 'invalid_name'
+            ? t('taxonomy.errors.invalidName')
+            : t('taxonomy.errors.generic'),
+    );
+  };
+  const write = <V,>(
+    m: {
+      mutate: (vars: V, options: { onSuccess: () => void; onError: (err: Error) => void }) => void;
     },
-    onError: (err) => {
-      const code = err instanceof ApiRequestError ? err.code : undefined;
-      setError(
-        code === 'name_taken'
-          ? t('chat.action.nameTaken')
-          : code === 'category_deleted'
-            ? t('taxonomy.errors.categoryDeleted')
-            : code === 'invalid_name'
-              ? t('taxonomy.errors.invalidName')
-              : t('taxonomy.errors.generic'),
-      );
-    },
-  });
-  const write = (fn: () => Promise<unknown>) => {
+    vars: V,
+    onDone?: () => void,
+  ) => {
     setError(null);
-    run.mutate(fn);
+    m.mutate(vars, {
+      onSuccess: () => {
+        setEditing(null);
+        setDraft('');
+        onDone?.();
+      },
+      onError: showError,
+    });
   };
   const startEdit = (next: Editing, value: string) => {
     setError(null);
@@ -77,12 +100,12 @@ export function TaxonomyScreen({
     setDraft(value);
   };
 
-  const inlineForm = (label: string, submit: () => Promise<unknown>) => (
+  const inlineForm = (label: string, submit: () => void) => (
     <form
       className="flex flex-wrap items-center gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        write(submit);
+        submit();
       }}
     >
       <input
@@ -93,7 +116,7 @@ export function TaxonomyScreen({
         autoFocus
         className="field min-w-40 flex-1"
       />
-      <button type="submit" disabled={run.isPending} className="btn btn-primary btn-sm">
+      <button type="submit" disabled={busy} className="btn btn-primary btn-sm">
         {t('taxonomy.save')}
       </button>
       <button type="button" onClick={() => setEditing(null)} className="btn btn-ghost btn-sm">
@@ -113,11 +136,7 @@ export function TaxonomyScreen({
         className="card flex flex-wrap items-center gap-3 p-3"
         onSubmit={(e) => {
           e.preventDefault();
-          const name = newCategory;
-          write(async () => {
-            await taxonomyApi.createCategory(name);
-            setNewCategory('');
-          });
+          write(createCategory, newCategory, () => setNewCategory(''));
         }}
       >
         <input
@@ -128,7 +147,7 @@ export function TaxonomyScreen({
           required
           className="field min-w-40 flex-1"
         />
-        <button type="submit" disabled={run.isPending} className="btn btn-primary">
+        <button type="submit" disabled={busy} className="btn btn-primary">
           <Icon name="plus" size={16} />
           {t('taxonomy.addCategory')}
         </button>
@@ -156,7 +175,7 @@ export function TaxonomyScreen({
               <div className="flex flex-wrap items-center gap-2">
                 {isRename('category', c.id) ? (
                   inlineForm(t('taxonomy.renameLabel', { name: c.name }), () =>
-                    taxonomyApi.renameCategory(c.id, draft),
+                    write(renameCategory, { id: c.id, name: draft }),
                   )
                 ) : (
                   <>
@@ -169,8 +188,8 @@ export function TaxonomyScreen({
                         type="button"
                         className="btn btn-ghost btn-sm"
                         aria-label={t('taxonomy.restoreItem', { name: c.name })}
-                        disabled={run.isPending}
-                        onClick={() => write(() => taxonomyApi.restoreCategory(c.id))}
+                        disabled={busy}
+                        onClick={() => write(restoreCategory, c.id)}
                       >
                         {t('taxonomy.restore')}
                       </button>
@@ -180,7 +199,7 @@ export function TaxonomyScreen({
                           type="button"
                           className="btn btn-ghost btn-sm"
                           aria-label={t('taxonomy.renameItem', { name: c.name })}
-                          disabled={run.isPending}
+                          disabled={busy}
                           onClick={() =>
                             startEdit({ type: 'rename', kind: 'category', id: c.id }, c.name)
                           }
@@ -191,8 +210,8 @@ export function TaxonomyScreen({
                           type="button"
                           className="btn btn-ghost btn-sm btn-danger"
                           aria-label={t('taxonomy.deleteItem', { name: c.name })}
-                          disabled={run.isPending}
-                          onClick={() => write(() => taxonomyApi.deleteCategory(c.id))}
+                          disabled={busy}
+                          onClick={() => write(deleteCategory, c.id)}
                         >
                           {t('taxonomy.delete')}
                         </button>
@@ -214,17 +233,17 @@ export function TaxonomyScreen({
                 <ImportanceControl
                   name={c.name}
                   value={c.importance}
-                  disabled={run.isPending}
-                  onChange={(next) => write(() => taxonomyApi.setCategoryImportance(c.id, next))}
+                  disabled={busy}
+                  onChange={(next) => write(setImportance, { id: c.id, importance: next })}
                 />
               )}
 
               <button
                 type="button"
                 aria-pressed={c.pinned}
-                disabled={run.isPending}
+                disabled={busy}
                 className="btn btn-ghost min-h-11 min-w-11 self-start"
-                onClick={() => write(() => taxonomyApi.setCategoryPinned(c.id, !c.pinned))}
+                onClick={() => write(setPinned, { id: c.id, pinned: !c.pinned })}
               >
                 <Icon name="pin" aria-hidden="true" />
                 {c.pinned
@@ -236,8 +255,8 @@ export function TaxonomyScreen({
                 <ColorControl
                   name={c.name}
                   value={c.color}
-                  disabled={run.isPending}
-                  onChange={(next) => write(() => taxonomyApi.setCategoryColor(c.id, next))}
+                  disabled={busy}
+                  onChange={(next) => write(setColor, { id: c.id, color: next })}
                 />
               )}
 
@@ -249,7 +268,7 @@ export function TaxonomyScreen({
                   >
                     {isRename('tag', tag.id) ? (
                       inlineForm(t('taxonomy.renameLabel', { name: tag.name }), () =>
-                        taxonomyApi.renameTag(tag.id, draft),
+                        write(renameTag, { id: tag.id, name: draft }),
                       )
                     ) : (
                       <>
@@ -272,8 +291,8 @@ export function TaxonomyScreen({
                             type="button"
                             className="btn btn-ghost btn-sm"
                             aria-label={t('taxonomy.restoreItem', { name: tag.name })}
-                            disabled={run.isPending}
-                            onClick={() => write(() => taxonomyApi.restoreTag(tag.id))}
+                            disabled={busy}
+                            onClick={() => write(restoreTag, tag.id)}
                           >
                             {t('taxonomy.restore')}
                           </button>
@@ -283,7 +302,7 @@ export function TaxonomyScreen({
                               type="button"
                               className="btn btn-ghost btn-sm"
                               aria-label={t('taxonomy.renameItem', { name: tag.name })}
-                              disabled={run.isPending}
+                              disabled={busy}
                               onClick={() =>
                                 startEdit({ type: 'rename', kind: 'tag', id: tag.id }, tag.name)
                               }
@@ -294,8 +313,8 @@ export function TaxonomyScreen({
                               type="button"
                               className="btn btn-ghost btn-sm btn-danger"
                               aria-label={t('taxonomy.deleteItem', { name: tag.name })}
-                              disabled={run.isPending}
-                              onClick={() => write(() => taxonomyApi.deleteTag(tag.id))}
+                              disabled={busy}
+                              onClick={() => write(deleteTag, tag.id)}
                             >
                               {t('taxonomy.delete')}
                             </button>
@@ -310,14 +329,14 @@ export function TaxonomyScreen({
               {!c.deleted &&
                 (editing?.type === 'addTag' && editing.categoryId === c.id ? (
                   inlineForm(t('taxonomy.newTagIn', { name: c.name }), () =>
-                    taxonomyApi.createTag(c.id, draft),
+                    write(createTag, { categoryId: c.id, name: draft }),
                   )
                 ) : (
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm self-start"
                     aria-label={t('taxonomy.addTagTo', { name: c.name })}
-                    disabled={run.isPending}
+                    disabled={busy}
                     onClick={() => startEdit({ type: 'addTag', categoryId: c.id }, '')}
                   >
                     <Icon name="plus" size={14} />

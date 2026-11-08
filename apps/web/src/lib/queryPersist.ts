@@ -4,6 +4,7 @@ import { Settings, Taxonomy, WorkspaceList } from '@notes/shared';
 import { del, get, set } from 'idb-keyval';
 import { z, type ZodType } from 'zod';
 import { settingsKeys } from '../api/settings.queries';
+import { taxonomyKeys } from '../api/taxonomy.queries';
 import { workspacesKeys } from '../api/workspaces.queries';
 import { clearNotes, loadNotes } from './noteStore';
 
@@ -14,7 +15,7 @@ export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 /** The only queries worth persisting, each with the schema its data must match on restore. */
 const SCHEMAS: Record<string, ZodType> = {
-  taxonomy: Taxonomy,
+  [taxonomyKeys.all[0]]: Taxonomy,
   [settingsKeys.all[0]]: Settings,
   [workspacesKeys.all[0]]: WorkspaceList,
 };
