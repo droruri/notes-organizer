@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { Note, NoteStatus } from '@notes/shared';
+import type { Note, NoteEdit, NoteStatus } from '@notes/shared';
 import { api } from '../lib/api';
 import { syncNotes } from '../lib/noteStore';
 import { taxonomyKeys } from './taxonomy.queries';
@@ -7,8 +7,6 @@ import { taxonomyKeys } from './taxonomy.queries';
 export const notesKeys = {
   all: ['notes'] as const,
 };
-
-type NoteEdit = Parameters<typeof api.updateNote>[1];
 
 /** The notes list, synced incrementally from what is already cached (first paint: IndexedDB). */
 export function useNotes() {
@@ -97,7 +95,7 @@ export function useSnoozeNote() {
   });
 }
 
-/** Resolves once the list is refreshed; callers that leave the editor first can ignore it. */
+/** Resolves on delete; the list refresh runs in the background, so callers can leave the editor first. */
 export function useDeleteNote() {
   const queryClient = useQueryClient();
   return useMutation({

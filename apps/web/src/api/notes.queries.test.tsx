@@ -9,8 +9,28 @@ import { taxonomyKeys } from './taxonomy.queries';
 
 afterEach(() => vi.restoreAllMocks());
 
-const note = (id: string, status: Note['status'] = 'todo'): Note =>
-  ({ id, body: id, status }) as Note;
+const note = (id: string, status: Note['status'] = 'todo'): Note => ({
+  id,
+  clientId: id,
+  title: null,
+  body: id,
+  status,
+  workspaceId: 'ws',
+  importance: null,
+  urgency: null,
+  dueDate: null,
+  snoozedUntil: null,
+  remindAt: null,
+  proposed: null,
+  unreadLinks: [],
+  categoryIds: [],
+  tagIds: [],
+  hasAudio: false,
+  attachments: [],
+  checklist: [],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+});
 
 function setup() {
   const client = new QueryClient();
