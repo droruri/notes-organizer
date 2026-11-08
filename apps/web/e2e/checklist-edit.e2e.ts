@@ -8,7 +8,8 @@ async function makeAndOpenEditor(page: Page) {
   await page.getByRole('button', { name: 'שמירה', exact: true }).click();
   const card = page.locator('ul.gap-3 > li', { hasText: head });
   await card.getByRole('button', { name: head }).click();
-  await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
+  await page.getByRole('button', { name: 'עריכה', exact: true }).click();
+  await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+\/edit$/);
   await expect(page.getByRole('group', { name: 'רשימת משימות' })).toBeVisible();
   for (const text of ['חלב', 'לחם', 'ביצים']) {
     await page.getByRole('button', { name: 'הוספת פריט' }).click();
@@ -22,7 +23,7 @@ const rows = (page: Page) => page.getByRole('textbox', { name: 'טקסט הפר�
 test.describe('phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   test('checklist editor on touch', async ({ page }) => {
-    const head = await makeAndOpenEditor(page);
+    await makeAndOpenEditor(page);
     const first = rows(page).first();
     const row = first.locator('xpath=..');
     expect((await row.boundingBox())?.height).toBeGreaterThanOrEqual(44);
@@ -41,10 +42,8 @@ test.describe('phone', () => {
     await page.getByRole('button', { name: 'מחיקת פריט' }).nth(1).click();
     await expect(rows(page)).toHaveCount(3);
     await page.getByRole('button', { name: 'שמירה', exact: true }).click();
-    await page
-      .locator('ul.gap-3 > li', { hasText: head })
-      .getByRole('button', { name: head })
-      .click();
+    // Save lands on the read-only view; Edit reopens the form.
+    await page.getByRole('button', { name: 'עריכה', exact: true }).click();
     await expect(rows(page)).toHaveCount(3);
     await expect(rows(page).first()).toHaveValue('חלב 3%');
     await expect(rows(page).last()).toHaveValue('דבש');
@@ -76,8 +75,12 @@ test.describe('desktop', () => {
     await box.focus();
     await page.keyboard.press('Space');
     await expect(box).toBeChecked();
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.evaluate(() => {
+      const el = document.activeElement;
+      if (el instanceof HTMLElement) el.blur();
+    });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('group', { name: 'רשימת משימות' })).toBeHidden();
+    await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
   });
 });

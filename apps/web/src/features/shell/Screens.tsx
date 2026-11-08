@@ -107,6 +107,7 @@ export function Screens() {
           <Route path="chat" element={null} />
           <Route path="import" element={null} />
           <Route path="notes/:id" element={null} />
+          <Route path="notes/:id/edit" element={null} />
         </Route>
         <Route
           path={ROUTES.taxonomy}

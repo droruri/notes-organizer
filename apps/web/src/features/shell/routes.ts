@@ -12,8 +12,11 @@ export const ROUTES = {
   users: '/users',
 } as const;
 
-/** The edit page of one note. */
+/** The read-only view of one note. */
 export const notePath = (id: string) => `/notes/${encodeURIComponent(id)}`;
+
+/** The edit page of one note. */
+export const editPath = (id: string) => `${notePath(id)}/edit`;
 
 /** The Today view: the notes list in its grouped due / in-progress mode. */
 export const todayPath = `${ROUTES.notes}?view=today`;

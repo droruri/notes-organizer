@@ -48,13 +48,14 @@ import {
 } from '../offline/outbox';
 import { reportNetworkFailure, useOnline } from '../offline/useOnline';
 import { clearSharedNote, peekSharedNote } from '../share/shareTarget';
-import { ROUTES, notePath, useGoBack } from '../shell/routes';
+import { ROUTES, editPath, notePath, useGoBack } from '../shell/routes';
 import { Loading } from '../../ui/Loading';
 import { Icon } from '../../ui/Icon';
 import { Toast } from '../../ui/Toast';
 import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
 import { NoteEditor } from './NoteEditor';
+import { NoteView } from './NoteView';
 import { NoteFilters } from './NoteFilters';
 import { ContinueRow } from './ContinueRow';
 import { CategoryStrip } from './CategoryStrip';
@@ -118,12 +119,14 @@ export function NotesScreen({
   const todayMode = useSearchParams()[0].get('view') === 'today';
   const chatOpen = pathname === ROUTES.chat;
   const importing = pathname === ROUTES.import;
-  const editId = useMatch('/notes/:id')?.params.id;
+  const editId = useMatch('/notes/:id/edit')?.params.id;
+  const viewId = useMatch('/notes/:id')?.params.id;
+  const openId = editId ?? viewId;
   useEffect(() => {
-    if (editId !== undefined) recordOpen(editId);
-  }, [editId]);
+    if (openId !== undefined) recordOpen(openId);
+  }, [openId]);
   const detailOpen =
-    pathname === ROUTES.compose || pathname === ROUTES.review || editId !== undefined;
+    pathname === ROUTES.compose || pathname === ROUTES.review || openId !== undefined;
   // Each page keeps the list's `?tag=` so the filtered list stays mounted behind it.
   useViewTransitionCommit(pathname);
   const open = (to: string, replace = false, routeState?: NoteCreated | { record: true }) => {
@@ -530,7 +533,25 @@ export function NotesScreen({
   }
 
   let editor: ReactNode = null;
-  if (pathname === ROUTES.review || editId !== undefined) {
+  if (viewId !== undefined) {
+    const viewed = notes.data.find((n) => n.id === viewId);
+    // A missing note is a redirect guard: skip the list so it never flashes.
+    if (!viewed) return <Navigate to={ROUTES.notes} replace />;
+    editor = (
+      <NoteView
+        key={viewed.id}
+        note={viewed}
+        taxonomy={taxonomy.data}
+        onBack={goBack}
+        onEdit={() => open(editPath(viewed.id))}
+        onToggleItem={(note, index) =>
+          toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
+        }
+        togglePending={toggle.isPending}
+        workspaceName={workspaces.data?.find((w) => w.id === viewed.workspaceId)?.name}
+      />
+    );
+  } else if (pathname === ROUTES.review || editId !== undefined) {
     // History state survives a reload, so it is untrusted like any other input.
     const parsed = pathname === ROUTES.review ? NoteCreated.safeParse(state) : undefined;
     const edited = notes.data.find((n) => n.id === editId);
@@ -789,7 +810,7 @@ export function NotesScreen({
             workspaceNames={workspaceNames}
             taxonomy={taxonomy.data}
             today={today}
-            selectedId={editId}
+            selectedId={openId}
             onOpen={(note) => {
               clearErrors();
               open(notePath(note.id));
@@ -812,7 +833,7 @@ export function NotesScreen({
             workspaceNames={workspaceNames}
             taxonomy={taxonomy.data}
             today={today}
-            selectedId={editId}
+            selectedId={openId}
             onOpen={(note) => {
               clearErrors();
               open(notePath(note.id));

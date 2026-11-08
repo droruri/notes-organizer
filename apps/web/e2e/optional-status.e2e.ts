@@ -20,11 +20,14 @@ test('a note saved without status has no pill; edit can turn tracking on', async
   await page.screenshot({ path: '/tmp/e2e-shots/card-no-status.png' });
 
   await card.getByText(body).click();
+  await page.getByRole('button', { name: 'עריכה', exact: true }).click();
   const sw2 = page.getByRole('switch', { name: 'מעקב סטטוס' });
   await expect(sw2).not.toBeChecked();
   await sw2.check();
   await page.screenshot({ path: '/tmp/e2e-shots/edit-on.png' });
   await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+  // Save lands on the read-only view; Back returns to the list.
+  await page.getByRole('button', { name: 'חזרה', exact: true }).click();
   const card2 = page.locator('ul.gap-3 > li', { hasText: body });
   await expect(card2.locator('.pill-dot', { hasText: 'לביצוע' })).toBeVisible();
   await page.screenshot({ path: '/tmp/e2e-shots/card-todo.png' });

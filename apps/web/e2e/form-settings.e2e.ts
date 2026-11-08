@@ -31,6 +31,7 @@ test('hiding the due date applies to the open form, the other form and survives 
 
   await page.getByRole('button', { name: 'שמירה', exact: true }).click();
   await card.getByText(stored).click();
+  await page.getByRole('button', { name: 'עריכה', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'עריכת פתק' })).toBeVisible();
   await expect(dueDate).toHaveCount(0);
   await page.reload();
@@ -78,6 +79,7 @@ test('a hidden urgency value is not offered on a new draft but stays on a note t
     await page.getByRole('button', { name: 'ביטול', exact: true }).first().click();
 
     await card.getByText(stored).click();
+    await page.getByRole('button', { name: 'עריכה', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'עריכת פתק' })).toBeVisible();
     await expect(urgency).toHaveValue('medium');
     await expect(urgency.locator('option', { hasText: medium })).toHaveCount(1);

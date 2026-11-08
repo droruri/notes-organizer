@@ -118,6 +118,8 @@
     "emptyHint": "כתבו משהו או הקליטו הודעה קולית. Claude יציע איך לסדר את זה.",
     "suggestHint": "Claude יציע קטגוריה, תגיות ותאריך יעד. אפשר לשנות הכל לפני השמירה.",
     "reviewTitle": "בדיקת הפתק",
+    "edit": "עריכה",
+    "viewTitle": "פתק",
     "editTitle": "עריכת פתק",
     "suggested": "הצעה של Claude",
     "formSettings": {

@@ -49,7 +49,7 @@ test('list → add → suggest → review → back returns to the list', async (
   await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
 });
 
-test('open a note → back returns to the list; save → back does not reopen the editor', async ({
+test('open a note → back returns to the list; save → view → back does not reopen the editor', async ({
   page,
 }) => {
   await signIn(page);
@@ -62,10 +62,13 @@ test('open a note → back returns to the list; save → back does not reopen th
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
   await page.getByText(body).first().click();
+  await page.getByRole('button', { name: 'עריכה', exact: true }).click();
+  await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+\/edit$/);
   await page.getByRole('button', { name: 'שמירה' }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/notes\/[0-9a-f-]+$/);
   await page.goBack();
-  await expect(page).not.toHaveURL(/\/notes\//);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('button', { name: 'עריכה', exact: true })).toHaveCount(0);
 });
 
 test('chat opens as a page, and back closes it', async ({ page }) => {

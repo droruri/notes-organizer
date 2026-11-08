@@ -26,7 +26,7 @@ export function NavBar({
       <h2 className="truncate text-lg font-bold tracking-tight max-lg:text-center lg:col-span-2 lg:text-2xl">
         {title}
       </h2>
-      <div className="flex items-center justify-end">{action}</div>
+      <div className="flex items-center justify-end gap-2">{action}</div>
     </div>
   );
 }

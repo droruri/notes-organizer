@@ -48,7 +48,9 @@ for (const width of widths) {
     await expect(page.locator('ul.gap-3 > li', { hasText: bodyB })).toBeVisible();
 
     await cardA.getByRole('button', { name: bodyA }).click();
+    await page.getByRole('button', { name: 'עריכה', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'טקסט' })).toHaveValue(bodyA);
+    await page.goBack();
     await page.goBack();
 
     await search.fill(tag);

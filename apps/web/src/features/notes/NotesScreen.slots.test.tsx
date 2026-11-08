@@ -64,6 +64,7 @@ const setup = (entry: string) =>
           <Route path="/" element={<NotesScreen />}>
             <Route path="new" element={null} />
             <Route path="notes/:id" element={null} />
+            <Route path="notes/:id/edit" element={null} />
           </Route>
         </Routes>
       </MemoryRouter>
@@ -72,7 +73,7 @@ const setup = (entry: string) =>
 
 describe('NotesScreen list and detail slots', () => {
   it('keeps the list mounted but hidden while a note is open', async () => {
-    const { container } = setup(`/notes/${id}`);
+    const { container } = setup(`/notes/${id}/edit`);
     await screen.findByDisplayValue('first note');
     const list = container.querySelector('[data-slot="list"]');
     expect(list).not.toBeNull();

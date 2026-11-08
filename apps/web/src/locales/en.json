@@ -117,6 +117,8 @@
     "emptyHint": "Write something or record a voice note. Claude will suggest how to file it.",
     "suggestHint": "Claude suggests a category, tags and a due date. You can change anything before saving.",
     "reviewTitle": "Review note",
+    "edit": "Edit",
+    "viewTitle": "Note",
     "editTitle": "Edit note",
     "suggested": "Suggested by Claude",
     "formSettings": {
