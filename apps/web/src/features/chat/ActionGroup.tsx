@@ -1,6 +1,7 @@
-import type { ActionsBody, ActionsResponse, AgentAction, NoteChange } from '@notes/shared';
+import type { AgentAction, NoteChange } from '@notes/shared';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useApplyActions } from '../../api';
 import { ApiRequestError, api } from '../../lib/api';
 import { ActionCard, type CardState } from './ActionCard';
 
@@ -11,17 +12,16 @@ const IDLE: Card = { state: 'idle', error: null };
 export function ActionGroup({
   actions,
   onApplied,
-  apply = api.applyActions,
   applyNote = api.updateNote,
 }: {
   actions: AgentAction[];
   /** Called once per request that applied at least one action, to refresh taxonomy and notes. */
   onApplied: () => void;
-  apply?: (body: ActionsBody) => Promise<ActionsResponse>;
   /** Applies one note change card (`PATCH /notes/:id`). */
   applyNote?: (id: string, edit: NoteChange) => Promise<unknown>;
 }) {
   const { t } = useTranslation();
+  const { mutateAsync: apply } = useApplyActions();
   // Keyed by position: actions can keep arriving while the answer streams, and start idle.
   const [cards, setCards] = useState<Record<number, Card>>({});
   const [inFlight, setInFlight] = useState(false);

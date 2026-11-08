@@ -1,16 +1,24 @@
+import type { ReactElement } from 'react';
 import type { ActionsBody, ActionsResponse, AgentAction } from '@notes/shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { ApiRequestError } from '../../lib/api';
+import { ApiRequestError, api } from '../../lib/api';
 import { ActionGroup } from './ActionGroup';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const mk = (name: string): AgentAction => ({ action: 'create', kind: 'category', name });
 const A = [mk('A'), mk('B'), mk('C')];
 const approveBtn = /^(אישור|approve)$/i;
 const allBtn = /לאשר הכול|approve all/i;
+
+const renderGroup = (ui: ReactElement) =>
+  render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 
 const setup = (
   actions: AgentAction[],
@@ -18,9 +26,9 @@ const setup = (
     results: b.actions.map(() => ({ ok: true as const })),
   }),
 ) => {
-  const fn = vi.fn(apply);
+  const fn = vi.spyOn(api, 'applyActions').mockImplementation(apply);
   const onApplied = vi.fn();
-  render(<ActionGroup actions={actions} apply={fn} onApplied={onApplied} />);
+  renderGroup(<ActionGroup actions={actions} onApplied={onApplied} />);
   return { fn, onApplied };
 };
 
@@ -95,7 +103,7 @@ describe('ActionGroup', () => {
     fireEvent.click(dismiss);
     expect(screen.getByRole('button', { name: allBtn })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: allBtn }));
-    expect(fn).toHaveBeenCalledWith({ actions: [A[1], A[2]] });
+    await waitFor(() => expect(fn).toHaveBeenCalledWith({ actions: [A[1], A[2]] }));
     for (const b of screen.getAllByRole('button')) expect(b.hasAttribute('disabled')).toBe(true);
     release({ results: [{ ok: true }, { ok: true }] });
     await waitFor(() => expect(screen.queryByRole('button')).toBeNull());
@@ -130,21 +138,19 @@ describe('ActionGroup note cards', () => {
   });
 
   it('shows the changed fields on a note card', () => {
-    render(<ActionGroup actions={[note(1, 'Dentist')]} onApplied={vi.fn()} />);
+    renderGroup(<ActionGroup actions={[note(1, 'Dentist')]} onApplied={vi.fn()} />);
     expect(screen.getByText(/Dentist/)).toBeTruthy();
     expect(screen.getByText(/Work/)).toBeTruthy();
   });
 
   it('approve-all sends one applyActions and one updateNote per note card', async () => {
-    const apply = vi.fn(async (b: ActionsBody) => ({
+    const apply = vi.spyOn(api, 'applyActions').mockImplementation(async (b: ActionsBody) => ({
       results: b.actions.map(() => ({ ok: true as const })),
     }));
     const applyNote = vi.fn(async () => ({}));
     const onApplied = vi.fn();
     const actions = [mk('A'), note(1, 'Dentist'), note(2, 'Groceries')];
-    render(
-      <ActionGroup actions={actions} apply={apply} applyNote={applyNote} onApplied={onApplied} />,
-    );
+    renderGroup(<ActionGroup actions={actions} applyNote={applyNote} onApplied={onApplied} />);
     fireEvent.click(screen.getByRole('button', { name: allBtn }));
     await waitFor(() => expect(onApplied).toHaveBeenCalledTimes(1));
     expect(apply).toHaveBeenCalledTimes(1);
@@ -163,7 +169,7 @@ describe('ActionGroup note cards', () => {
       return {};
     });
     const onApplied = vi.fn();
-    render(
+    renderGroup(
       <ActionGroup
         actions={[note(1, 'Dentist'), note(2, 'Groceries')]}
         applyNote={applyNote}
