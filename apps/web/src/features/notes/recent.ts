@@ -55,14 +55,14 @@ export function useRecentNoteIds(): string[] {
   return useMemo(() => parseRecent(raw).map((i) => i.id), [raw]);
 }
 
-/** Up to 8 notes: the last 5 opened here, then due-today or overdue open ones. */
+/** Up to 8 open notes: the last 5 opened here, then due-today or overdue ones. Done notes never show. */
 export function continueNotes(notes: Note[], recentIds: string[], today: string): Note[] {
   const byId = new Map(notes.map((n) => [n.id, n]));
   const picked: Note[] = [];
   const seen = new Set<string>();
   for (const id of recentIds) {
     const n = byId.get(id);
-    if (!n || seen.has(id) || isSnoozed(n, today)) continue;
+    if (!n || seen.has(id) || !isOpen(n.status) || isSnoozed(n, today)) continue;
     seen.add(id);
     picked.push(n);
     if (picked.length === RECENT) break;

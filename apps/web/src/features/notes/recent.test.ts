@@ -70,6 +70,17 @@ describe('continueNotes', () => {
     expect(out.map((n) => n.id)).toEqual([openRecent.id]);
   });
 
+  it('skips done notes among recents', () => {
+    const doneRecent = note(1, { status: 'done' });
+    const openRecent = note(2);
+    const out = continueNotes(
+      [doneRecent, openRecent],
+      [doneRecent.id, openRecent.id],
+      '2026-10-25',
+    );
+    expect(out.map((n) => n.id)).toEqual([openRecent.id]);
+  });
+
   it('caps at 8: 5 recents first, then due/overdue notes not already shown', () => {
     const recents = Array.from({ length: 6 }, (_, i) => note(i + 1));
     const due = Array.from({ length: 5 }, (_, i) =>
