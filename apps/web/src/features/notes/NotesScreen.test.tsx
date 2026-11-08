@@ -161,6 +161,7 @@ describe('NotesScreen modes from the URL', () => {
               <Route path="chat" element={null} />
               <Route path="import" element={null} />
               <Route path="notes/:id" element={null} />
+              <Route path="notes/:id/edit" element={null} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -191,7 +192,7 @@ describe('NotesScreen modes from the URL', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     await screen.findByText('first note');
     cleanup();
-    setup(`/notes/${note(1, '', []).id}`);
+    setup(`/notes/${note(1, '', []).id}/edit`);
     await screen.findByDisplayValue('first note');
     expect(screen.getByRole('button', { name: 'Back' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
@@ -204,7 +205,7 @@ describe('NotesScreen modes from the URL', () => {
     try {
       setup('/');
       fireEvent.click(await screen.findByText('first note'));
-      await screen.findByDisplayValue('first note');
+      await screen.findByRole('button', { name: 'Edit' });
       expect(start).toHaveBeenCalledTimes(1);
     } finally {
       vi.unstubAllGlobals();
@@ -222,9 +223,26 @@ describe('NotesScreen modes from the URL', () => {
     expect(screen.getByRole('combobox', { name: 'Sort' })).toBeTruthy();
   });
 
-  it('shows the editor on /notes/:id', async () => {
-    setup(`/notes/${note(1, '', []).id}`);
+  it('shows the read-only view on /notes/:id and the editor on /notes/:id/edit', async () => {
+    const id = note(1, '', []).id;
+    setup(`/notes/${id}`);
+    await screen.findByRole('button', { name: 'Edit' });
+    expect(screen.queryByDisplayValue('first note')).toBeNull();
+    cleanup();
+    setup(`/notes/${id}/edit`);
     await screen.findByDisplayValue('first note');
+  });
+
+  it('click a note opens the view, Edit opens the editor, Back returns to the view', async () => {
+    setup('/');
+    fireEvent.click(await screen.findByText('first note'));
+    expect(screen.getByTestId('where').textContent).toBe(`/notes/${note(1, '', []).id}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    await screen.findByDisplayValue('first note');
+    expect(screen.getByTestId('where').textContent).toBe(`/notes/${note(1, '', []).id}/edit`);
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await screen.findByRole('button', { name: 'Edit' });
+    expect(screen.getByTestId('where').textContent).toBe(`/notes/${note(1, '', []).id}`);
   });
 
   it('shows the review of the draft in the history state', async () => {
@@ -301,6 +319,7 @@ describe('NotesScreen Today view', () => {
           <Routes>
             <Route path="/" element={<NotesScreen />}>
               <Route path="notes/:id" element={null} />
+              <Route path="notes/:id/edit" element={null} />
             </Route>
           </Routes>
         </MemoryRouter>
