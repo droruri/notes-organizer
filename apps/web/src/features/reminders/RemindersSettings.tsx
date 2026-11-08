@@ -1,7 +1,6 @@
-import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePushRegistration, useSaveSettings, useSendPushTest, useSettings } from '../../api';
+import { useSaveSettings, useSendPushTest, useSetPushEnabled, useSettings } from '../../api';
 import { currentSubscription, isPushSupported, subscribe, unsubscribe } from './pushSubscription';
 
 const DEFAULT_HOUR = 8;
@@ -14,7 +13,6 @@ export function RemindersSettings() {
   const { t } = useTranslation();
   const supported = isPushSupported();
   const settings = useSettings();
-  const { register, unregister } = usePushRegistration();
   const [on, setOn] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
@@ -28,28 +26,21 @@ export function RemindersSettings() {
 
   const saveSettings = useSaveSettings();
 
-  const toggle = useMutation({
-    mutationFn: async (next: boolean) => {
-      if (!next) {
-        await unsubscribe(unregister);
-        return 'off' as const;
-      }
-      const outcome = await subscribe(register);
-      if (outcome === 'subscribed') {
-        await saveSettings.mutateAsync({
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        });
-      }
-      return outcome;
+  const toggle = useSetPushEnabled(
+    { subscribe, unsubscribe },
+    {
+      onSuccess: (outcome) => {
+        setNotice(outcome === 'denied' || outcome === 'unconfigured' ? outcome : null);
+        setOn(outcome === 'subscribed');
+      },
+      onError: () => setNotice('error'),
     },
-    onSuccess: (outcome) => {
-      setNotice(outcome === 'denied' || outcome === 'unconfigured' ? outcome : null);
-      setOn(outcome === 'subscribed');
-    },
+  );
+
+  const test = useSendPushTest({
+    onSuccess: (r) => setNotice(r.sent > 0 ? 'sent' : 'noDevice'),
     onError: () => setNotice('error'),
   });
-
-  const test = useSendPushTest();
 
   return (
     <section aria-labelledby="reminders-title" className="m-4">
@@ -101,12 +92,7 @@ export function RemindersSettings() {
                 type="button"
                 className="btn btn-ghost"
                 disabled={!on || test.isPending}
-                onClick={() =>
-                  test.mutate(undefined, {
-                    onSuccess: (r) => setNotice(r.sent > 0 ? 'sent' : 'noDevice'),
-                    onError: () => setNotice('error'),
-                  })
-                }
+                onClick={() => test.mutate()}
               >
                 {test.isPending ? t('reminders.sending') : t('reminders.send')}
               </button>

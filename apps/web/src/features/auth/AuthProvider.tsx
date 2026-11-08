@@ -1,7 +1,7 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { meQueryOptions } from '../../api';
+import { meKeys, meQueryOptions } from '../../api';
 import { ApiNetworkError, ApiRequestError } from '../../lib/api';
 import { clearCache } from '../../lib/queryPersist';
 import { supabase } from '../../lib/supabase';
@@ -43,6 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Another user on this device: the cache and the last access belong to the previous one.
       if (userId.current !== null && userId.current !== session.user.id) {
         access.current = null;
+        // Drop the previous user's /me synchronously: clearCache awaits IndexedDB first, and a
+        // fetchQuery started meanwhile would otherwise join that user's in-flight request.
+        queryClient.removeQueries({ queryKey: meKeys.all });
         void clearCache(queryClient);
       }
       userId.current = session.user.id;
