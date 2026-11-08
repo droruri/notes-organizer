@@ -1,4 +1,3 @@
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   ChoiceDisplay,
   DEFAULT_NOTE_FORM,
@@ -12,7 +11,7 @@ import {
 } from '@notes/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { useSaveSettings, useSettings } from '../../api';
 import { Segmented } from '../../ui/Segmented';
 import { Sheet } from '../../ui/Sheet';
 import { RemindersSettings } from '../reminders/RemindersSettings';
@@ -31,8 +30,7 @@ const ROWS: ReadonlyArray<HideableField | 'body'> = [
 /** App settings bottom sheet: the optional fields of the note form, and the mobile quick actions. */
 export function NoteFormSettings({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const settings = useSettings();
   // Null until the user changes a switch; until the stored choice loads, nothing is hidden and Save stays off.
   const [edited, setEdited] = useState<ReadonlyArray<HideableField> | null>(null);
   const stored = settings.data?.noteForm ?? DEFAULT_NOTE_FORM;
@@ -51,9 +49,10 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
   const [statusHiddenEdited, setStatusHiddenEdited] =
     useState<ReadonlyArray<HideableStatus> | null>(null);
   const statusHidden = statusHiddenEdited ?? stored.status.hiddenValues;
-  const save = useMutation({
-    mutationFn: () =>
-      api.saveSettings({
+  const save = useSaveSettings();
+  const saveAll = (options?: Parameters<typeof save.mutate>[1]) =>
+    save.mutate(
+      {
         noteForm: {
           hiddenFields: [...hidden],
           importance: {
@@ -69,11 +68,9 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
           },
         } satisfies NoteForm,
         quickActions: QuickAction.options.filter((a) => quick.includes(a)),
-      }),
-    onSuccess: (saved) => {
-      queryClient.setQueryData(['settings'], saved);
-    },
-  });
+      },
+      options,
+    );
   const dirty =
     edited !== null ||
     quickEdited !== null ||
@@ -228,7 +225,7 @@ export function NoteFormSettings({ onClose }: { onClose: () => void }) {
           <div className="flex gap-2 border-t border-line px-5 py-3">
             <button
               type="button"
-              onClick={() => save.mutate(undefined, { onSuccess: () => close(true) })}
+              onClick={() => saveAll({ onSuccess: () => close(true) })}
               disabled={!settings.data || save.isPending}
               className="btn btn-primary"
             >

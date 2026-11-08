@@ -3,6 +3,7 @@ import { dehydrate, QueryClient, type Query } from '@tanstack/react-query';
 import { Settings, Taxonomy, WorkspaceList } from '@notes/shared';
 import { del, get, set } from 'idb-keyval';
 import { z, type ZodType } from 'zod';
+import { settingsKeys } from '../api/settings.queries';
 import { clearNotes, loadNotes } from './noteStore';
 
 const KEY = 'notes-query-cache-v1';
@@ -13,7 +14,7 @@ export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 /** The only queries worth persisting, each with the schema its data must match on restore. */
 const SCHEMAS: Record<string, ZodType> = {
   taxonomy: Taxonomy,
-  settings: Settings,
+  [settingsKeys.all[0]]: Settings,
   workspaces: WorkspaceList,
 };
 

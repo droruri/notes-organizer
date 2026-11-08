@@ -62,6 +62,12 @@ Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralp
 - **Web:** `src/lib/api.ts` is the **single** typed API client — every request to the API goes
   through it, and every response is parsed against its `@notes/shared` schema there.
   Features live in `src/features/<feature>/`.
+- **Web hooks:** every API call a component makes is a React Query hook in
+  `src/api/<subject>.queries.ts` (query or mutation, with the subject's key factory), re-exported
+  from `src/api/index.ts`. Components import hooks from `src/api`; they never call `api.*` or
+  `useQuery`/`useMutation` directly. New endpoint = fetcher in `lib/api.ts` + hook in its subject
+  file (new subject = new file + a line in `index.ts`). Mutations own their cache effects
+  (invalidate/`setQueryData`). Tests spy on `api`.
 - **Shared:** a schema, type or constant needed by both web and api goes in `packages/shared`,
   defined once.
 - **Migrations:** one new file per change via `pnpm db:new`; never edit an applied migration.
