@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render as rtlRender, screen } from '@testing-l
 import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { ReactElement } from 'react';
+import { api } from '../../lib/api';
 import { ChatPanel } from './ChatPanel';
 
 const render = (ui: ReactElement) =>
@@ -42,8 +43,12 @@ const scripted =
     for (const p of parts) onPart(p);
   };
 
-function ask(stream: NonNullable<Parameters<typeof ChatPanel>[0]['stream']>, onOpenNote = vi.fn()) {
-  render(<ChatPanel notes={[note]} onOpenNote={onOpenNote} onClose={vi.fn()} stream={stream} />);
+function ask(
+  stream: (_: unknown, onPart: (p: ChatPart) => void) => Promise<void>,
+  onOpenNote = vi.fn(),
+) {
+  vi.spyOn(api, 'chat').mockImplementation(stream);
+  render(<ChatPanel notes={[note]} onOpenNote={onOpenNote} onClose={vi.fn()} />);
   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'what is overdue?' } });
   const form = screen.getByRole('textbox').closest('form');
   if (!form) throw new Error('ChatPanel input is not inside a form');

@@ -1,5 +1,4 @@
 import { PushSubscriptionBody } from '@notes/shared';
-import { api } from '../../lib/api';
 
 export type SubscribeOutcome = 'subscribed' | 'denied' | 'unsupported' | 'unconfigured';
 
@@ -27,7 +26,9 @@ export async function currentSubscription(): Promise<PushSubscription | null> {
 }
 
 /** Asks permission, subscribes this device with the VAPID key, and registers it with the API. */
-export async function subscribe(): Promise<SubscribeOutcome> {
+export async function subscribe(
+  register: (body: PushSubscriptionBody) => Promise<unknown>,
+): Promise<SubscribeOutcome> {
   if (!isPushSupported()) return 'unsupported';
   const vapidKey: unknown = import.meta.env.VITE_VAPID_PUBLIC_KEY;
   if (typeof vapidKey !== 'string' || vapidKey === '') return 'unconfigured';
@@ -41,14 +42,16 @@ export async function subscribe(): Promise<SubscribeOutcome> {
     }));
   const body = PushSubscriptionBody.safeParse(sub.toJSON());
   if (!body.success) throw new Error('push subscription has an unexpected shape');
-  await api.subscribePush(body.data);
+  await register(body.data);
   return 'subscribed';
 }
 
 /** Removes this device's subscription from the browser and the API. */
-export async function unsubscribe(): Promise<void> {
+export async function unsubscribe(
+  unregister: (endpoint: string) => Promise<unknown>,
+): Promise<void> {
   const sub = await currentSubscription();
   if (!sub) return;
-  await api.unsubscribePush(sub.endpoint);
+  await unregister(sub.endpoint);
   await sub.unsubscribe();
 }

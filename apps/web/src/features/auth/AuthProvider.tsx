@@ -1,15 +1,18 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { api, ApiNetworkError, ApiRequestError } from '../../lib/api';
+import { meQueryOptions } from '../../api';
+import { ApiNetworkError, ApiRequestError } from '../../lib/api';
 import { clearCache } from '../../lib/queryPersist';
 import { supabase } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
 
 /** Why a session was refused (or not): the API decides, via 403 not_allowed on /me. */
-async function checkAccess(): Promise<{ state: AuthState; isAdmin: boolean }> {
+async function checkAccess(
+  queryClient: QueryClient,
+): Promise<{ state: AuthState; isAdmin: boolean }> {
   try {
-    const me = await api.me();
+    const me = await queryClient.fetchQuery(meQueryOptions);
     return { state: 'allowed', isAdmin: me.isAdmin };
   } catch (err) {
     if (err instanceof ApiRequestError && err.status === 403) {
@@ -48,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // SIGNED_IN on tab refocus) re-check quietly so the screens and typed text stay mounted.
       const quiet = access.current !== null;
       if (!quiet) setState('loading');
-      checkAccess()
+      checkAccess(queryClient)
         .catch((err: unknown) => {
           // Offline with a session: keep the last known access, else assume allowed.
           // The API still checks every request, so this grants nothing server-side.
