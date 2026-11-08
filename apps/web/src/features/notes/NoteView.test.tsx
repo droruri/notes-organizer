@@ -107,4 +107,51 @@ describe('NoteView', () => {
     expect(screen.getByText('Due date')).toBeTruthy();
     expect(screen.getByText('Personal')).toBeTruthy();
   });
+
+  describe('checklist', () => {
+    const A = '00000000-0000-4000-8000-0000000000c1';
+    const B = '00000000-0000-4000-8000-0000000000c2';
+    const list = [
+      { id: A, text: 'milk', done: true },
+      { id: B, text: 'eggs', done: false },
+    ];
+    it('shows progress and ticks via onToggleChecklist', () => {
+      const onToggle = vi.fn();
+      wrap(
+        <NoteView
+          note={note({ checklist: list })}
+          taxonomy={taxonomy}
+          onBack={vi.fn()}
+          onEdit={vi.fn()}
+          onToggleChecklist={onToggle}
+        />,
+      );
+      expect(screen.getByText('1/2')).toBeTruthy();
+      const boxes = screen.getAllByRole('checkbox');
+      expect(boxes).toHaveLength(2);
+      const eggs = boxes[1];
+      if (!eggs) throw new Error('expected a second checkbox');
+      fireEvent.click(eggs);
+      expect(onToggle).toHaveBeenCalledWith(expect.objectContaining({ id: note().id }), B);
+      expect(screen.getByText('milk').className).toContain('line-through');
+    });
+    it('renders nothing for an empty list and disables when offline', () => {
+      view(note());
+      expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+      expect(screen.queryByText(/\d+\/\d+/)).toBeNull();
+      cleanup();
+      wrap(
+        <NoteView
+          note={note({ checklist: list })}
+          taxonomy={taxonomy}
+          onBack={vi.fn()}
+          onEdit={vi.fn()}
+          onToggleChecklist={vi.fn()}
+          checklistDisabled
+        />,
+      );
+      const first = screen.getAllByRole('checkbox')[0];
+      expect(first instanceof HTMLInputElement && first.disabled).toBe(true);
+    });
+  });
 });

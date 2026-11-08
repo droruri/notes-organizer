@@ -1,6 +1,7 @@
 import { noteHeading, type Note, type Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { NavBar } from '../../ui/NavBar';
+import { ChecklistView } from './ChecklistView';
 import { NoteCardDetails } from './NoteCardDetails';
 import { formatDate } from './formatDate';
 
@@ -12,6 +13,9 @@ export function NoteView({
   onEdit,
   onToggleItem,
   togglePending = false,
+  onToggleChecklist,
+  checklistDisabled = false,
+  checklistError = false,
   workspaceName,
 }: {
   note: Note;
@@ -20,6 +24,9 @@ export function NoteView({
   onEdit: () => void;
   onToggleItem?: (note: Note, index: number) => void;
   togglePending?: boolean;
+  onToggleChecklist?: (note: Note, itemId: string) => void;
+  checklistDisabled?: boolean;
+  checklistError?: boolean;
   workspaceName?: string | undefined;
 }) {
   const { t, i18n } = useTranslation();
@@ -56,6 +63,17 @@ export function NoteView({
             </div>
           ))}
         </dl>
+      )}
+      <ChecklistView
+        items={note.checklist}
+        disabled={checklistDisabled || !onToggleChecklist}
+        onToggle={(id) => onToggleChecklist?.(note, id)}
+      />
+      {checklistDisabled && <p className="text-muted text-sm">{t('offline.checklistDisabled')}</p>}
+      {checklistError && (
+        <p role="alert" className="notice notice-danger">
+          {t('notes.error')}
+        </p>
       )}
       <NoteCardDetails
         note={note}

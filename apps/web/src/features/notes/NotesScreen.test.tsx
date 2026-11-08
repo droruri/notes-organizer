@@ -853,3 +853,121 @@ describe('NotesScreen checklist toggle', () => {
     expect(box instanceof HTMLInputElement && box.checked).toBe(false);
   });
 });
+
+describe('NotesScreen checklist in view mode', () => {
+  const A = '00000000-0000-4000-8000-0000000000c1';
+  const B = '00000000-0000-4000-8000-0000000000c2';
+  const items = [
+    { id: A, text: 'milk', done: true },
+    { id: B, text: 'eggs', done: false },
+  ];
+  const setup = (online = true) => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online);
+    const n = { ...note(1, 'shopping', []), checklist: items };
+    vi.spyOn(api, 'notes').mockResolvedValue([n]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[`/notes/${n.id}`]}>
+          <Routes>
+            <Route path="/" element={<NotesScreen />}>
+              <Route path="notes/:id" element={null} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    return n;
+  };
+
+  it('sends the full updated list and shows the new count before the save returns', async () => {
+    const n = setup();
+    const saved = { ...n, checklist: items.map((i) => ({ ...i, done: true })) };
+    let release: () => void = () => {};
+    const update = vi.spyOn(api, 'updateNote').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve(saved);
+        }),
+    );
+    await screen.findByText('1/2');
+    const box = screen.getAllByRole('checkbox')[1];
+    if (!(box instanceof HTMLInputElement)) throw new Error('expected a checkbox');
+    fireEvent.click(box);
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(n.id, {
+        checklist: [
+          { id: A, text: 'milk', done: true },
+          { id: B, text: 'eggs', done: true },
+        ],
+      }),
+    );
+    await screen.findByText('2/2');
+    vi.mocked(api.notes).mockResolvedValue([saved]);
+    release();
+    await screen.findByText('2/2');
+  });
+
+  it('unticks an item and sends the full list with it cleared', async () => {
+    const n = setup();
+    const saved = { ...n, checklist: items.map((i) => ({ ...i, done: false })) };
+    const update = vi.spyOn(api, 'updateNote').mockResolvedValue(saved);
+    vi.mocked(api.notes).mockResolvedValue([saved]);
+    await screen.findByText('1/2');
+    const box = screen.getAllByRole('checkbox')[0];
+    if (!(box instanceof HTMLInputElement)) throw new Error('expected a checkbox');
+    fireEvent.click(box);
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith(n.id, {
+        checklist: [
+          { id: A, text: 'milk', done: false },
+          { id: B, text: 'eggs', done: false },
+        ],
+      }),
+    );
+    await screen.findByText('0/2');
+  });
+
+  it('rolls back and shows an error when saving fails', async () => {
+    const n = setup();
+    let rejectSave: (reason: Error) => void = () => {};
+    vi.spyOn(api, 'updateNote').mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectSave = reject;
+        }),
+    );
+    await screen.findByText('1/2');
+    // Hold the refetch that follows the failed save, so the rolled-back state is observable.
+    let releaseRefetch: () => void = () => {};
+    vi.mocked(api.notes).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseRefetch = () => resolve([n]);
+        }),
+    );
+    const box = screen.getAllByRole('checkbox')[1];
+    if (!(box instanceof HTMLInputElement)) throw new Error('expected a checkbox');
+    fireEvent.click(box);
+    await screen.findByText('2/2');
+    rejectSave(new Error('boom'));
+    await screen.findByText('1/2');
+    releaseRefetch();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toBe(i18n.t('notes.error'));
+  });
+
+  it('disables the checkboxes when offline', async () => {
+    setup(false);
+    await screen.findByText('1/2');
+    for (const box of screen.getAllByRole('checkbox')) {
+      expect(box instanceof HTMLInputElement && box.disabled).toBe(true);
+    }
+  });
+});

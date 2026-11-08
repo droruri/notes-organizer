@@ -39,6 +39,7 @@ import {
   useSettings,
   useSnoozeNote,
   useTaxonomy,
+  useToggleNoteChecklist,
   useToggleNoteItem,
   useUpdateNote,
   useWorkspaces,
@@ -352,6 +353,7 @@ export function NotesScreen({
     );
   const changeStatus = useChangeNoteStatus();
   const toggle = useToggleNoteItem();
+  const toggleChecklist = useToggleNoteChecklist();
   const pendingId = changeStatus.isPending
     ? changeStatus.variables.id
     : toggle.isPending
@@ -359,6 +361,7 @@ export function NotesScreen({
       : undefined;
   const clearErrors = () => {
     toggle.reset();
+    toggleChecklist.reset();
     submit.reset();
     remove.reset();
     changeStatus.reset();
@@ -523,6 +526,14 @@ export function NotesScreen({
           toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
         }
         togglePending={toggle.isPending}
+        onToggleChecklist={(note, itemId) =>
+          toggleChecklist.mutate({
+            id: note.id,
+            checklist: note.checklist.map((i) => (i.id === itemId ? { ...i, done: !i.done } : i)),
+          })
+        }
+        checklistDisabled={!online}
+        checklistError={toggleChecklist.isError}
         workspaceName={workspaces.data?.find((w) => w.id === viewed.workspaceId)?.name}
       />
     );

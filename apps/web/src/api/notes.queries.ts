@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { Note, NoteEdit, NoteStatus } from '@notes/shared';
+import type { ChecklistItem, Note, NoteEdit, NoteStatus } from '@notes/shared';
 import { api } from '../lib/api';
 import { syncNotes } from '../lib/noteStore';
 import { taxonomyKeys } from './taxonomy.queries';
@@ -75,6 +75,29 @@ export function useToggleNoteItem() {
       const previous = queryClient.getQueryData<Note[]>(notesKeys.all);
       queryClient.setQueryData<Note[]>(notesKeys.all, (old) =>
         old?.map((n) => (n.id === id ? { ...n, body } : n)),
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(notesKeys.all, ctx.previous);
+    },
+    onSuccess: (saved) => patchNote(queryClient, saved),
+    onSettled: () => invalidateNotes(queryClient),
+  });
+}
+
+/** Ticking a checklist item: the whole list is sent. Same scope → taps save one after another, so the last list wins. */
+export function useToggleNoteChecklist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    scope: { id: 'checklist' },
+    mutationFn: (v: { id: string; checklist: ChecklistItem[] }) =>
+      api.updateNote(v.id, { checklist: v.checklist }),
+    onMutate: async ({ id, checklist }) => {
+      await queryClient.cancelQueries({ queryKey: notesKeys.all });
+      const previous = queryClient.getQueryData<Note[]>(notesKeys.all);
+      queryClient.setQueryData<Note[]>(notesKeys.all, (old) =>
+        old?.map((n) => (n.id === id ? { ...n, checklist } : n)),
       );
       return { previous };
     },
