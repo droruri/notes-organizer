@@ -28,7 +28,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Navigate, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router';
-import { useSaveSettings, useSettings } from '../../api';
+import { taxonomyKeys, useSaveSettings, useSettings, useTaxonomy } from '../../api';
 import { api, ApiNetworkError } from '../../lib/api';
 import { syncNotes } from '../../lib/noteStore';
 import type { ImportResult } from '../import/ImportDialog';
@@ -133,7 +133,7 @@ export function NotesScreen({
     queryKey: ['notes'],
     queryFn: () => syncNotes(queryClient.getQueryData<Note[]>(['notes'])),
   });
-  const taxonomy = useQuery({ queryKey: ['taxonomy'], queryFn: api.taxonomy });
+  const taxonomy = useTaxonomy();
   const settings = useSettings();
   const workspaces = useQuery({ queryKey: ['workspaces'], queryFn: api.workspaces });
   // Mobile quick actions next to "New Note", in canonical order; the default while settings load.
@@ -215,7 +215,7 @@ export function NotesScreen({
   });
   /** The draft is ready: review it. From compose it replaces the page, so back returns to the list. */
   const onDraft = async (draft: NoteCreated, fromCompose = true) => {
-    await queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+    await queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
     clearErrors();
     open(ROUTES.review, fromCompose, draft);
   };
@@ -324,7 +324,7 @@ export function NotesScreen({
     onSuccess: async (saved) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['notes'] }),
-        queryClient.invalidateQueries({ queryKey: ['taxonomy'] }),
+        queryClient.invalidateQueries({ queryKey: taxonomyKeys.all }),
       ]);
       if (workspace && saved.workspaceId !== workspace.id) {
         setSavedIn(workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null);
@@ -569,7 +569,7 @@ export function NotesScreen({
         }}
         onClose={goBack}
         onApplied={() => {
-          void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+          void queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
           void queryClient.invalidateQueries({ queryKey: ['notes'] });
         }}
       />
@@ -619,7 +619,7 @@ export function NotesScreen({
               goBack();
               setImported(result);
               void queryClient.invalidateQueries({ queryKey: ['notes'] });
-              void queryClient.invalidateQueries({ queryKey: ['taxonomy'] });
+              void queryClient.invalidateQueries({ queryKey: taxonomyKeys.all });
             }}
           />
         </Suspense>

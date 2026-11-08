@@ -2,7 +2,7 @@ import type { CategoryColor } from '@notes/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
-import { ApiRequestError } from '../../lib/api';
+import { api, ApiRequestError } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
 import { TaxonomyScreen } from './TaxonomyScreen';
 
@@ -15,7 +15,10 @@ beforeEach(async () => {
   await i18n.changeLanguage('he');
   document.documentElement.dir = 'rtl';
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const taxonomy = (color1: CategoryColor = 'slate') => ({
   categories: [
@@ -44,7 +47,7 @@ const taxonomy = (color1: CategoryColor = 'slate') => ({
 });
 
 function setup(overrides: Record<string, unknown> = {}) {
-  const taxonomyApi = {
+  const spies = {
     taxonomy: vi.fn(async () => taxonomy()),
     createCategory: vi.fn(async () => ({
       id: C1,
@@ -101,12 +104,30 @@ function setup(overrides: Record<string, unknown> = {}) {
     restoreTag: vi.fn(async () => ({ id: T2, categoryId: C1, name: 'ישן', deleted: false })),
     ...overrides,
   };
+  const taxonomyApi = {
+    taxonomy: vi.spyOn(api, 'taxonomy').mockImplementation(spies.taxonomy),
+    createCategory: vi.spyOn(api, 'createCategory').mockImplementation(spies.createCategory),
+    renameCategory: vi.spyOn(api, 'renameCategory').mockImplementation(spies.renameCategory),
+    setCategoryPinned: vi
+      .spyOn(api, 'setCategoryPinned')
+      .mockImplementation(spies.setCategoryPinned),
+    setCategoryColor: vi.spyOn(api, 'setCategoryColor').mockImplementation(spies.setCategoryColor),
+    setCategoryImportance: vi
+      .spyOn(api, 'setCategoryImportance')
+      .mockImplementation(spies.setCategoryImportance),
+    deleteCategory: vi.spyOn(api, 'deleteCategory').mockImplementation(spies.deleteCategory),
+    restoreCategory: vi.spyOn(api, 'restoreCategory').mockImplementation(spies.restoreCategory),
+    createTag: vi.spyOn(api, 'createTag').mockImplementation(spies.createTag),
+    renameTag: vi.spyOn(api, 'renameTag').mockImplementation(spies.renameTag),
+    deleteTag: vi.spyOn(api, 'deleteTag').mockImplementation(spies.deleteTag),
+    restoreTag: vi.spyOn(api, 'restoreTag').mockImplementation(spies.restoreTag),
+  };
   const onTag = vi.fn();
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <TaxonomyScreen onBack={() => undefined} onTag={onTag} taxonomyApi={taxonomyApi} />
+      <TaxonomyScreen onBack={() => undefined} onTag={onTag} />
     </QueryClientProvider>,
   );
   return { taxonomyApi, onTag };
