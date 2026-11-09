@@ -7,24 +7,22 @@ import {
   updatedDate,
 } from './formatDate';
 
-const expectedDate = (lang: string, d: Date) =>
-  new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
-const expectedDateTime = (lang: string, d: Date) =>
-  new Intl.DateTimeFormat(lang, {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d);
+// Literal outputs captured from the pre-cache implementation (main), so a change in
+// options or caching shows up here rather than being mirrored by the test.
+const expected = {
+  date: { he: '5 במרץ 2025', en: 'Mar 5, 2025' },
+  dateTime: { he: '5 במרץ, 10:30', en: 'Mar 5, 10:30 AM' },
+} as const;
 
 describe('formatDate', () => {
-  it.each(['he', 'en'])('formats a date-only string in %s', (lang) => {
-    expect(formatDate('2025-03-05', lang)).toBe(expectedDate(lang, new Date(2025, 2, 5)));
+  it.each(['he', 'en'] as const)('formats a date-only string in %s', (lang) => {
+    expect(formatDate('2025-03-05', lang)).toBe(expected.date[lang]);
   });
 
-  it.each(['he', 'en'])('formats a timestamp in %s', (lang) => {
-    const iso = '2025-03-05T10:30:00Z';
-    expect(formatDate(iso, lang)).toBe(expectedDate(lang, new Date(iso)));
+  it.each(['he', 'en'] as const)('formats a timestamp in %s', (lang) => {
+    // Local time, so the expected string does not depend on the machine's timezone.
+    const iso = new Date(2025, 2, 5, 10, 30).toISOString();
+    expect(formatDate(iso, lang)).toBe(expected.date[lang]);
   });
 
   it('reuses the formatter per language', () => {
@@ -34,9 +32,9 @@ describe('formatDate', () => {
 });
 
 describe('formatDateTime', () => {
-  it.each(['he', 'en'])('formats a timestamp in %s', (lang) => {
-    const iso = '2025-03-05T10:30:00Z';
-    expect(formatDateTime(iso, lang)).toBe(expectedDateTime(lang, new Date(iso)));
+  it.each(['he', 'en'] as const)('formats a timestamp in %s', (lang) => {
+    const iso = new Date(2025, 2, 5, 10, 30).toISOString();
+    expect(formatDateTime(iso, lang)).toBe(expected.dateTime[lang]);
   });
 
   it('reuses the formatter per language', () => {
