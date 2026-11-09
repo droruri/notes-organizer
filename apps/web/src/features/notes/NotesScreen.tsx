@@ -59,6 +59,7 @@ import { clearSharedNote, peekSharedNote } from '../share/shareTarget';
 import { ROUTES, editPath, notePath, useGoBack } from '../shell/routes';
 import { Loading } from '../../ui/Loading';
 import { Icon } from '../../ui/Icon';
+import { Panes } from '../../ui/Panes';
 import { Toast } from '../../ui/Toast';
 import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
@@ -438,23 +439,13 @@ export function NotesScreen({
       onCancel={goBack}
     />
   );
-  /** The list and the open page as sibling slots; CSS decides what shows (the list hides behind a detail). */
-  const slots = (list: ReactNode, detail: ReactNode, placeholder = false) => (
-    <div data-panes="" data-detail-open={detail ? '' : undefined}>
-      <div data-slot="list">{list}</div>
-      {detail ? (
-        <div data-slot="detail">{detail}</div>
-      ) : placeholder ? (
-        <div data-slot="detail" className="max-lg:hidden">
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted">
-            <p className="font-medium">{t('notes.pick')}</p>
-            <button type="button" onClick={() => open(ROUTES.compose)} className="btn btn-primary">
-              <Icon name="plus" size={18} />
-              {t('notes.add')}
-            </button>
-          </div>
-        </div>
-      ) : null}
+  const pickPlaceholder = (
+    <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted">
+      <p className="font-medium">{t('notes.pick')}</p>
+      <button type="button" onClick={() => open(ROUTES.compose)} className="btn btn-primary">
+        <Icon name="plus" size={18} />
+        {t('notes.add')}
+      </button>
     </div>
   );
 
@@ -486,28 +477,40 @@ export function NotesScreen({
 
   if (!notes.data || !taxonomy.data) {
     if (notes.isError || taxonomy.isError || !online) {
-      return slots(
-        <section className="flex flex-col items-start gap-4">
-          {online ? (
-            <p role="alert" className="notice notice-danger">
-              {t('notes.error')}
-            </p>
-          ) : (
-            <p role="status" className="notice notice-info">
-              {t('offline.noData')}
-            </p>
-          )}
-          <button type="button" onClick={() => open(ROUTES.compose)} className="btn btn-primary">
-            <Icon name="plus" size={18} />
-            {t('notes.add')}
-          </button>
-          {waiting}
-          <div className="toast-stack">{offlineToast}</div>
-        </section>,
-        composeForm,
+      return (
+        <Panes
+          detail={composeForm}
+          list={
+            <section className="flex flex-col items-start gap-4">
+              {online ? (
+                <p role="alert" className="notice notice-danger">
+                  {t('notes.error')}
+                </p>
+              ) : (
+                <p role="status" className="notice notice-info">
+                  {t('offline.noData')}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => open(ROUTES.compose)}
+                className="btn btn-primary"
+              >
+                <Icon name="plus" size={18} />
+                {t('notes.add')}
+              </button>
+              {waiting}
+              <div className="toast-stack">{offlineToast}</div>
+            </section>
+          }
+        />
       );
     }
-    return composeForm ? slots(null, composeForm) : <Loading label={t('status.checking')} />;
+    return composeForm ? (
+      <Panes list={null} detail={composeForm} />
+    ) : (
+      <Loading label={t('status.checking')} />
+    );
   }
 
   let editor: ReactNode = null;
@@ -601,324 +604,332 @@ export function NotesScreen({
     sameFilter(filter, { ...EMPTY_FILTER, ...workspace?.defaultFilter });
   const listKey = JSON.stringify([deferredFilter, sort, workspace?.id, acrossWorkspaces]);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
-  return slots(
-    <section className="flex flex-col gap-5">
-      {online && !outboxDismissed && outbox.length > 0 && (
-        <OutboxDialog
-          entries={outbox}
-          taxonomy={taxonomy.data}
-          onSend={sendQueued}
-          onClose={() => setOutboxDismissed(true)}
-        />
-      )}
-      {importing && (
-        <Suspense fallback={<Loading label={t('import.loading')} />}>
-          <ImportDialog
-            taxonomy={taxonomy.data}
-            workspaces={workspaces.data ?? []}
-            currentWorkspaceId={workspace?.id}
-            today={today}
-            locale={locale}
-            onClose={goBack}
-            onImported={(result) => {
-              goBack();
-              setImported(result);
-              void refreshNotes();
-            }}
-          />
-        </Suspense>
-      )}
-      <div ref={titleSentinel} aria-hidden="true" className="-mb-5 h-px lg:hidden" />
-      <div className="flex items-end justify-between gap-3">
-        <div className="flex flex-col">
-          <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
-            {todayMode ? t('today.title') : (workspace?.name ?? t('notes.title'))}
-          </h2>
-          <p className="text-sm text-muted tabular-nums">
-            {t('notes.count', { count: shownCount })}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => open(ROUTES.chat)}
-            onPointerEnter={() => void loadChat()}
-            onFocus={() => void loadChat()}
-            className="btn min-h-11"
-          >
-            <Icon name="spark" size={16} className="text-accent" />
-            {t('chat.open')}
-          </button>
-          <button
-            type="button"
-            onClick={() => open(ROUTES.compose, false, { record: true })}
-            className="btn max-lg:hidden"
-          >
-            <Icon name="mic" size={16} />
-            {t('voice.record')}
-          </button>
-          <div className="max-lg:fixed max-lg:end-4 max-lg:bottom-[calc(var(--tab-h)+1rem+env(safe-area-inset-bottom))] max-lg:z-20 max-lg:flex max-lg:flex-row-reverse max-lg:items-center max-lg:gap-1.5 lg:contents">
-            <button
-              type="button"
-              onClick={() => open(ROUTES.compose)}
-              className="btn btn-primary max-lg:h-14 max-lg:rounded-full max-lg:px-5 max-lg:text-base max-lg:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)] lg:hidden"
-            >
-              <Icon name="plus" size={22} />
-              {t('notes.add')}
-            </button>
-            {quickActions.map((a) => {
-              const { icon, label } = quickMeta[a];
-              const iconOnly = quickActions.length > 1;
-              return (
-                <button
-                  key={a}
-                  type="button"
-                  data-quick-action={a}
-                  aria-label={iconOnly ? label : undefined}
-                  onClick={quickHandlers[a]}
-                  className={`btn h-12 rounded-full lg:hidden ${iconOnly ? 'size-12 p-0' : 'px-5'}`}
-                >
-                  <Icon name={icon} size={22} />
-                  {!iconOnly && label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-      {!todayMode && (
-        <div className="max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:-mx-4 max-lg:bg-bg/90 max-lg:px-4 max-lg:pb-2 max-lg:backdrop-blur-md">
-          <div
-            aria-hidden="true"
-            data-collapsed={titleCollapsed ? '' : undefined}
-            className="grid grid-rows-[0fr] overflow-hidden transition-[grid-template-rows] duration-150 data-[collapsed]:grid-rows-[1fr] lg:hidden"
-          >
-            <p className="min-h-0 truncate pt-[env(safe-area-inset-top)] text-center text-base leading-10 font-semibold">
-              {workspace?.name ?? t('notes.title')}
-            </p>
-          </div>
-          <NoteFilters
-            filter={filter}
-            onChange={setFilter}
-            taxonomy={taxonomy.data}
-            allWorkspaces={acrossWorkspaces}
-            sheetOpen={filtersOpen}
-            onSheetOpenChange={setFiltersOpen}
-            notes={inWorkspaceForSearch}
-            ranked={ranked}
-            onOpenNote={(id) => open(notePath(id))}
-            onSmartSearch={smartSearch}
-            smartPending={smartPending}
-            understood={understood === filter}
-            onAllWorkspaces={setAllWorkspaces}
-            showAllWorkspaces={showAllWorkspaces}
-            savedDefault={workspace?.defaultFilter ?? null}
-            {...(workspace && {
-              onSaveDefault: () => {
-                const { text: _text, ...defaultFilter } = filter;
-                editWorkspace.mutate({ id: workspace.id, patch: { defaultFilter } });
-              },
-            })}
-            sort={
-              <label className="flex items-center gap-2 text-sm text-muted">
-                <span className="shrink-0">{t('notes.sort.label')}</span>
-                <select
-                  value={sort}
-                  onChange={(e) => {
-                    const next = NoteSort.safeParse(e.target.value);
-                    if (next.success) saveSort.mutate({ noteSort: next.data });
-                  }}
-                  className="field min-h-11 w-auto py-1 text-sm text-fg"
-                >
-                  {NoteSort.options.map((o) => (
-                    <option key={o} value={o}>
-                      {t(`notes.sort.${o}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            }
-          />
-        </div>
-      )}
-      <p role="status" className="sr-only">
-        {todayMode
-          ? ''
-          : understood === filter
-            ? visible.length === 0
-              ? t('filters.foundNone')
-              : t('filters.found', { count: visible.length })
-            : ''}
-      </p>
-      {smartNotice !== null && smartNotice.text === filter.text && (
-        <p role="status" className="notice notice-info">
-          {smartNotice.kind === 'offline' ? t('filters.smartOffline') : t('filters.smartFailed')}
-        </p>
-      )}
-      {!todayMode && (
-        <CategoryStrip
-          ranked={ranked}
-          filter={filter}
-          onChange={setFilter}
-          onOpenAll={() => setFiltersOpen(true)}
-        />
-      )}
-      {saveSort.isError && (
-        <p role="alert" className="notice notice-danger">
-          {t('notes.error')}
-        </p>
-      )}
-      {editWorkspace.isError && (
-        <p role="alert" className="notice notice-danger">
-          {t('notes.error')}
-        </p>
-      )}
-      {waiting}
-      {showContinue && (
-        <ContinueRow
-          notes={inWorkspace}
-          taxonomy={taxonomy.data}
-          today={today}
-          onOpen={(note) => {
-            clearErrors();
-            open(notePath(note.id));
-          }}
-        />
-      )}
-      <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
-        {groups ? (
-          <TodayList
-            groups={groups}
-            lang={locale}
-            onAllNotes={() => void navigate({ pathname: ROUTES.notes })}
-            workspaceNames={workspaceNames}
-            taxonomy={taxonomy.data}
-            today={today}
-            selectedId={openId}
-            onOpen={(note) => {
-              clearErrors();
-              open(notePath(note.id));
-            }}
-            onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-            onSnooze={(note, day) => snoozeNote(note.id, day)}
-            onToggleItem={(note, index) =>
-              toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
-            }
-            hiddenStatuses={
-              settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
-            }
-            statusPendingId={pendingId}
-          />
-        ) : (
-          <NoteList
-            key={listKey}
-            notes={visible}
-            filtered={inWorkspace.length > 0}
-            workspaceNames={workspaceNames}
-            taxonomy={taxonomy.data}
-            today={today}
-            selectedId={openId}
-            onOpen={(note) => {
-              clearErrors();
-              open(notePath(note.id));
-            }}
-            onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-            onSnooze={(note, day) => snoozeNote(note.id, day)}
-            onToggleItem={(note, index) =>
-              toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
-            }
-            hiddenStatuses={
-              settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues
-            }
-            statusPendingId={pendingId}
-            onAdd={() => open(ROUTES.compose)}
-          />
-        )}
-      </div>
-      {(changeStatus.isError || toggle.isError || snooze.isError) && (
-        <p role="alert" className="notice notice-danger">
-          {t('notes.error')}
-        </p>
-      )}
-      {undo.isError && (
-        <p role="alert" className="notice notice-danger">
-          {t('notes.error')}
-        </p>
-      )}
-      <div className="toast-stack">
-        {imported && (
-          <Toast
-            onClose={() => setImported(null)}
-            actions={
-              <>
-                {imported.unreadNotes > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
-                      setImported(null);
-                    }}
-                    className="btn btn-sm"
-                  >
-                    {t('import.show')}
-                  </button>
-                )}
-                <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
-                  {t('import.dismiss')}
-                </button>
-              </>
-            }
-          >
-            {imported.unreadNotes > 0
-              ? t('import.toastUnread', {
-                  notes: imported.created.notes,
-                  count: imported.unreadNotes,
-                })
-              : t('import.done', { count: imported.created.notes })}
-          </Toast>
-        )}
-        {offlineToast}
-        {savedIn !== null && (
-          <Toast
-            onClose={() => setSavedIn(null)}
-            actions={
-              <button type="button" onClick={() => setSavedIn(null)} className="btn btn-sm">
-                {t('import.dismiss')}
-              </button>
-            }
-          >
-            {t('notes.savedIn', { name: savedIn })}
-          </Toast>
-        )}
-        {snoozeUndo !== null && (
-          <Toast
-            actions={
+  return (
+    <Panes
+      placeholder={pickPlaceholder}
+      detail={composeForm || editor || chatPanel}
+      list={
+        <section className="flex flex-col gap-5">
+          {online && !outboxDismissed && outbox.length > 0 && (
+            <OutboxDialog
+              entries={outbox}
+              taxonomy={taxonomy.data}
+              onSend={sendQueued}
+              onClose={() => setOutboxDismissed(true)}
+            />
+          )}
+          {importing && (
+            <Suspense fallback={<Loading label={t('import.loading')} />}>
+              <ImportDialog
+                taxonomy={taxonomy.data}
+                workspaces={workspaces.data ?? []}
+                currentWorkspaceId={workspace?.id}
+                today={today}
+                locale={locale}
+                onClose={goBack}
+                onImported={(result) => {
+                  goBack();
+                  setImported(result);
+                  void refreshNotes();
+                }}
+              />
+            </Suspense>
+          )}
+          <div ref={titleSentinel} aria-hidden="true" className="-mb-5 h-px lg:hidden" />
+          <div className="flex items-end justify-between gap-3">
+            <div className="flex flex-col">
+              <h2 className="text-[1.75rem] leading-tight font-bold tracking-tight">
+                {todayMode ? t('today.title') : (workspace?.name ?? t('notes.title'))}
+              </h2>
+              <p className="text-sm text-muted tabular-nums">
+                {t('notes.count', { count: shownCount })}
+              </p>
+            </div>
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => snoozeNote(snoozeUndo.id, null, true)}
-                className="btn btn-sm"
+                onClick={() => open(ROUTES.chat)}
+                onPointerEnter={() => void loadChat()}
+                onFocus={() => void loadChat()}
+                className="btn min-h-11"
               >
-                {t('notes.undo')}
+                <Icon name="spark" size={16} className="text-accent" />
+                {t('chat.open')}
               </button>
-            }
-          >
-            {t('snooze.toast', { date: formatDate(snoozeUndo.day, i18n.language) })}
-          </Toast>
-        )}
-        {undoId !== null && (
-          <Toast
-            actions={
-              <button type="button" onClick={() => restore(undoId)} className="btn btn-sm">
-                {t('notes.undo')}
+              <button
+                type="button"
+                onClick={() => open(ROUTES.compose, false, { record: true })}
+                className="btn max-lg:hidden"
+              >
+                <Icon name="mic" size={16} />
+                {t('voice.record')}
               </button>
-            }
-          >
-            {t('notes.deleted')}
-          </Toast>
-        )}
-      </div>
-    </section>,
-    composeForm || editor || chatPanel,
-    true,
+              <div className="max-lg:fixed max-lg:end-4 max-lg:bottom-[calc(var(--tab-h)+1rem+env(safe-area-inset-bottom))] max-lg:z-20 max-lg:flex max-lg:flex-row-reverse max-lg:items-center max-lg:gap-1.5 lg:contents">
+                <button
+                  type="button"
+                  onClick={() => open(ROUTES.compose)}
+                  className="btn btn-primary max-lg:h-14 max-lg:rounded-full max-lg:px-5 max-lg:text-base max-lg:shadow-[0_10px_28px_-8px_color-mix(in_oklab,var(--accent)_55%,transparent)] lg:hidden"
+                >
+                  <Icon name="plus" size={22} />
+                  {t('notes.add')}
+                </button>
+                {quickActions.map((a) => {
+                  const { icon, label } = quickMeta[a];
+                  const iconOnly = quickActions.length > 1;
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      data-quick-action={a}
+                      aria-label={iconOnly ? label : undefined}
+                      onClick={quickHandlers[a]}
+                      className={`btn h-12 rounded-full lg:hidden ${iconOnly ? 'size-12 p-0' : 'px-5'}`}
+                    >
+                      <Icon name={icon} size={22} />
+                      {!iconOnly && label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          {!todayMode && (
+            <div className="max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:-mx-4 max-lg:bg-bg/90 max-lg:px-4 max-lg:pb-2 max-lg:backdrop-blur-md">
+              <div
+                aria-hidden="true"
+                data-collapsed={titleCollapsed ? '' : undefined}
+                className="grid grid-rows-[0fr] overflow-hidden transition-[grid-template-rows] duration-150 data-[collapsed]:grid-rows-[1fr] lg:hidden"
+              >
+                <p className="min-h-0 truncate pt-[env(safe-area-inset-top)] text-center text-base leading-10 font-semibold">
+                  {workspace?.name ?? t('notes.title')}
+                </p>
+              </div>
+              <NoteFilters
+                filter={filter}
+                onChange={setFilter}
+                taxonomy={taxonomy.data}
+                allWorkspaces={acrossWorkspaces}
+                sheetOpen={filtersOpen}
+                onSheetOpenChange={setFiltersOpen}
+                notes={inWorkspaceForSearch}
+                ranked={ranked}
+                onOpenNote={(id) => open(notePath(id))}
+                onSmartSearch={smartSearch}
+                smartPending={smartPending}
+                understood={understood === filter}
+                onAllWorkspaces={setAllWorkspaces}
+                showAllWorkspaces={showAllWorkspaces}
+                savedDefault={workspace?.defaultFilter ?? null}
+                {...(workspace && {
+                  onSaveDefault: () => {
+                    const { text: _text, ...defaultFilter } = filter;
+                    editWorkspace.mutate({ id: workspace.id, patch: { defaultFilter } });
+                  },
+                })}
+                sort={
+                  <label className="flex items-center gap-2 text-sm text-muted">
+                    <span className="shrink-0">{t('notes.sort.label')}</span>
+                    <select
+                      value={sort}
+                      onChange={(e) => {
+                        const next = NoteSort.safeParse(e.target.value);
+                        if (next.success) saveSort.mutate({ noteSort: next.data });
+                      }}
+                      className="field min-h-11 w-auto py-1 text-sm text-fg"
+                    >
+                      {NoteSort.options.map((o) => (
+                        <option key={o} value={o}>
+                          {t(`notes.sort.${o}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                }
+              />
+            </div>
+          )}
+          <p role="status" className="sr-only">
+            {todayMode
+              ? ''
+              : understood === filter
+                ? visible.length === 0
+                  ? t('filters.foundNone')
+                  : t('filters.found', { count: visible.length })
+                : ''}
+          </p>
+          {smartNotice !== null && smartNotice.text === filter.text && (
+            <p role="status" className="notice notice-info">
+              {smartNotice.kind === 'offline'
+                ? t('filters.smartOffline')
+                : t('filters.smartFailed')}
+            </p>
+          )}
+          {!todayMode && (
+            <CategoryStrip
+              ranked={ranked}
+              filter={filter}
+              onChange={setFilter}
+              onOpenAll={() => setFiltersOpen(true)}
+            />
+          )}
+          {saveSort.isError && (
+            <p role="alert" className="notice notice-danger">
+              {t('notes.error')}
+            </p>
+          )}
+          {editWorkspace.isError && (
+            <p role="alert" className="notice notice-danger">
+              {t('notes.error')}
+            </p>
+          )}
+          {waiting}
+          {showContinue && (
+            <ContinueRow
+              notes={inWorkspace}
+              taxonomy={taxonomy.data}
+              today={today}
+              onOpen={(note) => {
+                clearErrors();
+                open(notePath(note.id));
+              }}
+            />
+          )}
+          <div className="max-sm:pb-[calc(7rem+env(safe-area-inset-bottom))]">
+            {groups ? (
+              <TodayList
+                groups={groups}
+                lang={locale}
+                onAllNotes={() => void navigate({ pathname: ROUTES.notes })}
+                workspaceNames={workspaceNames}
+                taxonomy={taxonomy.data}
+                today={today}
+                selectedId={openId}
+                onOpen={(note) => {
+                  clearErrors();
+                  open(notePath(note.id));
+                }}
+                onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+                onSnooze={(note, day) => snoozeNote(note.id, day)}
+                onToggleItem={(note, index) =>
+                  toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
+                }
+                hiddenStatuses={
+                  settings.data?.noteForm.status.hiddenValues ??
+                  DEFAULT_NOTE_FORM.status.hiddenValues
+                }
+                statusPendingId={pendingId}
+              />
+            ) : (
+              <NoteList
+                key={listKey}
+                notes={visible}
+                filtered={inWorkspace.length > 0}
+                workspaceNames={workspaceNames}
+                taxonomy={taxonomy.data}
+                today={today}
+                selectedId={openId}
+                onOpen={(note) => {
+                  clearErrors();
+                  open(notePath(note.id));
+                }}
+                onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
+                onSnooze={(note, day) => snoozeNote(note.id, day)}
+                onToggleItem={(note, index) =>
+                  toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
+                }
+                hiddenStatuses={
+                  settings.data?.noteForm.status.hiddenValues ??
+                  DEFAULT_NOTE_FORM.status.hiddenValues
+                }
+                statusPendingId={pendingId}
+                onAdd={() => open(ROUTES.compose)}
+              />
+            )}
+          </div>
+          {(changeStatus.isError || toggle.isError || snooze.isError) && (
+            <p role="alert" className="notice notice-danger">
+              {t('notes.error')}
+            </p>
+          )}
+          {undo.isError && (
+            <p role="alert" className="notice notice-danger">
+              {t('notes.error')}
+            </p>
+          )}
+          <div className="toast-stack">
+            {imported && (
+              <Toast
+                onClose={() => setImported(null)}
+                actions={
+                  <>
+                    {imported.unreadNotes > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
+                          setImported(null);
+                        }}
+                        className="btn btn-sm"
+                      >
+                        {t('import.show')}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
+                      {t('import.dismiss')}
+                    </button>
+                  </>
+                }
+              >
+                {imported.unreadNotes > 0
+                  ? t('import.toastUnread', {
+                      notes: imported.created.notes,
+                      count: imported.unreadNotes,
+                    })
+                  : t('import.done', { count: imported.created.notes })}
+              </Toast>
+            )}
+            {offlineToast}
+            {savedIn !== null && (
+              <Toast
+                onClose={() => setSavedIn(null)}
+                actions={
+                  <button type="button" onClick={() => setSavedIn(null)} className="btn btn-sm">
+                    {t('import.dismiss')}
+                  </button>
+                }
+              >
+                {t('notes.savedIn', { name: savedIn })}
+              </Toast>
+            )}
+            {snoozeUndo !== null && (
+              <Toast
+                actions={
+                  <button
+                    type="button"
+                    onClick={() => snoozeNote(snoozeUndo.id, null, true)}
+                    className="btn btn-sm"
+                  >
+                    {t('notes.undo')}
+                  </button>
+                }
+              >
+                {t('snooze.toast', { date: formatDate(snoozeUndo.day, i18n.language) })}
+              </Toast>
+            )}
+            {undoId !== null && (
+              <Toast
+                actions={
+                  <button type="button" onClick={() => restore(undoId)} className="btn btn-sm">
+                    {t('notes.undo')}
+                  </button>
+                }
+              >
+                {t('notes.deleted')}
+              </Toast>
+            )}
+          </div>
+        </section>
+      }
+    />
   );
 }

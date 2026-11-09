@@ -17,6 +17,7 @@ import {
 import { ApiRequestError } from '../../lib/api';
 import { NavBar } from '../../ui/NavBar';
 import { Icon } from '../../ui/Icon';
+import { InlineEditForm } from '../../ui/InlineEditForm';
 import { Loading } from '../../ui/Loading';
 import { ColorControl } from './ColorControl';
 import { ImportanceControl } from './ImportanceControl';
@@ -101,28 +102,16 @@ export function TaxonomyScreen({
   };
 
   const inlineForm = (label: string, submit: () => void) => (
-    <form
-      className="flex flex-wrap items-center gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
-      }}
-    >
-      <input
-        aria-label={label}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        required
-        autoFocus
-        className="field min-w-40 flex-1"
-      />
-      <button type="submit" disabled={busy} className="btn btn-primary btn-sm">
-        {t('taxonomy.save')}
-      </button>
-      <button type="button" onClick={() => setEditing(null)} className="btn btn-ghost btn-sm">
-        {t('taxonomy.cancel')}
-      </button>
-    </form>
+    <InlineEditForm
+      label={label}
+      value={draft}
+      onChange={setDraft}
+      onSubmit={submit}
+      onCancel={() => setEditing(null)}
+      disabled={busy}
+      saveLabel={t('taxonomy.save')}
+      cancelLabel={t('taxonomy.cancel')}
+    />
   );
 
   const isRename = (kind: Kind, id: string) =>

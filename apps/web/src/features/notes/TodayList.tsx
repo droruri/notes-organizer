@@ -1,6 +1,7 @@
 import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { Section } from '../../ui/Section';
 import { formatDate } from './formatDate';
 import { NoteList } from './NoteList';
 import { todayCount, type TodayGroups } from './todayGroups';
@@ -40,18 +41,12 @@ export function TodayList({
       </div>
     );
   }
-  const section = (key: string, title: string, notes: Note[], sub = false) => {
-    if (notes.length === 0) return null;
-    const Heading = sub ? 'h4' : 'h3';
-    return (
-      <section key={key} aria-label={title} className="flex flex-col gap-3">
-        <Heading className={sub ? 'text-sm font-semibold text-muted' : 'text-lg font-bold'}>
-          {title} ({notes.length})
-        </Heading>
+  const section = (key: string, title: string, notes: Note[], sub = false) =>
+    notes.length === 0 ? null : (
+      <Section key={key} title={title} count={notes.length} sub={sub}>
         <NoteList notes={notes} filtered={false} {...list} />
-      </section>
+      </Section>
     );
-  };
   const upcomingCount = groups.upcoming.reduce((sum, u) => sum + u.notes.length, 0);
   return (
     <div className="flex flex-col gap-6">

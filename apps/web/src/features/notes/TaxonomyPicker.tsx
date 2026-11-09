@@ -1,9 +1,11 @@
 import type { NewTag, Taxonomy } from '@notes/shared';
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { CategoryDialog } from './CategoryDialog';
 import { Chip } from './Chip';
+
+type Tag = Taxonomy['categories'][number]['tags'][number];
 
 export type Picked = {
   categoryIds: string[];
@@ -117,52 +119,32 @@ export function TaxonomyPicker({
   const removeNewTag = (tag: NewTag) =>
     onChange({ ...value, newTags: value.newTags.filter((x) => x !== tag) });
 
-  const newTagChips = (match: (tag: NewTag) => boolean): ReactNode[] =>
-    value.newTags.flatMap((tag, i) =>
-      match(tag)
-        ? [
-            <Chip
-              key={`new-${tag.name}-${i}`}
-              tag
-              label={tag.name}
-              isNew
-              selected
-              onClick={() => removeNewTag(tag)}
-            />,
-          ]
-        : [],
-    );
   const placed = (tag: NewTag) =>
     'categoryId' in tag
       ? usable.some((c) => c.id === tag.categoryId)
       : offered.includes(tag.categoryName);
-  const tagRows: { key: string; label: string; chips: ReactNode[]; hidden?: string }[] = [
+  const tagRows: {
+    key: string;
+    label: string;
+    tags: Tag[];
+    newTags: NewTag[];
+    hidden?: string;
+  }[] = [
     ...usable.map((c) => ({
       key: c.id,
       label: c.name,
       hidden: isInline(c.id) || holdsSelection(c) ? '' : 'max-sm:hidden',
-      chips: [
-        ...c.tags
-          .filter((tag) => !tag.deleted)
-          .map((tag) => (
-            <Chip
-              key={tag.id}
-              tag
-              label={tag.name}
-              selected={value.tagIds.includes(tag.id)}
-              onClick={() => toggleTag(c.id, tag.id)}
-            />
-          )),
-        ...newTagChips((tag) => 'categoryId' in tag && tag.categoryId === c.id),
-      ],
+      tags: c.tags.filter((tag) => !tag.deleted),
+      newTags: value.newTags.filter((tag) => 'categoryId' in tag && tag.categoryId === c.id),
     })),
     ...offered.map((n) => ({
       key: `offered-${n}`,
       label: n,
-      chips: newTagChips((tag) => 'categoryName' in tag && tag.categoryName === n),
+      tags: [],
+      newTags: value.newTags.filter((tag) => 'categoryName' in tag && tag.categoryName === n),
     })),
-    { key: 'unplaced', label: '', chips: newTagChips((tag) => !placed(tag)) },
-  ].filter((row) => row.chips.length > 0);
+    { key: 'unplaced', label: '', tags: [], newTags: value.newTags.filter((tag) => !placed(tag)) },
+  ].filter((row) => row.tags.length + row.newTags.length > 0);
 
   return (
     <fieldset className="card flex flex-col gap-3 p-4">
@@ -226,7 +208,25 @@ export function TaxonomyPicker({
                 {row.label !== '' && (
                   <legend className="mb-1 text-xs text-muted">{row.label}</legend>
                 )}
-                {row.chips}
+                {row.tags.map((tag) => (
+                  <Chip
+                    key={tag.id}
+                    tag
+                    label={tag.name}
+                    selected={value.tagIds.includes(tag.id)}
+                    onClick={() => toggleTag(row.key, tag.id)}
+                  />
+                ))}
+                {row.newTags.map((tag, i) => (
+                  <Chip
+                    key={`new-${tag.name}-${i}`}
+                    tag
+                    label={tag.name}
+                    isNew
+                    selected
+                    onClick={() => removeNewTag(tag)}
+                  />
+                ))}
               </fieldset>
             ))}
           </fieldset>

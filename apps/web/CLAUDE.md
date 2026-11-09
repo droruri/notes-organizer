@@ -26,7 +26,7 @@ pnpm --filter @notes/web e2e        # Playwright (prefer the e2e agent, see belo
 - `src/api/<subject>.queries.ts` — React Query hooks, re-exported from `src/api/index.ts`.
 - `src/features/<feature>/` — feature components and their pure helpers (e.g.
   `features/notes/checklist.ts`).
-- `src/ui/` — shared primitives (`Sheet`, `Toast`, `Segmented`, `NavBar`, `Icon`) and hooks
+- `src/ui/` — shared primitives (`Sheet`, `Toast`, `Segmented`, `NavBar`, `Icon`, `FieldGroup`, `DateRangeField`, `Section`, `InlineEditForm`, `Panes`) and hooks
   (`useBackClose`, `useEscape`, `useIsWide`, `viewTransition`, …). Reuse these before writing a
   new one.
 - `public/push-sw.js` — push and `notificationclick` handlers, imported by the Workbox service
