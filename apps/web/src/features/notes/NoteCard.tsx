@@ -14,7 +14,7 @@ import { Icon } from '../../ui/Icon';
 import { checklistProgress } from './checklist';
 import { SnoozeSheet } from './SnoozeSheet';
 import { NoteCardDetails } from './NoteCardDetails';
-import { formatDate } from './formatDate';
+import { formatDate, formatDateTime } from './formatDate';
 
 export const NoteCard = memo(function NoteCard({
   note,
@@ -146,12 +146,7 @@ export const NoteCard = memo(function NoteCard({
           <span className="pill bg-transparent text-muted">
             <Icon name="bell" size={13} />
             <span className="sr-only">{t('notes.remindAt')}: </span>
-            {new Intl.DateTimeFormat(i18n.language, {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            }).format(new Date(note.remindAt))}
+            {formatDateTime(note.remindAt, i18n.language)}
           </span>
         )}
         {onSnooze && (snoozed || (note.status !== 'done' && note.status !== 'draft')) && (
