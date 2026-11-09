@@ -9,6 +9,19 @@ vi.mock('./checklist', async (orig) => {
   const actual = await orig<typeof import('./checklist')>();
   return { ...actual, checklistProgress: vi.fn(actual.checklistProgress) };
 });
+// Counts the renders NotesScreen asks NoteList for: the wrapper is memoised like NoteList, so
+// it only counts when the list's props change (a toast must not change them).
+const listRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock('./NoteList', async (orig) => {
+  const { createElement, memo } = await import('react');
+  const actual = await orig<typeof import('./NoteList')>();
+  const Inner = actual.NoteList;
+  const NoteList = memo(function CountedNoteList(props: Parameters<typeof Inner>[0]) {
+    listRenders.count++;
+    return createElement(Inner, props);
+  });
+  return { ...actual, NoteList };
+});
 vi.mock('../../lib/noteStore', async () => {
   const { api } = await import('../../lib/api');
   return { syncNotes: () => api.notes() };
@@ -92,19 +105,19 @@ describe('NotesScreen list memoization', () => {
     setupMemo();
     await screen.findByText('first note');
     await act(async () => {});
-    // A card re-render calls checklistProgress, so its call count proves the list stayed put.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Snooze' }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Tomorrow/ }));
     });
-    // Opening the toast: let the snooze mutation settle, then count card renders from here.
+    // Opening the toast is coupled to the snooze mutation, which changes the list data, so the
+    // count starts once it settles. Closing it (the undo toast times out by itself) must not
+    // re-render the list.
     await screen.findByText(/^Snoozed until/);
     await act(async () => {});
-    const before = vi.mocked(checklistProgress).mock.calls.length;
-    // Closing it (the undo toast times out by itself) must not redraw the list either.
+    const before = listRenders.count;
     await waitFor(() => expect(screen.queryByText(/^Snoozed until/)).toBeNull(), { timeout: 7000 });
-    expect(vi.mocked(checklistProgress).mock.calls.length).toBe(before);
+    expect(listRenders.count).toBe(before);
   }, 10_000);
 });
