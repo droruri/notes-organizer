@@ -637,7 +637,6 @@ export function NotesScreen({
     !todayMode &&
     filter.text === '' &&
     sameFilter(filter, { ...EMPTY_FILTER, ...workspace?.defaultFilter });
-  const listKey = JSON.stringify([deferredFilter, sort, workspace?.id, acrossWorkspaces]);
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
   return (
     <Panes
@@ -848,7 +847,6 @@ export function NotesScreen({
               />
             ) : (
               <NoteList
-                key={listKey}
                 notes={visible}
                 filtered={inWorkspace.length > 0}
                 workspaceNames={workspaceNames}
