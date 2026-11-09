@@ -35,8 +35,9 @@ pnpm --filter @notes/web e2e        # Playwright (prefer the e2e agent, see belo
 
 ## API calls and hooks
 
-- Every API call a component makes is a React Query hook in `src/api/<subject>.queries.ts`
-  (query or mutation, with the subject's key factory, e.g. `workspacesKeys.all`).
+- Every new endpoint is declared as a React Query hook in `src/api/<subject>.queries.ts` (query
+  or mutation, with the subject's key factory, e.g. `workspacesKeys.all`). No API call lives
+  outside `src/api/`.
 - Components import hooks from `src/api`. They never call `api.*` or `useQuery`/`useMutation`
   directly.
 - New endpoint = fetcher in `lib/api.ts` + hook in its subject file. New subject = new file + a
@@ -48,11 +49,23 @@ pnpm --filter @notes/web e2e        # Playwright (prefer the e2e agent, see belo
 
 - UI text is Hebrew, RTL. Every string comes from `locales/he.json` / `en.json` via `t()`; add
   both keys.
-- Tailwind 4 with logical utilities (`ms-*`, `ps-*`, `text-start`) so RTL and LTR both work. No
-  `ml-*` / `pl-*` / `text-left`.
-- Light and dark mode; responsive from 360 px phones to desktop.
-- Before writing UI components, load the UI skills: `frontend-design`, `ui-skills`,
-  `improve-animations`, `improve-react`, `better-ui` and `vercel-react-best-practices`.
+- All styling is Tailwind 4 utility classes in `className`. No new CSS files, no new hand-written
+  rules in `src/styles.css`, no `style={{…}}` except for values computed at runtime. Colors and
+  sizes come from the `@theme` tokens in `src/styles.css`.
+- Logical utilities (`ms-*`, `ps-*`, `text-start`) so RTL and LTR both work. No `ml-*` / `pl-*` /
+  `text-left`.
+- Every container pads its content (`p-*` / `px-*` `py-*`): content never touches a container's
+  edge.
+- Every design plans two layouts, mobile (from 360 px) and desktop (`lg:` and up), and says how
+  each one looks — e.g. bottom sheet on mobile, side panel on desktop. Not one layout that only
+  stretches.
+- Light and dark mode.
+- Never define a component inside another component. A nested component is a new type on every
+  render, so React unmounts and remounts it (losing state and focus). Define it at module level
+  and pass props.
+- Before writing UI components, load the UI skills: `ui-ux-pro-max:ui-ux-pro-max` (modern
+  design), `vercel-react-best-practices` (React best practices), `frontend-design`, `ui-skills`,
+  `improve-animations`, `improve-react` and `better-ui`.
 - Offline: writes go to the outbox (`features/offline/`), parsed with Zod on read. Editing stays
   disabled while offline.
 
