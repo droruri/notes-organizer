@@ -17,8 +17,8 @@ in `docs/plan.md`; read the relevant section before starting a ticket.
 pnpm workspaces monorepo on [Vite+](https://viteplus.dev/) (`vp`); lint and format config live
 in the root `vite.config.ts`:
 
-- `apps/web` — Vite + React + TS PWA.
-- `apps/api` — the single Fastify + TS service.
+- `apps/web` — Vite + React + TS PWA. Frontend rules: `apps/web/CLAUDE.md`.
+- `apps/api` — the single Fastify + TS service. Backend rules: `apps/api/CLAUDE.md`.
 - `packages/shared` (`@notes/shared`) — Zod schemas and inferred types used by **both** web and
   api. Consumed as TS source (no build step).
 - `supabase/` — local stack config and `migrations/` (plain SQL, applied by the Supabase CLI).
@@ -56,18 +56,8 @@ Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralp
 
 ## File placement
 
-- **API:** `src/server.ts` is wiring only (build the Fastify app, register routes, read env).
-  `src/routes/*` are thin entry points: parse, authorize, delegate, respond — no domain logic.
-  Domain logic lives in `src/domain/<area>/`. `src/db.ts` owns the pool and nothing else.
-- **Web:** `src/lib/api.ts` is the **single** typed API client — every request to the API goes
-  through it, and every response is parsed against its `@notes/shared` schema there.
-  Features live in `src/features/<feature>/`.
-- **Web hooks:** every API call a component makes is a React Query hook in
-  `src/api/<subject>.queries.ts` (query or mutation, with the subject's key factory), re-exported
-  from `src/api/index.ts`. Components import hooks from `src/api`; they never call `api.*` or
-  `useQuery`/`useMutation` directly. New endpoint = fetcher in `lib/api.ts` + hook in its subject
-  file (new subject = new file + a line in `index.ts`). Mutations own their cache effects
-  (invalidate/`setQueryData`). Tests spy on `api`.
+- **API / Web:** layering, hooks, UI, logging and test patterns are in `apps/api/CLAUDE.md` and
+  `apps/web/CLAUDE.md`, loaded when you work in those folders.
 - **Shared:** a schema, type or constant needed by both web and api goes in `packages/shared`,
   defined once.
 - **Migrations:** one new file per change via `pnpm db:new`; never edit an applied migration.
@@ -83,15 +73,9 @@ Before finishing a change, run `pnpm lint && pnpm typecheck && pnpm test`. (Ralp
 - Every boundary is parsed, not trusted: request bodies/queries, env vars, API responses, LLM
   output, fetched pages — Zod `safeParse`, with the failure branch handled.
 - Server-derived fields (`created_by`, ids, …) are never accepted from the client.
-- Tests: Vitest everywhere, imported from `vite-plus/test` (lint-enforced); API routes through
-  `app.inject()` via `buildServer({ db })`; web components through React Testing Library. **No real LLM calls in any test or in CI.**
+- Tests: Vitest everywhere, imported from `vite-plus/test` (lint-enforced). **No real LLM calls in
+  any test or in CI.**
 - UI text is Hebrew, RTL.
-- `pg` return types: `timestamptz` → `Date`; `numeric`, `bigint` and `extract(epoch …)` →
-  **string**. Cast in SQL (`::float8`, `::int`) or parse explicitly — don't type them as numbers.
-- Logging follows `docs/logging.md`: every new domain entry function a route calls gets `timed()`,
-  one `info` outcome line, and a `warn` for every failure it catches. A swallowed error without a
-  log is a bug. Logs never contain note text, prompts, transcripts, tokens or emails. Use `log()`
-  from the logging module, never `console.*` or a logger parameter.
 
 ## Planning
 
@@ -190,4 +174,5 @@ picks it up.
 - Always quote pnpm filters (`pnpm --filter './apps/*'`) — unquoted, the shell expands the glob.
 - If `gh pr edit` fails on token scope, use `gh api` (REST) instead.
 - Don't run the formatter on `ralph/*.md` or other hand-written planning docs.
-- UI changes aren't done until checked in a browser by the `e2e` agent (`.claude/agents/e2e.md`; it runs `scripts/e2e-setup.sh` first). Hand it the criteria; it returns `pass|fail` lines, screenshot paths and `E2E_RESULT`.
+- UI changes aren't done until checked in a browser by the `e2e` agent (details in
+  `apps/web/CLAUDE.md`).
