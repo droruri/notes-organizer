@@ -38,7 +38,6 @@ import {
   useFilterFromText,
   useNotes,
   useRefreshNotes,
-  useRestoreNote,
   useSaveSettings,
   useSettings,
   useSnoozeNote,
@@ -49,7 +48,6 @@ import {
   useWorkspaces,
 } from '../../api';
 import { ApiNetworkError } from '../../lib/api';
-import type { ImportResult } from '../import/ImportDialog';
 import {
   addToOutbox,
   readOutbox,
@@ -63,7 +61,6 @@ import { ROUTES, editPath, notePath, useGoBack } from '../shell/routes';
 import { Loading } from '../../ui/Loading';
 import { Icon } from '../../ui/Icon';
 import { Panes } from '../../ui/Panes';
-import { Toast } from '../../ui/Toast';
 import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
 import { loadEditor } from './loadEditor';
@@ -75,7 +72,7 @@ import { TodayList } from './TodayList';
 import { todayCount, todayGroups } from './todayGroups';
 import { rankCategories } from './categoryRank';
 import { toggleItem } from './checklist';
-import { formatDate } from './formatDate';
+import { NotesToasts, type NotesToastsHandle } from './NotesToasts';
 import { NoteList } from './NoteList';
 import { recordOpen } from './recent';
 import { ComposeForm } from './ComposeForm';
@@ -94,7 +91,11 @@ const ImportDialog = lazy(() =>
   import('../import/ImportDialog').then((m) => ({ default: m.ImportDialog })),
 );
 
-const UNDO_MS = 5000;
+const QUICK_ICONS: Record<QuickAction, { icon: 'layers' | 'mic' | 'upload' }> = {
+  workspaces: { icon: 'layers' },
+  record: { icon: 'mic' },
+  import: { icon: 'upload' },
+};
 
 /** Compose, review and edit slide in as pushed screens. */
 const isPushed = (to: string) =>
@@ -168,15 +169,14 @@ export function NotesScreen({
     record: () => open(ROUTES.compose, false, { record: true }),
     import: () => open(ROUTES.import),
   };
-  const quickMeta: Record<QuickAction, { icon: 'layers' | 'mic' | 'upload'; label: string }> = {
-    workspaces: { icon: 'layers', label: t('workspaces.menu') },
-    record: { icon: 'mic', label: t('voice.record') },
-    import: { icon: 'upload', label: t('import.open') },
+  const quickLabels: Record<QuickAction, string> = {
+    workspaces: t('workspaces.menu'),
+    record: t('voice.record'),
+    import: t('import.open'),
   };
-  // Name of the workspace a note was just saved in, when it is not the current one.
-  const [savedIn, setSavedIn] = useState<string | null>(null);
-  const [imported, setImported] = useState<ImportResult | null>(null);
-  const [undoId, setUndoId] = useState<string | null>(null);
+  // Toasts and their undo state live in `NotesToasts`; the screen only tells it what to show.
+  const toasts = useRef<NotesToastsHandle>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [filter, setFilter] = useState<NoteFilter>(
     initialTagId === null
       ? { ...EMPTY_FILTER, ...workspace?.defaultFilter }
@@ -254,7 +254,6 @@ export function NotesScreen({
       </ul>
     </section>
   );
-  const [offlineNotice, setOfflineNotice] = useState<'saved' | 'failed' | null>(null);
 
   /** Queue a note on the device instead of sending it. */
   const saveOffline = async (
@@ -273,7 +272,7 @@ export function NotesScreen({
       audio,
     );
     setOutbox(readOutbox());
-    setOfflineNotice(ok ? 'saved' : 'failed');
+    toasts.current?.showOffline(ok ? 'saved' : 'failed');
     if (ok) {
       setText('');
       setTitle('');
@@ -351,7 +350,9 @@ export function NotesScreen({
       {
         onSuccess: (saved) => {
           if (workspace && saved.workspaceId !== workspace.id) {
-            setSavedIn(workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null);
+            toasts.current?.showSavedIn(
+              workspaces.data?.find((w) => w.id === saved.workspaceId)?.name ?? null,
+            );
           }
           setText('');
           setTitle('');
@@ -381,44 +382,19 @@ export function NotesScreen({
       onSuccess: () => {
         // Leave the editor before the refetch can drop the note and redirect over it.
         goBack();
-        setUndoId(id);
+        toasts.current?.showDeleted(id);
       },
     });
-  const [snoozeUndo, setSnoozeUndo] = useState<{ id: string; day: string } | null>(null);
   const snooze = useSnoozeNote();
   const snoozeNote = (id: string, day: string | null, fromUndo = false) =>
     snooze.mutate(
       { id, day },
-      { onSuccess: () => setSnoozeUndo(day !== null && !fromUndo ? { id, day } : null) },
-    );
-  useEffect(() => {
-    if (snoozeUndo === null) return;
-    const timer = setTimeout(() => setSnoozeUndo(null), UNDO_MS);
-    return () => clearTimeout(timer);
-  }, [snoozeUndo]);
-  const undo = useRestoreNote();
-  const restore = (id: string) =>
-    undo.mutate(id, { onSuccess: () => setUndoId(null), onError: () => setUndoId(null) });
-  useEffect(() => {
-    if (undoId === null) return;
-    const timer = setTimeout(() => setUndoId(null), UNDO_MS);
-    return () => clearTimeout(timer);
-  }, [undoId]);
-
-  // The "saved on this device" toast has done its job once the queue has been sent.
-  const offlineToast = offlineNotice !== null &&
-    !(offlineNotice === 'saved' && outbox.length === 0) && (
-      <Toast
-        // Only the "saved" notice closes by itself; a failure stays until the user dismisses it.
-        onClose={offlineNotice === 'saved' ? () => setOfflineNotice(null) : undefined}
-        actions={
-          <button type="button" onClick={() => setOfflineNotice(null)} className="btn btn-sm">
-            {t('offline.dismiss')}
-          </button>
-        }
-      >
-        {t(offlineNotice === 'saved' ? 'offline.saved' : 'offline.saveFailed')}
-      </Toast>
+      {
+        onSuccess: () =>
+          day !== null && !fromUndo
+            ? toasts.current?.showSnoozed(id, day)
+            : toasts.current?.hideSnoozed(),
+      },
     );
 
   // Saving a draft leads to the review editor, so fetch it while the user types.
@@ -436,7 +412,7 @@ export function NotesScreen({
       suggestFailed={create.isError}
       voicePending={createVoice.isPending}
       voiceFailed={createVoice.isError}
-      saveFailed={offlineNotice === 'failed'}
+      saveFailed={saveFailed}
       autoRecord={autoRecord}
       onSuggest={() => {
         if (online) sendNote(text, title, crypto.randomUUID());
@@ -530,6 +506,16 @@ export function NotesScreen({
     if (detailOpen && shouldCloseOnEscape(e)) goBack();
   });
 
+  const toastStack = (
+    <NotesToasts
+      ref={toasts}
+      outboxCount={outbox.length}
+      onShowUnread={() => setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true })}
+      onUndoSnooze={(id) => snoozeNote(id, null, true)}
+      onSaveFailedChange={setSaveFailed}
+    />
+  );
+
   if (!notes.data || !taxonomy.data) {
     if (notes.isError || taxonomy.isError || !online) {
       return (
@@ -555,7 +541,7 @@ export function NotesScreen({
                 {t('notes.add')}
               </button>
               {waiting}
-              <div className="toast-stack">{offlineToast}</div>
+              {toastStack}
             </section>
           }
         />
@@ -674,7 +660,7 @@ export function NotesScreen({
                 onClose={goBack}
                 onImported={(result) => {
                   goBack();
-                  setImported(result);
+                  toasts.current?.showImported(result);
                   void refreshNotes();
                 }}
               />
@@ -719,7 +705,8 @@ export function NotesScreen({
                   {t('notes.add')}
                 </button>
                 {quickActions.map((a) => {
-                  const { icon, label } = quickMeta[a];
+                  const { icon } = QUICK_ICONS[a];
+                  const label = quickLabels[a];
                   const iconOnly = quickActions.length > 1;
                   return (
                     <button
@@ -879,83 +866,7 @@ export function NotesScreen({
               {t('notes.error')}
             </p>
           )}
-          {undo.isError && (
-            <p role="alert" className="notice notice-danger">
-              {t('notes.error')}
-            </p>
-          )}
-          <div className="toast-stack">
-            {imported && (
-              <Toast
-                onClose={() => setImported(null)}
-                actions={
-                  <>
-                    {imported.unreadNotes > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true });
-                          setImported(null);
-                        }}
-                        className="btn btn-sm"
-                      >
-                        {t('import.show')}
-                      </button>
-                    )}
-                    <button type="button" onClick={() => setImported(null)} className="btn btn-sm">
-                      {t('import.dismiss')}
-                    </button>
-                  </>
-                }
-              >
-                {imported.unreadNotes > 0
-                  ? t('import.toastUnread', {
-                      notes: imported.created.notes,
-                      count: imported.unreadNotes,
-                    })
-                  : t('import.done', { count: imported.created.notes })}
-              </Toast>
-            )}
-            {offlineToast}
-            {savedIn !== null && (
-              <Toast
-                onClose={() => setSavedIn(null)}
-                actions={
-                  <button type="button" onClick={() => setSavedIn(null)} className="btn btn-sm">
-                    {t('import.dismiss')}
-                  </button>
-                }
-              >
-                {t('notes.savedIn', { name: savedIn })}
-              </Toast>
-            )}
-            {snoozeUndo !== null && (
-              <Toast
-                actions={
-                  <button
-                    type="button"
-                    onClick={() => snoozeNote(snoozeUndo.id, null, true)}
-                    className="btn btn-sm"
-                  >
-                    {t('notes.undo')}
-                  </button>
-                }
-              >
-                {t('snooze.toast', { date: formatDate(snoozeUndo.day, i18n.language) })}
-              </Toast>
-            )}
-            {undoId !== null && (
-              <Toast
-                actions={
-                  <button type="button" onClick={() => restore(undoId)} className="btn btn-sm">
-                    {t('notes.undo')}
-                  </button>
-                }
-              >
-                {t('notes.deleted')}
-              </Toast>
-            )}
-          </div>
+          {toastStack}
         </section>
       }
     />

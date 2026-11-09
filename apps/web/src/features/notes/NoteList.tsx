@@ -1,5 +1,5 @@
 import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCard } from './NoteCard';
@@ -48,6 +48,19 @@ export const NoteList = memo(function NoteList({
     setPagedFor(notes);
     setShown(PAGE);
   }
+  // Each note's categories, built from one id → category map instead of a filter per card.
+  const categoriesByNote = useMemo(() => {
+    const order = new Map(taxonomy.categories.map((c, i) => [c.id, { c, i }]));
+    return new Map(
+      notes.map((n) => [
+        n.id,
+        n.categoryIds
+          .flatMap((id) => order.get(id) ?? [])
+          .sort((a, b) => a.i - b.i)
+          .map(({ c }) => c),
+      ]),
+    );
+  }, [notes, taxonomy.categories]);
   const sentinel = useRef<HTMLLIElement>(null);
   const more = shown < notes.length;
   useEffect(() => {
@@ -86,6 +99,7 @@ export const NoteList = memo(function NoteList({
           key={n.id}
           note={n}
           taxonomy={taxonomy}
+          categories={categoriesByNote.get(n.id) ?? []}
           today={today}
           onOpen={onOpen}
           onStatus={onStatus}

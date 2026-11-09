@@ -53,6 +53,7 @@ function renderCard(onOpen = vi.fn(), card: Note = note) {
       <ul>
         <NoteCard
           note={card}
+          categories={taxonomy.categories}
           taxonomy={taxonomy}
           today="2026-10-25"
           onOpen={onOpen}
@@ -104,6 +105,7 @@ describe('NoteCard collapse', () => {
         <ul>
           <NoteCard
             note={{ ...note, tagIds: [TAG] }}
+            categories={taxonomy.categories}
             taxonomy={{
               categories: [
                 {
@@ -145,6 +147,7 @@ describe('NoteCard collapse', () => {
         <ul>
           <NoteCard
             note={note}
+            categories={taxonomy.categories}
             taxonomy={taxonomy}
             today="2026-10-25"
             onOpen={vi.fn()}
@@ -169,6 +172,7 @@ describe('NoteCard collapse', () => {
         <ul>
           <NoteCard
             note={note}
+            categories={taxonomy.categories}
             taxonomy={taxonomy}
             today="2026-10-25"
             onOpen={vi.fn()}
@@ -191,6 +195,7 @@ describe('NoteCard collapse', () => {
         <ul>
           <NoteCard
             note={{ ...note, status: 'in_progress' }}
+            categories={taxonomy.categories}
             taxonomy={taxonomy}
             today="2026-10-25"
             onOpen={vi.fn()}
@@ -229,6 +234,7 @@ describe('NoteCard chips', () => {
         <ul>
           <NoteCard
             note={{ ...note, tagIds: [TAG] }}
+            categories={taxonomy.categories}
             taxonomy={{
               categories: [
                 {
@@ -298,6 +304,7 @@ describe('NoteCard checklist', () => {
         <ul>
           <NoteCard
             note={list}
+            categories={taxonomy.categories}
             taxonomy={taxonomy}
             today="2026-10-25"
             onOpen={vi.fn()}

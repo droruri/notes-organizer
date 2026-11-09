@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DEFAULT_NOTE_FORM, type Note } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -86,4 +86,25 @@ describe('NotesScreen list memoization', () => {
     expect(screen.getByText('first note')).toBeTruthy();
     expect(vi.mocked(checklistProgress).mock.calls.length).toBe(before);
   });
+
+  it('does not re-render NoteList when a toast opens or closes', async () => {
+    vi.spyOn(api, 'updateNote').mockResolvedValue({ ...note, snoozedUntil: '2026-12-01' });
+    setupMemo();
+    await screen.findByText('first note');
+    await act(async () => {});
+    // A card re-render calls checklistProgress, so its call count proves the list stayed put.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Snooze' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Tomorrow/ }));
+    });
+    // Opening the toast: let the snooze mutation settle, then count card renders from here.
+    await screen.findByText(/^Snoozed until/);
+    await act(async () => {});
+    const before = vi.mocked(checklistProgress).mock.calls.length;
+    // Closing it (the undo toast times out by itself) must not redraw the list either.
+    await waitFor(() => expect(screen.queryByText(/^Snoozed until/)).toBeNull(), { timeout: 7000 });
+    expect(vi.mocked(checklistProgress).mock.calls.length).toBe(before);
+  }, 10_000);
 });
