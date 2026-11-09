@@ -475,7 +475,17 @@ export function NotesScreen({
     () => (todayMode ? todayGroups(inWorkspace, today, sort) : null),
     [todayMode, inWorkspace, today, sort],
   );
-  const rankingNotes = inWorkspace;
+  const workspaceNames = useMemo(
+    () =>
+      acrossWorkspaces ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name])) : undefined,
+    [acrossWorkspaces, workspaces.data],
+  );
+  // Ranking and search only see notes once a workspace resolves (or across all workspaces),
+  // matching the pre-memo `rankingNotes` behaviour.
+  const rankingNotes = useMemo(
+    () => (workspaceId || acrossWorkspaces ? inWorkspace : []),
+    [workspaceId, acrossWorkspaces, inWorkspace],
+  );
   // Stable card callbacks: they read the latest handlers through a ref, so a toast or any
   // other screen state change doesn't redraw the memoized cards.
   const latest = useRef({ clearErrors, open, changeStatus, snoozeNote, toggle });
@@ -622,9 +632,6 @@ export function NotesScreen({
     </Suspense>
   );
   const showAllWorkspaces = (workspaces.data?.length ?? 0) > 1;
-  const workspaceNames = acrossWorkspaces
-    ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name]))
-    : undefined;
   const shownCount = groups ? todayCount(groups) : visible.length;
   const showContinue =
     !todayMode &&
@@ -739,7 +746,7 @@ export function NotesScreen({
                 allWorkspaces={acrossWorkspaces}
                 sheetOpen={filtersOpen}
                 onSheetOpenChange={setFiltersOpen}
-                notes={inWorkspace}
+                notes={rankingNotes}
                 ranked={ranked}
                 onOpenNote={(id) => open(notePath(id))}
                 onSmartSearch={smartSearch}
