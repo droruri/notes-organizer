@@ -42,6 +42,12 @@ export const NoteList = memo(function NoteList({
 }) {
   const { t } = useTranslation();
   const [shown, setShown] = useState(PAGE);
+  // Back to the first page when the list changes, without remounting the cards.
+  const [pagedFor, setPagedFor] = useState(notes);
+  if (notes !== pagedFor) {
+    setPagedFor(notes);
+    setShown(PAGE);
+  }
   const sentinel = useRef<HTMLLIElement>(null);
   const more = shown < notes.length;
   useEffect(() => {

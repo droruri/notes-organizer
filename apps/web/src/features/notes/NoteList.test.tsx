@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { Note } from '@notes/shared';
 import { i18n } from '../../lib/i18n';
@@ -79,6 +79,25 @@ describe('NoteList', () => {
       act(() => trigger());
       expect(cards(container)).toBe(200);
       expect(container.querySelector('li[aria-hidden]')).toBeNull();
+    });
+
+    it('goes back to the first 50 when the notes change', () => {
+      const { container, rerender } = render(
+        <NoteList {...props} notes={make(200)} filtered={false} />,
+      );
+      act(() => trigger());
+      expect(cards(container)).toBe(100);
+      rerender(<NoteList {...props} notes={make(120)} filtered={false} />);
+      expect(cards(container)).toBe(50);
+    });
+
+    it('keeps an expanded card expanded when the notes change but it still matches', () => {
+      const all = make(3);
+      const { rerender } = render(<NoteList {...props} notes={all} filtered={false} />);
+      fireEvent.click(screen.getAllByRole('button', { name: 'Expand' })[1] as HTMLElement);
+      expect(screen.getAllByRole('button', { name: 'Collapse' })).toHaveLength(1);
+      rerender(<NoteList {...props} notes={all.slice(1)} filtered={false} />);
+      expect(screen.getAllByRole('button', { name: 'Collapse' })).toHaveLength(1);
     });
   });
 });
