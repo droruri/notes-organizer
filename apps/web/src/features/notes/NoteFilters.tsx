@@ -10,6 +10,8 @@ import {
 } from '@notes/shared';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DateRangeField } from '../../ui/DateRangeField';
+import { FieldGroup } from '../../ui/FieldGroup';
 import { Icon } from '../../ui/Icon';
 import { Sheet } from '../../ui/Sheet';
 import { useOnline } from '../offline/useOnline';
@@ -20,8 +22,6 @@ import { SearchBox } from './SearchBox';
 
 const toggle = <T,>(list: T[], x: T): T[] =>
   list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
-
-const field = 'field pointer-fine:min-h-9 w-auto py-1 text-sm';
 
 /** How many filter fields (besides the search text) are set. */
 const activeCount = (filter: NoteFilter) =>
@@ -95,31 +95,6 @@ export function NoteFilters({
   const isDefault = savedDefault !== null && matchesDefault(filter, savedDefault);
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });
   const tags = taxonomy.categories.flatMap((c) => c.tags);
-  const date = (label: string, from: 'createdFrom' | 'dueFrom', to: 'createdTo' | 'dueTo') => (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-full text-sm font-medium text-muted sm:w-24">{label}</span>
-      <input
-        type="date"
-        aria-label={`${label} — ${t('filters.from')}`}
-        value={filter[from]}
-        onChange={(e) => set({ [from]: e.target.value })}
-        className={field}
-      />
-      <input
-        type="date"
-        aria-label={`${label} — ${t('filters.to')}`}
-        value={filter[to]}
-        onChange={(e) => set({ [to]: e.target.value })}
-        className={field}
-      />
-    </div>
-  );
-  const group = (label: string, chips: ReactNode) => (
-    <fieldset className="flex flex-wrap items-center gap-2">
-      <legend className="mb-2 text-sm font-medium text-muted">{label}</legend>
-      {chips}
-    </fieldset>
-  );
   const active = activeCount(filter);
 
   return (
@@ -172,9 +147,8 @@ export function NoteFilters({
         <Sheet title={t('filters.sheetTitle')} onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-4 p-4">
             {sort}
-            {group(
-              t('notes.picker.categories'),
-              taxonomy.categories.map((c) => (
+            <FieldGroup legend={t('notes.picker.categories')}>
+              {taxonomy.categories.map((c) => (
                 <Chip
                   key={c.id}
                   label={c.name}
@@ -183,11 +157,10 @@ export function NoteFilters({
                   selected={filter.categoryIds.includes(c.id)}
                   onClick={() => set({ categoryIds: toggle(filter.categoryIds, c.id) })}
                 />
-              )),
-            )}
-            {group(
-              t('filters.tags'),
-              tags.map((tag) => (
+              ))}
+            </FieldGroup>
+            <FieldGroup legend={t('filters.tags')}>
+              {tags.map((tag) => (
                 <Chip
                   key={tag.id}
                   label={tag.name}
@@ -196,59 +169,66 @@ export function NoteFilters({
                   selected={filter.tagIds.includes(tag.id)}
                   onClick={() => set({ tagIds: toggle(filter.tagIds, tag.id) })}
                 />
-              )),
-            )}
-            {group(
-              t('filters.status'),
-              NoteStatus.options.map((s) => (
+              ))}
+            </FieldGroup>
+            <FieldGroup legend={t('filters.status')}>
+              {NoteStatus.options.map((s) => (
                 <Chip
                   key={s}
                   label={t(`notes.status.${s}`)}
                   selected={filter.statuses.includes(s)}
                   onClick={() => set({ statuses: toggle(filter.statuses, s) })}
                 />
-              )),
-            )}
-            {group(
-              t('notes.importance'),
-              Importance.options.map((i) => (
+              ))}
+            </FieldGroup>
+            <FieldGroup legend={t('notes.importance')}>
+              {Importance.options.map((i) => (
                 <Chip
                   key={i}
                   label={t(`notes.importanceValues.${i}`)}
                   selected={filter.importances.includes(i)}
                   onClick={() => set({ importances: toggle(filter.importances, i) })}
                 />
-              )),
-            )}
-            {group(
-              t('notes.urgency'),
-              Urgency.options.map((u) => (
+              ))}
+            </FieldGroup>
+            <FieldGroup legend={t('notes.urgency')}>
+              {Urgency.options.map((u) => (
                 <Chip
                   key={u}
                   label={t(`notes.urgencyValues.${u}`)}
                   selected={filter.urgencies.includes(u)}
                   onClick={() => set({ urgencies: toggle(filter.urgencies, u) })}
                 />
-              )),
-            )}
-            {group(
-              t('links.filter'),
+              ))}
+            </FieldGroup>
+            <FieldGroup legend={t('links.filter')}>
               <Chip
                 label={t('links.filter')}
                 selected={filter.unreadLinksOnly}
                 onClick={() => set({ unreadLinksOnly: !filter.unreadLinksOnly })}
-              />,
-            )}
-            {group(
-              t('snooze.filter'),
+              />
+            </FieldGroup>
+            <FieldGroup legend={t('snooze.filter')}>
               <Chip
                 label={t('snooze.filter')}
                 selected={filter.snoozedOnly}
                 onClick={() => set({ snoozedOnly: !filter.snoozedOnly })}
-              />,
-            )}
-            {date(t('notes.created'), 'createdFrom', 'createdTo')}
-            {date(t('notes.dueDate'), 'dueFrom', 'dueTo')}
+              />
+            </FieldGroup>
+            <DateRangeField
+              label={t('notes.created')}
+              from={filter.createdFrom}
+              to={filter.createdTo}
+              onFromChange={(v) => set({ createdFrom: v })}
+              onToChange={(v) => set({ createdTo: v })}
+            />
+            <DateRangeField
+              label={t('notes.dueDate')}
+              from={filter.dueFrom}
+              to={filter.dueTo}
+              onFromChange={(v) => set({ dueFrom: v })}
+              onToChange={(v) => set({ dueTo: v })}
+            />
             <button
               type="button"
               onClick={() => onChange(EMPTY_FILTER)}

@@ -1,6 +1,7 @@
 import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { Section } from '../../ui/Section';
 import { formatDate } from './formatDate';
 import { NoteList } from './NoteList';
 import { todayCount, type TodayGroups } from './todayGroups';
@@ -40,28 +41,35 @@ export function TodayList({
       </div>
     );
   }
-  const section = (key: string, title: string, notes: Note[], sub = false) => {
-    if (notes.length === 0) return null;
-    const Heading = sub ? 'h4' : 'h3';
-    return (
-      <section key={key} aria-label={title} className="flex flex-col gap-3">
-        <Heading className={sub ? 'text-sm font-semibold text-muted' : 'text-lg font-bold'}>
-          {title} ({notes.length})
-        </Heading>
-        <NoteList notes={notes} filtered={false} {...list} />
-      </section>
-    );
-  };
   const upcomingCount = groups.upcoming.reduce((sum, u) => sum + u.notes.length, 0);
   return (
     <div className="flex flex-col gap-6">
-      {section('overdue', t('today.overdue'), groups.overdue)}
-      {section('dueToday', t('today.dueToday'), groups.dueToday)}
-      {section('inProgress', t('today.inProgress'), groups.inProgress)}
+      {groups.overdue.length > 0 && (
+        <Section title={t('today.overdue')} count={groups.overdue.length}>
+          <NoteList notes={groups.overdue} filtered={false} {...list} />
+        </Section>
+      )}
+      {groups.dueToday.length > 0 && (
+        <Section title={t('today.dueToday')} count={groups.dueToday.length}>
+          <NoteList notes={groups.dueToday} filtered={false} {...list} />
+        </Section>
+      )}
+      {groups.inProgress.length > 0 && (
+        <Section title={t('today.inProgress')} count={groups.inProgress.length}>
+          <NoteList notes={groups.inProgress} filtered={false} {...list} />
+        </Section>
+      )}
       {upcomingCount > 0 && (
         <section aria-label={t('today.upcoming')} className="flex flex-col gap-4">
           <h3 className="text-lg font-bold">{t('today.upcoming')}</h3>
-          {groups.upcoming.map((u) => section(u.date, formatDate(u.date, lang), u.notes, true))}
+          {groups.upcoming.map(
+            (u) =>
+              u.notes.length > 0 && (
+                <Section key={u.date} title={formatDate(u.date, lang)} count={u.notes.length} sub>
+                  <NoteList notes={u.notes} filtered={false} {...list} />
+                </Section>
+              ),
+          )}
         </section>
       )}
     </div>
