@@ -4,7 +4,10 @@ import type { Note } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../../lib/api';
 import { i18n } from '../../lib/i18n';
+import { loadEditor } from './loadEditor';
 import { NoteCard } from './NoteCard';
+
+vi.mock('./loadEditor', () => ({ loadEditor: vi.fn(() => Promise.resolve()) }));
 
 const CAT = '11111111-1111-4111-8111-111111111111';
 const note: Note = {
@@ -327,5 +330,14 @@ describe('NoteCard checklist', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
     const box = screen.getByRole('checkbox', { name: 'call Dan' });
     expect(box instanceof HTMLInputElement && box.disabled).toBe(true);
+  });
+
+  it('starts the editor download on hover and focus', () => {
+    vi.mocked(loadEditor).mockClear();
+    renderCard();
+    const open = screen.getByRole('button', { name: /Groceries/ });
+    fireEvent.pointerEnter(open);
+    fireEvent.focus(open);
+    expect(loadEditor).toHaveBeenCalledTimes(2);
   });
 });

@@ -33,6 +33,7 @@
     }
   },
   "notes": {
+    "loading": "Loading…",
     "title": "Notes",
     "add": "New note",
     "placeholder": "What do you want to write down?",

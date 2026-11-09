@@ -47,7 +47,7 @@ const proposal: ImportProposal = {
 
 describe('ImportDialog workspace picker', () => {
   it('starts on the current workspace and sends the picked one', async () => {
-    void i18n.changeLanguage('en');
+    await i18n.changeLanguage('en');
     vi.spyOn(api, 'analyzeImport').mockResolvedValue(proposal);
     const confirm = vi
       .spyOn(api, 'confirmImport')

@@ -5,8 +5,6 @@ import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-rou
 import { useWorkspaces } from '../../api';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
-import { NoteFormSettings } from '../notes/NoteFormSettings';
-import { WorkspacesDialog } from '../workspaces/WorkspacesDialog';
 import { Loading } from '../../ui/Loading';
 import { Sheet } from '../../ui/Sheet';
 import { AppMenu } from './AppMenu';
@@ -15,6 +13,12 @@ import { TabBar } from './TabBar';
 import { ROUTES, type NavId, tagPath, todayPath, useGoBack } from './routes';
 
 // Taxonomy and the admin-only Users screen are rarely opened, so they load in their own chunks.
+const NoteFormSettings = lazy(() =>
+  import('../notes/NoteFormSettings').then((m) => ({ default: m.NoteFormSettings })),
+);
+const WorkspacesDialog = lazy(() =>
+  import('../workspaces/WorkspacesDialog').then((m) => ({ default: m.WorkspacesDialog })),
+);
 const TaxonomyScreen = lazy(() =>
   import('../taxonomy/TaxonomyScreen').then((m) => ({ default: m.TaxonomyScreen })),
 );
@@ -79,15 +83,21 @@ export function Screens() {
           )}
         </Sheet>
       )}
-      {settingsOpen && <NoteFormSettings onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <NoteFormSettings onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
       {picking && (workspaces.data || workspaces.isError) && (
-        <WorkspacesDialog
-          workspaces={workspaces.data ?? []}
-          loadFailed={workspaces.isError}
-          currentId={workspace?.id}
-          onPick={switchTo}
-          onClose={() => setPicking(false)}
-        />
+        <Suspense fallback={null}>
+          <WorkspacesDialog
+            workspaces={workspaces.data ?? []}
+            loadFailed={workspaces.isError}
+            currentId={workspace?.id}
+            onPick={switchTo}
+            onClose={() => setPicking(false)}
+          />
+        </Suspense>
       )}
       <Routes>
         {/* NotesScreen stays mounted across its child routes and reads its mode from the URL. */}
