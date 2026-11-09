@@ -217,9 +217,9 @@ export function TaxonomyPicker({
                     onClick={() => toggleTag(row.key, tag.id)}
                   />
                 ))}
-                {row.newTags.map((tag, i) => (
+                {row.newTags.map((tag) => (
                   <Chip
-                    key={`new-${tag.name}-${i}`}
+                    key={`new-${tag.name}-${value.newTags.indexOf(tag)}`}
                     tag
                     label={tag.name}
                     isNew

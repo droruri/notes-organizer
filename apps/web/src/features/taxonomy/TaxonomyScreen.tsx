@@ -101,19 +101,6 @@ export function TaxonomyScreen({
     setDraft(value);
   };
 
-  const inlineForm = (label: string, submit: () => void) => (
-    <InlineEditForm
-      label={label}
-      value={draft}
-      onChange={setDraft}
-      onSubmit={submit}
-      onCancel={() => setEditing(null)}
-      disabled={busy}
-      saveLabel={t('taxonomy.save')}
-      cancelLabel={t('taxonomy.cancel')}
-    />
-  );
-
   const isRename = (kind: Kind, id: string) =>
     editing?.type === 'rename' && editing.kind === kind && editing.id === id;
 
@@ -163,9 +150,16 @@ export function TaxonomyScreen({
             >
               <div className="flex flex-wrap items-center gap-2">
                 {isRename('category', c.id) ? (
-                  inlineForm(t('taxonomy.renameLabel', { name: c.name }), () =>
-                    write(renameCategory, { id: c.id, name: draft }),
-                  )
+                  <InlineEditForm
+                    label={t('taxonomy.renameLabel', { name: c.name })}
+                    value={draft}
+                    onChange={setDraft}
+                    onSubmit={() => write(renameCategory, { id: c.id, name: draft })}
+                    onCancel={() => setEditing(null)}
+                    disabled={busy}
+                    saveLabel={t('taxonomy.save')}
+                    cancelLabel={t('taxonomy.cancel')}
+                  />
                 ) : (
                   <>
                     <h3 className="me-auto font-semibold">
@@ -256,9 +250,16 @@ export function TaxonomyScreen({
                     className={`flex flex-wrap items-center gap-2 ${tag.deleted ? 'text-muted opacity-70' : ''}`}
                   >
                     {isRename('tag', tag.id) ? (
-                      inlineForm(t('taxonomy.renameLabel', { name: tag.name }), () =>
-                        write(renameTag, { id: tag.id, name: draft }),
-                      )
+                      <InlineEditForm
+                        label={t('taxonomy.renameLabel', { name: tag.name })}
+                        value={draft}
+                        onChange={setDraft}
+                        onSubmit={() => write(renameTag, { id: tag.id, name: draft })}
+                        onCancel={() => setEditing(null)}
+                        disabled={busy}
+                        saveLabel={t('taxonomy.save')}
+                        cancelLabel={t('taxonomy.cancel')}
+                      />
                     ) : (
                       <>
                         {tag.deleted ? (
@@ -317,9 +318,16 @@ export function TaxonomyScreen({
 
               {!c.deleted &&
                 (editing?.type === 'addTag' && editing.categoryId === c.id ? (
-                  inlineForm(t('taxonomy.newTagIn', { name: c.name }), () =>
-                    write(createTag, { categoryId: c.id, name: draft }),
-                  )
+                  <InlineEditForm
+                    label={t('taxonomy.newTagIn', { name: c.name })}
+                    value={draft}
+                    onChange={setDraft}
+                    onSubmit={() => write(createTag, { categoryId: c.id, name: draft })}
+                    onCancel={() => setEditing(null)}
+                    disabled={busy}
+                    saveLabel={t('taxonomy.save')}
+                    cancelLabel={t('taxonomy.cancel')}
+                  />
                 ) : (
                   <button
                     type="button"
