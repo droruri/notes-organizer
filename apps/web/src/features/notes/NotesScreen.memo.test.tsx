@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DEFAULT_NOTE_FORM, type Note } from '@notes/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { MemoryRouter, Route, Routes } from 'react-router';
@@ -8,6 +8,19 @@ import { api } from '../../lib/api';
 vi.mock('./checklist', async (orig) => {
   const actual = await orig<typeof import('./checklist')>();
   return { ...actual, checklistProgress: vi.fn(actual.checklistProgress) };
+});
+// Counts the renders NotesScreen asks NoteList for: the wrapper is memoised like NoteList, so
+// it only counts when the list's props change (a toast must not change them).
+const listRenders = vi.hoisted(() => ({ count: 0 }));
+vi.mock('./NoteList', async (orig) => {
+  const { createElement, memo } = await import('react');
+  const actual = await orig<typeof import('./NoteList')>();
+  const Inner = actual.NoteList;
+  const NoteList = memo(function CountedNoteList(props: Parameters<typeof Inner>[0]) {
+    listRenders.count++;
+    return createElement(Inner, props);
+  });
+  return { ...actual, NoteList };
 });
 vi.mock('../../lib/noteStore', async () => {
   const { api } = await import('../../lib/api');
@@ -86,4 +99,25 @@ describe('NotesScreen list memoization', () => {
     expect(screen.getByText('first note')).toBeTruthy();
     expect(vi.mocked(checklistProgress).mock.calls.length).toBe(before);
   });
+
+  it('does not re-render NoteList when a toast opens or closes', async () => {
+    vi.spyOn(api, 'updateNote').mockResolvedValue({ ...note, snoozedUntil: '2026-12-01' });
+    setupMemo();
+    await screen.findByText('first note');
+    await act(async () => {});
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Snooze' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Tomorrow/ }));
+    });
+    // Opening the toast is coupled to the snooze mutation, which changes the list data, so the
+    // count starts once it settles. Closing it (the undo toast times out by itself) must not
+    // re-render the list.
+    await screen.findByText(/^Snoozed until/);
+    await act(async () => {});
+    const before = listRenders.count;
+    await waitFor(() => expect(screen.queryByText(/^Snoozed until/)).toBeNull(), { timeout: 7000 });
+    expect(listRenders.count).toBe(before);
+  }, 10_000);
 });

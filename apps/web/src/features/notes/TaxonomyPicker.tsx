@@ -125,6 +125,8 @@ export function TaxonomyPicker({
       : offered.includes(tag.categoryName);
   const tagRows: {
     key: string;
+    /** Set on category rows; the offered and unplaced rows hold no selectable tags. */
+    categoryId?: string;
     label: string;
     tags: Tag[];
     newTags: NewTag[];
@@ -132,6 +134,7 @@ export function TaxonomyPicker({
   }[] = [
     ...usable.map((c) => ({
       key: c.id,
+      categoryId: c.id,
       label: c.name,
       hidden: isInline(c.id) || holdsSelection(c) ? '' : 'max-sm:hidden',
       tags: c.tags.filter((tag) => !tag.deleted),
@@ -214,7 +217,9 @@ export function TaxonomyPicker({
                     tag
                     label={tag.name}
                     selected={value.tagIds.includes(tag.id)}
-                    onClick={() => toggleTag(row.key, tag.id)}
+                    onClick={() =>
+                      row.categoryId !== undefined && toggleTag(row.categoryId, tag.id)
+                    }
                   />
                 ))}
                 {row.newTags.map((tag) => (

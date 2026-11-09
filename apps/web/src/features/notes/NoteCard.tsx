@@ -4,6 +4,7 @@ import {
   nextStatus,
   noteHeading,
   statusClass,
+  type Category,
   type Note,
   type NoteStatus,
   type Taxonomy,
@@ -20,6 +21,7 @@ import { loadEditor } from './loadEditor';
 export const NoteCard = memo(function NoteCard({
   note,
   taxonomy,
+  categories,
   today,
   onOpen,
   onStatus,
@@ -32,6 +34,8 @@ export const NoteCard = memo(function NoteCard({
 }: {
   note: Note;
   taxonomy: Taxonomy;
+  /** This note's categories, in taxonomy order (built once per list by `NoteList`). */
+  categories: Category[];
   today: string;
   onOpen: (note: Note) => void;
   onStatus: (note: Note, status: NoteStatus | null) => void;
@@ -60,7 +64,7 @@ export const NoteCard = memo(function NoteCard({
   return (
     <li
       aria-current={selected ? 'true' : undefined}
-      className={`card slip ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5 ${selected ? 'ring-2 ring-accent' : ''}`}
+      className={`card slip [contain-intrinsic-size:auto_9rem] [content-visibility:auto] ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5 ${selected ? 'ring-2 ring-accent' : ''}`}
     >
       <div className="flex items-start gap-1">
         <button
@@ -179,17 +183,15 @@ export const NoteCard = memo(function NoteCard({
             {overdue && ` · ${t('notes.overdue')}`}
           </span>
         )}
-        {taxonomy.categories
-          .filter((c) => note.categoryIds.includes(c.id))
-          .map((c) => (
-            <span
-              key={c.id}
-              data-color={c.color}
-              className={`cat-pill ${c.deleted ? 'line-through opacity-60' : ''}`}
-            >
-              {c.name}
-            </span>
-          ))}
+        {categories.map((c) => (
+          <span
+            key={c.id}
+            data-color={c.color}
+            className={`cat-pill ${c.deleted ? 'line-through opacity-60' : ''}`}
+          >
+            {c.name}
+          </span>
+        ))}
       </div>
       {snoozing && onSnooze && (
         <SnoozeSheet

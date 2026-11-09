@@ -1,10 +1,26 @@
-import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
-import { memo, useEffect, useRef, useState } from 'react';
+import type { Category, Note, NoteStatus, Taxonomy } from '@notes/shared';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCard } from './NoteCard';
 
 const PAGE = 50;
+
+type CategoryOrder = Map<string, { c: Category; i: number }>;
+
+// Per note, the categories in taxonomy order. Cached per note object and per category map, so a
+// card keeps the same `categories` array while its note and the taxonomy are unchanged.
+const categoriesCache = new WeakMap<Note, { order: CategoryOrder; cats: Category[] }>();
+function noteCategories(note: Note, order: CategoryOrder): Category[] {
+  const hit = categoriesCache.get(note);
+  if (hit && hit.order === order) return hit.cats;
+  const cats = [...new Set(note.categoryIds)]
+    .flatMap((id) => order.get(id) ?? [])
+    .sort((a, b) => a.i - b.i)
+    .map(({ c }) => c);
+  categoriesCache.set(note, { order, cats });
+  return cats;
+}
 
 export const NoteList = memo(function NoteList({
   notes,
@@ -48,6 +64,11 @@ export const NoteList = memo(function NoteList({
     setPagedFor(notes);
     setShown(PAGE);
   }
+  // One id → category map per taxonomy, so each card looks its categories up instead of filtering.
+  const categoryOrder = useMemo<CategoryOrder>(
+    () => new Map(taxonomy.categories.map((c, i) => [c.id, { c, i }])),
+    [taxonomy.categories],
+  );
   const sentinel = useRef<HTMLLIElement>(null);
   const more = shown < notes.length;
   useEffect(() => {
@@ -86,6 +107,7 @@ export const NoteList = memo(function NoteList({
           key={n.id}
           note={n}
           taxonomy={taxonomy}
+          categories={noteCategories(n, categoryOrder)}
           today={today}
           onOpen={onOpen}
           onStatus={onStatus}
