@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../../lib/supabase';
+import { auth } from '../../lib/supabase';
 
 // The seeded local user from supabase/seed.sql; rendered only when import.meta.env.DEV.
 const DEV_EMAIL = 'dev@notes.local';
@@ -10,9 +10,7 @@ export function DevSignIn() {
   return (
     <button
       type="button"
-      onClick={() =>
-        void supabase().auth.signInWithPassword({ email: DEV_EMAIL, password: DEV_PASSWORD })
-      }
+      onClick={() => void auth().signInWithPassword({ email: DEV_EMAIL, password: DEV_PASSWORD })}
       className="btn btn-ghost btn-sm w-full text-muted"
     >
       {t('auth.devSignIn')}

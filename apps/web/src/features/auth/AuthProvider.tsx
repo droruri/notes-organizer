@@ -1,10 +1,10 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/auth-js';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { meKeys, meQueryOptions } from '../../api';
 import { ApiNetworkError, ApiRequestError } from '../../lib/api';
 import { clearCache } from '../../lib/queryPersist';
-import { supabase } from '../../lib/supabase';
+import { auth } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
 
 /** Why a session was refused (or not): the API decides, via 403 not_allowed on /me. */
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       userId.current = session.user.id;
       // Loading shows only while access for this user is unknown (first load, sign-in after
-      // sign-out, a different user). Otherwise (token refresh, or supabase-js re-emitting
+      // sign-out, a different user). Otherwise (token refresh, or auth-js re-emitting
       // SIGNED_IN on tab refocus) re-check quietly so the screens and typed text stay mounted.
       const quiet = access.current !== null;
       if (!quiet) setState('loading');
@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .catch(() => !cancelled && signedOut());
     };
-    const { data } = supabase().auth.onAuthStateChange((event, session) => {
-      // Defer: supabase-js forbids calling its own methods inside this callback.
+    const { data } = auth().onAuthStateChange((event, session) => {
+      // Defer: auth-js forbids calling its own methods inside this callback.
       setTimeout(() => apply(event, session), 0);
     });
     return () => {
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const signOut = async () => {
-    await supabase().auth.signOut();
+    await auth().signOut();
     await clearCache(queryClient);
   };
 

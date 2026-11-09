@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../../lib/supabase';
+import { auth } from '../../lib/supabase';
 import { DevSignIn } from './DevSignIn';
 
 export function SignIn() {
@@ -10,7 +10,7 @@ export function SignIn() {
   async function signIn() {
     setFailed(false);
     try {
-      const { data, error } = await supabase().auth.signInWithOAuth({
+      const { data, error } = await auth().signInWithOAuth({
         provider: 'google',
         options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
       });

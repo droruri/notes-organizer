@@ -3,7 +3,7 @@ import '../../lib/i18n';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const signInWithOAuth = vi.fn();
-vi.mock('../../lib/supabase', () => ({ supabase: () => ({ auth: { signInWithOAuth } }) }));
+vi.mock('../../lib/supabase', () => ({ auth: () => ({ signInWithOAuth }) }));
 
 import { SignIn } from './SignIn';
 

@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen } from '@testing-library/react';
-import type { Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/auth-js';
 import { useEffect } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { ApiNetworkError, ApiRequestError } from '../../lib/api';
@@ -25,14 +25,12 @@ vi.mock('@tanstack/react-query', async (orig) => {
 vi.mock('idb-keyval', () => ({ del: h.del, get: vi.fn(), set: vi.fn() }));
 
 vi.mock('../../lib/supabase', () => ({
-  supabase: () => ({
-    auth: {
-      onAuthStateChange: (cb: Listener) => {
-        h.listener = cb;
-        return { data: { subscription: { unsubscribe: () => {} } } };
-      },
-      signOut: async () => {},
+  auth: () => ({
+    onAuthStateChange: (cb: Listener) => {
+      h.listener = cb;
+      return { data: { subscription: { unsubscribe: () => {} } } };
     },
+    signOut: async () => {},
   }),
 }));
 vi.mock('../../lib/api', async (orig) => ({
