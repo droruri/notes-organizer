@@ -97,7 +97,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@supabase/auth-js':
-        specifier: 2.118.0
+        specifier: ^2.118.0
         version: 2.118.0
       '@tailwindcss/vite':
         specifier: ^4.3.3
