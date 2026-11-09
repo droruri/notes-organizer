@@ -50,7 +50,6 @@ import {
 } from '../../api';
 import { ApiNetworkError } from '../../lib/api';
 import type { ImportResult } from '../import/ImportDialog';
-import { OutboxDialog } from '../offline/OutboxDialog';
 import {
   addToOutbox,
   readOutbox,
@@ -67,7 +66,7 @@ import { Panes } from '../../ui/Panes';
 import { Toast } from '../../ui/Toast';
 import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
-import { NoteEditor } from './NoteEditor';
+import { loadEditor } from './loadEditor';
 import { NoteView } from './NoteView';
 import { NoteFilters } from './NoteFilters';
 import { ContinueRow } from './ContinueRow';
@@ -83,8 +82,12 @@ import { ComposeForm } from './ComposeForm';
 import { useEscape } from '../../ui/useEscape';
 import { shouldCloseOnEscape, useNoteShortcuts } from './useNoteShortcuts';
 
-// Chat and import open only on request, so they load in their own chunks. Hovering or focusing
-// the chat button starts the chat download early.
+// The editor, outbox, chat and import open only on request, so they load in their own chunks.
+// Hovering or focusing a note (or the chat button) starts that download early.
+const NoteEditor = lazy(() => loadEditor().then((m) => ({ default: m.NoteEditor })));
+const OutboxDialog = lazy(() =>
+  import('../offline/OutboxDialog').then((m) => ({ default: m.OutboxDialog })),
+);
 const loadChat = () => import('../chat/ChatPanel');
 const ChatPanel = lazy(() => loadChat().then((m) => ({ default: m.ChatPanel })));
 const ImportDialog = lazy(() =>
@@ -418,6 +421,10 @@ export function NotesScreen({
       </Toast>
     );
 
+  // Saving a draft leads to the review editor, so fetch it while the user types.
+  useEffect(() => {
+    if (pathname === ROUTES.compose) void loadEditor();
+  }, [pathname]);
   const composeForm = pathname === ROUTES.compose && (
     <ComposeForm
       title={title}
@@ -598,21 +605,23 @@ export function NotesScreen({
       return <Navigate to={ROUTES.notes} replace />;
     } else {
       editor = (
-        <NoteEditor
-          key={note.id}
-          note={note}
-          suggestion={parsed?.success ? parsed.data.suggestion : suggestionOf(note)}
-          taxonomy={taxonomy.data}
-          busy={submit.isPending}
-          failed={submit.isError || remove.isError}
-          onSubmit={(edit) => saveEdit(note.id, edit)}
-          onCancel={goBack}
-          canReanalyze
-          onDelete={() => removeNote(note.id)}
-          today={localToday()}
-          attachable
-          workspaces={workspaces.data}
-        />
+        <Suspense fallback={<Loading label={t('notes.loading')} />}>
+          <NoteEditor
+            key={note.id}
+            note={note}
+            suggestion={parsed?.success ? parsed.data.suggestion : suggestionOf(note)}
+            taxonomy={taxonomy.data}
+            busy={submit.isPending}
+            failed={submit.isError || remove.isError}
+            onSubmit={(edit) => saveEdit(note.id, edit)}
+            onCancel={goBack}
+            canReanalyze
+            onDelete={() => removeNote(note.id)}
+            today={localToday()}
+            attachable
+            workspaces={workspaces.data}
+          />
+        </Suspense>
       );
     }
   }
@@ -645,12 +654,14 @@ export function NotesScreen({
       list={
         <section className="flex flex-col gap-5">
           {online && !outboxDismissed && outbox.length > 0 && (
-            <OutboxDialog
-              entries={outbox}
-              taxonomy={taxonomy.data}
-              onSend={sendQueued}
-              onClose={() => setOutboxDismissed(true)}
-            />
+            <Suspense fallback={null}>
+              <OutboxDialog
+                entries={outbox}
+                taxonomy={taxonomy.data}
+                onSend={sendQueued}
+                onClose={() => setOutboxDismissed(true)}
+              />
+            </Suspense>
           )}
           {importing && (
             <Suspense fallback={<Loading label={t('import.loading')} />}>

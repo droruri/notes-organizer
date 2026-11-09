@@ -1,4 +1,5 @@
 import { noteHeading, type Note, type Taxonomy } from '@notes/shared';
+import { loadEditor } from './loadEditor';
 import { useTranslation } from 'react-i18next';
 import { NavBar } from '../../ui/NavBar';
 import { ChecklistView } from './ChecklistView';
@@ -40,7 +41,13 @@ export function NoteView({
         title={t('notes.viewTitle')}
         onBack={onBack}
         action={
-          <button type="button" onClick={onEdit} className="btn btn-primary min-h-11 lg:min-h-0">
+          <button
+            type="button"
+            onClick={onEdit}
+            onPointerEnter={() => void loadEditor()}
+            onFocus={() => void loadEditor()}
+            className="btn btn-primary min-h-11 lg:min-h-0"
+          >
             {t('notes.edit')}
           </button>
         }

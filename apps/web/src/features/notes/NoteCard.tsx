@@ -15,6 +15,7 @@ import { checklistProgress } from './checklist';
 import { SnoozeSheet } from './SnoozeSheet';
 import { NoteCardDetails } from './NoteCardDetails';
 import { formatDate, formatDateTime } from './formatDate';
+import { loadEditor } from './loadEditor';
 
 export const NoteCard = memo(function NoteCard({
   note,
@@ -65,6 +66,8 @@ export const NoteCard = memo(function NoteCard({
         <button
           type="button"
           onClick={() => onOpen(note)}
+          onPointerEnter={() => void loadEditor()}
+          onFocus={() => void loadEditor()}
           className="block min-w-0 flex-1 rounded-md text-start pointer-coarse:-my-2 pointer-coarse:py-2"
         >
           <span

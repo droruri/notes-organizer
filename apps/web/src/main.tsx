@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
-import './lib/i18n';
+import { i18nReady } from './lib/i18n';
 import './styles.css';
 
 // On a touch screen the keyboard checks spelling itself. The browser's own check makes Chrome on
@@ -17,8 +17,13 @@ if (!root) throw new Error('index.html is missing #root');
 // previous build from the service-worker cache.
 registerSW({ immediate: true });
 
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+// If the starting language fails to load, render anyway: Hebrew is bundled and is the fallback.
+void i18nReady
+  .catch(() => undefined)
+  .then(() => {
+    createRoot(root).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+  });

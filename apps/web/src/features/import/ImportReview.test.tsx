@@ -1,7 +1,7 @@
 import type { ImportProposal } from '@notes/shared';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '../../lib/i18n';
-import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
 import { i18n } from '../../lib/i18n';
 import { ImportReview } from './ImportReview';
 
@@ -43,8 +43,11 @@ const proposal: ImportProposal = {
   links: { total: 47, read: 30 },
 };
 
+beforeAll(async () => {
+  await i18n.changeLanguage('en');
+});
+
 function show(onConfirm = vi.fn()) {
-  void i18n.changeLanguage('en');
   render(
     <ImportReview
       proposal={proposal}

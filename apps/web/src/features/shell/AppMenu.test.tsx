@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import { i18n } from '../../lib/i18n';
 import { AppMenu } from './AppMenu';
@@ -55,7 +55,7 @@ describe('AppMenu', () => {
     const english = screen.getByRole('menuitemradio', { name: 'English' });
     expect(english.getAttribute('aria-checked')).toBe('false');
     fireEvent.click(english);
-    expect(document.documentElement.lang).toBe('en');
+    await waitFor(() => expect(document.documentElement.lang).toBe('en'));
     expect(
       screen.getByRole('menuitemradio', { name: 'English' }).getAttribute('aria-checked'),
     ).toBe('true');
