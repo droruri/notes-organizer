@@ -6,6 +6,7 @@ import { useWorkspaces } from '../../api';
 import { useAuth } from '../auth/authContext';
 import { NotesScreen } from '../notes/NotesScreen';
 import { Loading } from '../../ui/Loading';
+import { OverlayFallback } from '../../ui/OverlayFallback';
 import { Sheet } from '../../ui/Sheet';
 import { AppMenu } from './AppMenu';
 import { Sidebar } from './Sidebar';
@@ -84,12 +85,12 @@ export function Screens() {
         </Sheet>
       )}
       {settingsOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback onBack={() => setSettingsOpen(false)} />}>
           <NoteFormSettings onClose={() => setSettingsOpen(false)} />
         </Suspense>
       )}
       {picking && (workspaces.data || workspaces.isError) && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback onBack={() => setPicking(false)} />}>
           <WorkspacesDialog
             workspaces={workspaces.data ?? []}
             loadFailed={workspaces.isError}
