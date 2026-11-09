@@ -1,4 +1,4 @@
-import { useImperativeHandle, useState, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRestoreNote } from '../../api';
 import { Toast } from '../../ui/Toast';
@@ -43,13 +43,14 @@ export function NotesToasts({
   const [undoId, setUndoId] = useState<string | null>(null);
   const undo = useRestoreNote();
 
+  // The flag follows the toast's own state, so a remount (which resets it) also clears it.
+  const saveFailed = offlineNotice === 'failed';
+  useEffect(() => onSaveFailedChange(saveFailed), [saveFailed, onSaveFailedChange]);
+
   useImperativeHandle(ref, () => ({
     showImported: setImported,
     showSavedIn: setSavedIn,
-    showOffline: (notice) => {
-      setOfflineNotice(notice);
-      onSaveFailedChange(notice === 'failed');
-    },
+    showOffline: setOfflineNotice,
     showDeleted: setUndoId,
     showSnoozed: (id, day) => setSnoozeUndo({ id, day }),
     hideSnoozed: () => setSnoozeUndo(null),
@@ -57,10 +58,7 @@ export function NotesToasts({
   useTimeout(snoozeUndo, () => setSnoozeUndo(null), UNDO_MS);
   useTimeout(undoId, () => setUndoId(null), UNDO_MS);
 
-  const dismissOffline = () => {
-    setOfflineNotice(null);
-    onSaveFailedChange(false);
-  };
+  const dismissOffline = () => setOfflineNotice(null);
   const restore = (id: string) =>
     undo.mutate(id, { onSuccess: () => setUndoId(null), onError: () => setUndoId(null) });
 
