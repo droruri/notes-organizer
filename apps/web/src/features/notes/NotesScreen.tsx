@@ -8,7 +8,9 @@ import {
   sortNotes,
   NoteCreated,
   type NoteEdit,
+  type Note,
   type NoteFilter,
+  type NoteStatus,
   DEFAULT_NOTE_FORM,
   type Workspace,
   suggestionOf,
@@ -16,9 +18,11 @@ import {
 import {
   lazy,
   Suspense,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -450,16 +454,60 @@ export function NotesScreen({
   );
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const rankScope = notes.data;
-  const rankAll = allWorkspaces && (workspaces.data?.length ?? 0) > 1;
-  const rankingNotes = useMemo(() => {
-    const all = rankScope ?? [];
-    if (rankAll) return all;
-    if (!workspace) return [];
-    return all.filter((n) => n.workspaceId === workspace.id);
-  }, [rankScope, workspace, rankAll]);
+  const today = localToday();
+  const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
+  const acrossWorkspaces = allWorkspaces && (workspaces.data?.length ?? 0) > 1;
+  const workspaceId = workspace?.id;
+  const noteRows = notes.data;
+  const inWorkspace = useMemo(() => {
+    const all = noteRows ?? [];
+    return workspaceId && !acrossWorkspaces
+      ? all.filter((n) => n.workspaceId === workspaceId)
+      : all;
+  }, [noteRows, workspaceId, acrossWorkspaces]);
+  const deferredFilter = useMemo(() => ({ ...filter, text: deferredText }), [filter, deferredText]);
+  const visible = useMemo(
+    () =>
+      todayMode ? [] : sortNotes(filterNotes(inWorkspace, deferredFilter, today), sort, today),
+    [todayMode, inWorkspace, deferredFilter, sort, today],
+  );
+  const groups = useMemo(
+    () => (todayMode ? todayGroups(inWorkspace, today, sort) : null),
+    [todayMode, inWorkspace, today, sort],
+  );
+  const workspaceNames = useMemo(
+    () =>
+      acrossWorkspaces ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name])) : undefined,
+    [acrossWorkspaces, workspaces.data],
+  );
+  // Ranking and search only see notes once a workspace resolves (or across all workspaces),
+  // matching the pre-memo `rankingNotes` behaviour.
+  const rankingNotes = useMemo(
+    () => (workspaceId || acrossWorkspaces ? inWorkspace : []),
+    [workspaceId, acrossWorkspaces, inWorkspace],
+  );
+  // Stable card callbacks: they read the latest handlers through a ref, so a toast or any
+  // other screen state change doesn't redraw the memoized cards.
+  const latest = useRef({ clearErrors, open, changeStatus, snoozeNote, toggle });
+  useEffect(() => {
+    latest.current = { clearErrors, open, changeStatus, snoozeNote, toggle };
+  });
+  const onOpenNote = useCallback((note: Note) => {
+    latest.current.clearErrors();
+    latest.current.open(notePath(note.id));
+  }, []);
+  const onStatusNote = useCallback((note: Note, status: NoteStatus | null) => {
+    latest.current.changeStatus.mutate({ id: note.id, status });
+  }, []);
+  const onSnoozeNote = useCallback((note: Note, day: string | null) => {
+    latest.current.snoozeNote(note.id, day);
+  }, []);
+  const onToggleNoteItem = useCallback((note: Note, index: number) => {
+    latest.current.toggle.mutate({ id: note.id, body: toggleItem(note.body, index) });
+  }, []);
+  const hiddenStatuses =
+    settings.data?.noteForm.status.hiddenValues ?? DEFAULT_NOTE_FORM.status.hiddenValues;
   const rankCats = taxonomy.data?.categories;
-  const inWorkspaceForSearch = rankingNotes;
   const ranked = useMemo(
     () => rankCategories(rankingNotes, rankCats ?? []),
     [rankingNotes, rankCats],
@@ -583,20 +631,7 @@ export function NotesScreen({
       />
     </Suspense>
   );
-  const today = localToday();
-  const sort = settings.data?.noteSort ?? DEFAULT_NOTE_SORT;
   const showAllWorkspaces = (workspaces.data?.length ?? 0) > 1;
-  const acrossWorkspaces = allWorkspaces && showAllWorkspaces;
-  const inWorkspace =
-    workspace && !acrossWorkspaces
-      ? notes.data.filter((n) => n.workspaceId === workspace.id)
-      : notes.data;
-  const workspaceNames = acrossWorkspaces
-    ? new Map((workspaces.data ?? []).map((w) => [w.id, w.name]))
-    : undefined;
-  const deferredFilter = { ...filter, text: deferredText };
-  const visible = sortNotes(filterNotes(inWorkspace, deferredFilter, today), sort, today);
-  const groups = todayMode ? todayGroups(inWorkspace, today, sort) : null;
   const shownCount = groups ? todayCount(groups) : visible.length;
   const showContinue =
     !todayMode &&
@@ -711,7 +746,7 @@ export function NotesScreen({
                 allWorkspaces={acrossWorkspaces}
                 sheetOpen={filtersOpen}
                 onSheetOpenChange={setFiltersOpen}
-                notes={inWorkspaceForSearch}
+                notes={rankingNotes}
                 ranked={ranked}
                 onOpenNote={(id) => open(notePath(id))}
                 onSmartSearch={smartSearch}
@@ -804,19 +839,11 @@ export function NotesScreen({
                 taxonomy={taxonomy.data}
                 today={today}
                 selectedId={openId}
-                onOpen={(note) => {
-                  clearErrors();
-                  open(notePath(note.id));
-                }}
-                onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-                onSnooze={(note, day) => snoozeNote(note.id, day)}
-                onToggleItem={(note, index) =>
-                  toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
-                }
-                hiddenStatuses={
-                  settings.data?.noteForm.status.hiddenValues ??
-                  DEFAULT_NOTE_FORM.status.hiddenValues
-                }
+                onOpen={onOpenNote}
+                onStatus={onStatusNote}
+                onSnooze={onSnoozeNote}
+                onToggleItem={onToggleNoteItem}
+                hiddenStatuses={hiddenStatuses}
                 statusPendingId={pendingId}
               />
             ) : (
@@ -828,19 +855,11 @@ export function NotesScreen({
                 taxonomy={taxonomy.data}
                 today={today}
                 selectedId={openId}
-                onOpen={(note) => {
-                  clearErrors();
-                  open(notePath(note.id));
-                }}
-                onStatus={(note, status) => changeStatus.mutate({ id: note.id, status })}
-                onSnooze={(note, day) => snoozeNote(note.id, day)}
-                onToggleItem={(note, index) =>
-                  toggle.mutate({ id: note.id, body: toggleItem(note.body, index) })
-                }
-                hiddenStatuses={
-                  settings.data?.noteForm.status.hiddenValues ??
-                  DEFAULT_NOTE_FORM.status.hiddenValues
-                }
+                onOpen={onOpenNote}
+                onStatus={onStatusNote}
+                onSnooze={onSnoozeNote}
+                onToggleItem={onToggleNoteItem}
+                hiddenStatuses={hiddenStatuses}
                 statusPendingId={pendingId}
                 onAdd={() => open(ROUTES.compose)}
               />
