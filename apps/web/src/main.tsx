@@ -17,10 +17,13 @@ if (!root) throw new Error('index.html is missing #root');
 // previous build from the service-worker cache.
 registerSW({ immediate: true });
 
-void i18nReady.then(() => {
-  createRoot(root).render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
-  );
-});
+// If the starting language fails to load, render anyway: Hebrew is bundled and is the fallback.
+void i18nReady
+  .catch(() => undefined)
+  .then(() => {
+    createRoot(root).render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+  });

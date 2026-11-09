@@ -14,8 +14,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const depth = () =>
-  (window.history.state as { overlay?: { depth: number } } | null)?.overlay?.depth ?? 0;
+function depth(): number {
+  const state: unknown = window.history.state;
+  if (typeof state !== 'object' || state === null || !('overlay' in state)) return 0;
+  const overlay: unknown = state.overlay;
+  if (typeof overlay !== 'object' || overlay === null || !('depth' in overlay)) return 0;
+  return typeof overlay.depth === 'number' ? overlay.depth : 0;
+}
 
 describe('OverlayFallback', () => {
   it('keeps a closing menu’s history entry for the overlay that is still loading', async () => {
