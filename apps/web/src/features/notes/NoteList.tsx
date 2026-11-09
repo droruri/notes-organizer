@@ -1,12 +1,12 @@
 import type { Note, NoteStatus, Taxonomy } from '@notes/shared';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { NoteCard } from './NoteCard';
 
 const PAGE = 50;
 
-export function NoteList({
+export const NoteList = memo(function NoteList({
   notes,
   filtered,
   taxonomy,
@@ -94,4 +94,4 @@ export function NoteList({
       {more && <li ref={sentinel} aria-hidden className="h-px" />}
     </ul>
   );
-}
+});

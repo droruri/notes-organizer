@@ -8,7 +8,7 @@ import {
   type NoteStatus,
   type Taxonomy,
 } from '@notes/shared';
-import { useId, useState } from 'react';
+import { memo, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { checklistProgress } from './checklist';
@@ -16,7 +16,7 @@ import { SnoozeSheet } from './SnoozeSheet';
 import { NoteCardDetails } from './NoteCardDetails';
 import { formatDate } from './formatDate';
 
-export function NoteCard({
+export const NoteCard = memo(function NoteCard({
   note,
   taxonomy,
   today,
@@ -216,4 +216,4 @@ export function NoteCard({
       ) : null}
     </li>
   );
-}
+});
