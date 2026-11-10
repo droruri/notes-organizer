@@ -2,6 +2,7 @@ import type { Note, Taxonomy } from '@notes/shared';
 import { useTranslation } from 'react-i18next';
 import { Attachments } from '../attachments/Attachments';
 import { AudioPlayer } from './AudioPlayer';
+import { LinkedText } from './LinkedText';
 import { LinkPreviews } from './LinkPreview';
 import { UnreadLinkChips } from './UnreadLinkChips';
 import { parseBody } from './checklist';
@@ -46,7 +47,9 @@ export function NoteCardDetails({
                   onChange={() => onToggleItem?.(note, line.index)}
                   className="size-5 shrink-0"
                 />
-                <span className={line.checked ? 'text-muted line-through' : ''}>{line.text}</span>
+                <span className={line.checked ? 'text-muted line-through' : ''}>
+                  <LinkedText text={line.text} />
+                </span>
               </label>
             ) : (
               <span
@@ -54,7 +57,7 @@ export function NoteCardDetails({
                 dir="auto"
                 className="block min-h-[1lh] leading-relaxed break-words whitespace-pre-wrap text-muted"
               >
-                {line.text}
+                <LinkedText text={line.text} />
               </span>
             ),
           )}

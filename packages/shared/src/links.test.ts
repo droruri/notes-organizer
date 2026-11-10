@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { extractLinks, videoEmbed } from './links';
+import { extractLinks, splitLinks, videoEmbed } from './links';
 
 describe('videoEmbed', () => {
   const yt = 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ';
@@ -40,4 +40,34 @@ describe('extractLinks', () => {
   it('works across lines in Hebrew text', () => {
     expect(extractLinks('לקרוא\nhttps://a.com/p?q=1\nמחר')).toEqual(['https://a.com/p?q=1']);
   });
+});
+
+describe('splitLinks', () => {
+  const t = (text: string) => ({ kind: 'text', text });
+  const l = (url: string) => ({ kind: 'link', url });
+  it('plain text is one segment', () => expect(splitLinks('hello')).toEqual([t('hello')]));
+  it('URL mid-sentence', () =>
+    expect(splitLinks('see https://a.com/x now')).toEqual([
+      t('see '),
+      l('https://a.com/x'),
+      t(' now'),
+    ]));
+  it('trailing . and ) stay text', () => {
+    expect(splitLinks('go https://a.com.')).toEqual([t('go '), l('https://a.com'), t('.')]);
+    expect(splitLinks('(https://a.com/x)')).toEqual([t('('), l('https://a.com/x'), t(')')]);
+  });
+  it('two URLs in one line', () =>
+    expect(splitLinks('https://a.com https://b.com')).toEqual([
+      l('https://a.com'),
+      t(' '),
+      l('https://b.com'),
+    ]));
+  it('Hebrew around a URL', () =>
+    expect(splitLinks('ראה https://lnkd.in/p/dZ2Xfdma.')).toEqual([
+      t('ראה '),
+      l('https://lnkd.in/p/dZ2Xfdma'),
+      t('.'),
+    ]));
+  it('https:// alone stays text', () => expect(splitLinks('https://')).toEqual([t('https://')]));
+  it('empty string gives []', () => expect(splitLinks('')).toEqual([]));
 });

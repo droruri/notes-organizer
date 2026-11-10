@@ -65,6 +65,15 @@ describe('NoteView', () => {
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
 
+  it('renders body URLs as new-tab links with surrounding text', () => {
+    view(note({ body: 'ראה https://lnkd.in/p/dZ2Xfdma.' }));
+    const a = screen.getByRole('link', { name: 'https://lnkd.in/p/dZ2Xfdma' });
+    expect(a.getAttribute('href')).toBe('https://lnkd.in/p/dZ2Xfdma');
+    expect(a.getAttribute('target')).toBe('_blank');
+    expect(a.getAttribute('rel')).toContain('noopener');
+    expect(a.parentElement?.textContent).toBe('ראה https://lnkd.in/p/dZ2Xfdma.');
+  });
+
   it('shows tags and body, and hides unset fields', () => {
     view(note());
     expect(screen.getByText('garden')).toBeTruthy();
