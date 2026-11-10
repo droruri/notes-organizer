@@ -10,8 +10,8 @@ helpers in `apps/web/e2e/`). You report; you never label, comment on or push any
 ## Steps
 
 1. **Setup, always first** (from the worktree root):
-   `out=$(scripts/e2e-setup.sh) && eval "$out"` (plain `eval "$(…)"` hides a failure) — it reuses or starts the local Supabase stack (shifted ports
-   if another project holds 54322), installs the Playwright browser if missing, and exports the DB
+   `out=$(scripts/e2e-setup.sh) && eval "$out"` (plain `eval "$(…)"` hides a failure) — it starts this worktree's own fresh Supabase stack
+   (`test-env.sh up --fresh`: reset and seeded, no data from earlier runs), installs the Playwright browser if missing, and exports the DB
    and Supabase URLs plus free `E2E_API_PORT` / `E2E_WEB_PORT`. If it exits non-zero, reply with
    its one-line reason and `E2E_RESULT: setup-failed`. Never stop another project's stack, and
    never run `playwright install` yourself.
