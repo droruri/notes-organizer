@@ -5,7 +5,7 @@ import { MAX_AUDIO_BYTES } from '@notes/shared';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { AiEnv, createAi, withLogging, type Ai } from './ai/provider';
+import { AiEnv, createAi, isFakeEnabled, withLogging, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPush, PushEnv, withPushLogging, createFakePush, type Push } from './push/provider';
 import { createPool, type Db } from './db';
@@ -134,7 +134,11 @@ const Env = AiEnv.and(LinkEnv)
       // `off` only for the e2e run, where every spec shares one dev user.
       RATE_LIMIT: z.enum(['on', 'off']).default('on'),
     }),
-  );
+  )
+  .refine((env) => env.RATE_LIMIT === 'on' || isFakeEnabled(env.AI_FAKE), {
+    message: 'RATE_LIMIT=off is only allowed with AI_FAKE=1 (e2e)',
+    path: ['RATE_LIMIT'],
+  });
 
 async function main(): Promise<void> {
   const env = Env.safeParse(process.env);

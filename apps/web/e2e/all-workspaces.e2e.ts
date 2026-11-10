@@ -25,10 +25,12 @@ for (const width of widths) {
 
     if (initialChips === 0) await expect(chip).toHaveCount(0);
     const dialog = page.getByRole('dialog', { name: 'מרחבי עבודה' });
+    let created = false;
     try {
       await openDialog(page);
       await dialog.getByRole('textbox', { name: 'שם מרחב חדש' }).fill(ws);
       await dialog.getByRole('button', { name: 'הוספה' }).click();
+      created = true;
       await dialog.getByRole('radio', { name: ws }).click();
       await expect(page.getByRole('heading', { name: ws, exact: true })).toBeVisible();
       await composeNote(page, bodyB);
@@ -59,12 +61,14 @@ for (const width of widths) {
       await expect(page.locator('ul.gap-3 > li', { hasText: bodyA })).toHaveCount(0);
       await expect(page.locator('ul.gap-3 > li', { hasText: bodyB })).toBeVisible();
     } finally {
-      // cleanup: delete the extra workspace
-      await openDialog(page);
-      await dialog.getByRole('button', { name: `פעולות עבור ${ws}` }).click();
-      await dialog.getByRole('button', { name: 'מחיקה' }).click();
-      await dialog.getByRole('button', { name: 'מחיקה' }).click();
-      await expect(dialog.getByRole('radio', { name: ws })).toHaveCount(0);
+      // cleanup: delete the extra workspace, only if this test created it
+      if (created) {
+        await openDialog(page);
+        await dialog.getByRole('button', { name: `פעולות עבור ${ws}` }).click();
+        await dialog.getByRole('button', { name: 'מחיקה' }).click();
+        await dialog.getByRole('button', { name: 'מחיקה' }).click();
+        await expect(dialog.getByRole('radio', { name: ws })).toHaveCount(0);
+      }
     }
   });
 }

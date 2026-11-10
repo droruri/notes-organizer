@@ -111,7 +111,7 @@ export const AiEnv = z
   });
 export type AiEnv = z.infer<typeof AiEnv>;
 
-function isFakeEnabled(value: string | undefined): boolean {
+export function isFakeEnabled(value: string | undefined): boolean {
   return value === '1' || value === 'true';
 }
 
