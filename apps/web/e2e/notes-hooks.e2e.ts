@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { composeNote, signIn, unique } from './helpers';
+import { composeNote, loadOfflineChunks, signIn, unique } from './helpers';
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -10,6 +10,9 @@ const find = (page: import('@playwright/test').Page, text: string) =>
   page.getByRole('combobox', { name: 'חיפוש בפתקים' }).fill(text);
 const save = (page: import('@playwright/test').Page) =>
   page.getByRole('button', { name: 'שמירה', exact: true }).click();
+
+const edit = (page: import('@playwright/test').Page) =>
+  page.getByRole('button', { name: 'עריכה', exact: true }).click();
 
 test('notes hooks: list, create, edit, status, delete+undo, re-analyze', async ({ page }) => {
   await signIn(page);
@@ -22,9 +25,11 @@ test('notes hooks: list, create, edit, status, delete+undo, re-analyze', async (
 
   // edit
   await card(page, body).getByText(body).click();
+  await edit(page);
   const edited = `${body} edited`;
   await page.getByRole('textbox', { name: 'טקסט' }).fill(edited);
   await save(page);
+  await page.getByRole('button', { name: 'חזרה' }).click();
   await find(page, body);
   await expect(card(page, edited)).toBeVisible();
 
@@ -37,6 +42,7 @@ test('notes hooks: list, create, edit, status, delete+undo, re-analyze', async (
 
   // re-analyze in editor
   await card(page, edited).getByText(edited).click();
+  await edit(page);
   await page.getByRole('button', { name: 'ניתוח מחדש' }).click();
   await expect(page.getByRole('button', { name: 'ניתוח מחדש' })).toBeEnabled();
   await expect(page.getByRole('textbox', { name: 'טקסט' })).toBeVisible();
@@ -54,6 +60,7 @@ test('notes hooks: list, create, edit, status, delete+undo, re-analyze', async (
 
   // cleanup
   await card(page, edited).getByText(edited).click();
+  await edit(page);
   await page.getByRole('button', { name: 'מחיקה', exact: true }).click();
   if (await confirm.isVisible()) await confirm.click();
   await expect(card(page, edited)).toHaveCount(0);
@@ -66,6 +73,7 @@ test('notes hooks: offline create is queued and resent exactly once', async ({ p
   page.on('request', (r) => {
     if (r.method() === 'POST' && /\/notes(\?|$)/.test(r.url())) posts++;
   });
+  await loadOfflineChunks(page);
   await context.setOffline(true);
   await page.getByRole('button', { name: 'פתק חדש' }).first().click();
   await page.getByRole('textbox', { name: 'טקסט' }).fill(body);
@@ -89,6 +97,7 @@ test('notes hooks: offline create is queued and resent exactly once', async ({ p
   await expect(card(page, body)).toHaveCount(1);
   console.log('POST /notes count', posts);
   await card(page, body).getByText(body).click();
+  await edit(page);
   await page.getByRole('button', { name: 'מחיקה', exact: true }).click();
   const confirm = page.getByRole('alertdialog').getByRole('button', { name: 'מחיקה', exact: true });
   if (await confirm.isVisible()) await confirm.click();

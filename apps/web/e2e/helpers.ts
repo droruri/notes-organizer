@@ -41,3 +41,14 @@ export async function openMenu(page: Page) {
 export async function openWorkspaces(page: Page) {
   await page.getByRole('button', { name: 'מרחבי עבודה' }).click();
 }
+
+/**
+ * Loads the editor and outbox chunks (lazy since #296) while the network is up. The dev server has
+ * no service worker to precache them, and a dynamic import that fails offline stays failed.
+ */
+export async function loadOfflineChunks(page: Page) {
+  await page.evaluate(
+    (urls) => Promise.all(urls.map((url) => import(url))).then(() => undefined),
+    ['/src/features/notes/NoteEditor.tsx', '/src/features/offline/OutboxDialog.tsx'],
+  );
+}

@@ -506,19 +506,24 @@ export function NotesScreen({
     if (detailOpen && shouldCloseOnEscape(e)) goBack();
   });
 
-  const toastStack = (
-    <NotesToasts
-      ref={toasts}
-      outboxCount={outbox.length}
-      onShowUnread={() => setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true })}
-      onUndoSnooze={(id) => snoozeNote(id, null, true)}
-      onSaveFailedChange={setSaveFailed}
-    />
+  // Every return goes through `screen`, so the toasts keep one slot (and their state) even when a
+  // branch swaps the rest, e.g. the redirect after deleting the note open in the view.
+  const screen = (content: ReactNode) => (
+    <>
+      {content}
+      <NotesToasts
+        ref={toasts}
+        outboxCount={outbox.length}
+        onShowUnread={() => setFilter({ ...EMPTY_FILTER, unreadLinksOnly: true })}
+        onUndoSnooze={(id) => snoozeNote(id, null, true)}
+        onSaveFailedChange={setSaveFailed}
+      />
+    </>
   );
 
   if (!notes.data || !taxonomy.data) {
     if (notes.isError || taxonomy.isError || !online) {
-      return (
+      return screen(
         <Panes
           detail={composeForm}
           list={
@@ -541,16 +546,17 @@ export function NotesScreen({
                 {t('notes.add')}
               </button>
               {waiting}
-              {toastStack}
             </section>
           }
-        />
+        />,
       );
     }
-    return composeForm ? (
-      <Panes list={null} detail={composeForm} />
-    ) : (
-      <Loading label={t('status.checking')} />
+    return screen(
+      composeForm ? (
+        <Panes list={null} detail={composeForm} />
+      ) : (
+        <Loading label={t('status.checking')} />
+      ),
     );
   }
 
@@ -558,7 +564,7 @@ export function NotesScreen({
   if (viewId !== undefined) {
     const viewed = notes.data.find((n) => n.id === viewId);
     // A missing note is a redirect guard: skip the list so it never flashes.
-    if (!viewed) return <Navigate to={ROUTES.notes} replace />;
+    if (!viewed) return screen(<Navigate to={ROUTES.notes} replace />);
     editor = (
       <NoteView
         key={viewed.id}
@@ -588,7 +594,7 @@ export function NotesScreen({
     const note = parsed?.success ? parsed.data.note : edited;
     if ((parsed && !parsed.success) || !note) {
       // A bad or missing note is a redirect guard, not a mode: skip the list so it never flashes.
-      return <Navigate to={ROUTES.notes} replace />;
+      return screen(<Navigate to={ROUTES.notes} replace />);
     } else {
       editor = (
         <Suspense fallback={<Loading label={t('notes.loading')} />}>
@@ -633,7 +639,7 @@ export function NotesScreen({
     filter.text === '' &&
     sameFilter(filter, { ...EMPTY_FILTER, ...workspace?.defaultFilter });
   const locale = i18n.language === 'en' ? ('en' as const) : ('he' as const);
-  return (
+  return screen(
     <Panes
       placeholder={pickPlaceholder}
       detail={composeForm || editor || chatPanel}
@@ -866,9 +872,8 @@ export function NotesScreen({
               {t('notes.error')}
             </p>
           )}
-          {toastStack}
         </section>
       }
-    />
+    />,
   );
 }

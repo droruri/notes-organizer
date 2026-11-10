@@ -35,6 +35,6 @@ test('changing a category color saves and shows on the collapsed note card', asy
   await expect(group.getByRole('radio', { name: 'ורוד' })).toHaveAttribute('aria-checked', 'true');
   await expect(group.locator('[aria-checked="true"]')).toHaveCount(1);
 
-  await page.getByRole('button', { name: 'חזרה' }).click();
+  await page.goBack();
   await expect(card.locator('[data-color="pink"]')).toHaveText(category);
 });

@@ -56,6 +56,7 @@ for (const [label, viewport] of [
     await page.screenshot({ path: `/tmp/e2e-shots/applied-${label}.png` });
 
     await chat.getByRole('button', { name: viewport.width < 1024 ? 'חזרה' : 'סגירה' }).click();
+    if (viewport.width >= 1024) await expect(chat).toBeHidden();
     const done = page.locator('ul.gap-3 > li', { hasText: body });
     await expect(done.locator('.pill-dot', { hasText: 'הושלם' })).toBeVisible();
     await page.screenshot({ path: `/tmp/e2e-shots/list-${label}.png` });
