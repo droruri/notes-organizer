@@ -27,8 +27,13 @@ helpers in `apps/web/e2e/`). You report; you never label, comment on or push any
    from a screenshot you didn't open.
 4. **LLM**: the fake provider only (`AI_FAKE=1`, already set by the config). For a flow the fake
    doesn't produce, add a fake scenario following the existing fake-chat pattern. Never a real LLM.
-5. **Clean up** the test data you added (notes, etc.) and delete throwaway specs and
-   `test-results/` leftovers you created.
+5. **Full suite**: if the change touched `apps/web/src` or `apps/web/e2e`, run the **full** suite
+   with `pnpm --filter @notes/web e2e` (not just the spec for the criterion). Any failing spec makes
+   the result `E2E_RESULT: fail`; list each as `spec:line` plus its key error line. A failure is
+   never "pre-existing" or "unrelated": CI runs the full suite on every PR and blocks on it. If a
+   UI change made a spec stale, update that spec in the same change and re-run.
+6. **Clean up**: the stack is fresh, so no DB data cleanup is needed. Only delete throwaway specs
+   and `test-results/` leftovers you created.
 
 ## Reply format (nothing else)
 

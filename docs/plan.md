@@ -435,6 +435,7 @@ it offers to run `pnpm deploy:hosted`.
 - **E2E (Playwright, `AI_FAKE=1`, seeded user)** — sign in → add text note → review draft →
   submit → appears in sort order; filter by tag; offline → add note → online → dialog → send;
   chat "what categories do I have". Screenshots at 390 px and desktop, light and dark.
+  The full suite runs in CI on every PR, on pushes to `main` and on manual runs.
 - No real LLM or Groq call in any test or in CI.
 
 ## Milestones
