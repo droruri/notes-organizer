@@ -10,6 +10,8 @@ const openDialog = async (page: Page) => {
 
 for (const width of widths) {
   test(`search across all workspaces @${width}`, async ({ page }) => {
+    // long multi-step flow (create workspace, two notes, search, cleanup); 30s is too tight on CI
+    test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 844 });
     await signIn(page);
     const chip = page.getByRole('button', { name: 'בכל סביבות העבודה', exact: true });
