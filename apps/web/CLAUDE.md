@@ -76,6 +76,6 @@ pnpm --filter @notes/web e2e        # Playwright (prefer the e2e agent, see belo
 - Tests spy on `api` (`vi.spyOn(api, 'editWorkspace').mockResolvedValue(…)`), never on fetch.
   Hook tests wrap in a fresh `QueryClientProvider` (see `src/api/workspaces.queries.test.tsx`).
 - UI changes aren't done until checked in a browser by the `e2e` agent
-  (`.claude/agents/e2e.md`; it runs `scripts/e2e-setup.sh` first). Hand it the criteria; it
+  (`.claude/agents/e2e.md`; it runs `scripts/e2e-setup.sh` first, which resets this worktree's own seeded Supabase stack). Hand it the criteria; it
   returns `pass|fail` lines, screenshot paths and `E2E_RESULT`. E2E runs with `AI_FAKE=1` and a
   seeded user.
