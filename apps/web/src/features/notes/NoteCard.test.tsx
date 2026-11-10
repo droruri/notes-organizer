@@ -335,10 +335,13 @@ describe('NoteCard checklist', () => {
   it('does not toggle when a link in an item is clicked', () => {
     const onToggle = renderList(vi.fn(), false, '- [ ] see https://a.com/x');
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
-    const a = screen.getByRole('link', { name: 'https://a.com/x' });
-    a.addEventListener('click', (e) => e.preventDefault());
-    fireEvent.click(a);
-    expect(onToggle).not.toHaveBeenCalled();
+    // Control: clicking the label's own text does toggle, so the harness can detect a leak.
+    const label = screen.getByRole('checkbox').closest('label');
+    if (!label) throw new Error('checklist item has no label');
+    fireEvent.click(label);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('link', { name: 'https://a.com/x' }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
   it('renders the link in the expanded card', () => {

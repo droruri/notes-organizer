@@ -12,18 +12,19 @@ async function makeNote(page: Page, body: string, title?: string) {
       r.request().method() === 'PATCH' && /\/notes\/[0-9a-f-]+$/.test(new URL(r.url()).pathname),
   );
   await page.getByRole('button', { name: 'שמירה', exact: true }).click();
-  const note: { id?: string } = await (await saved).json();
-  expect(note.id).toBeTruthy();
+  // The id comes from the PATCH URL, not from an unparsed response body.
+  const id = new URL((await saved).url()).pathname.split('/').pop() ?? '';
+  expect(id).toMatch(/^[0-9a-f-]+$/);
   await expect(page.getByRole('textbox', { name: 'טקסט' })).toBeHidden();
   if (title) {
-    await page.goto(`/notes/${note.id}/edit`);
+    await page.goto(`/notes/${id}/edit`);
     await page.getByRole('textbox', { name: 'כותרת' }).fill(title);
     const patched = page.waitForResponse((r) => r.request().method() === 'PATCH');
     await page.getByRole('button', { name: 'שמירה', exact: true }).click();
     await patched;
     await expect(page.getByRole('textbox', { name: 'טקסט' })).toBeHidden();
   }
-  await page.goto(`/notes/${note.id}`);
+  await page.goto(`/notes/${id}`);
 }
 
 for (const [name, viewport] of [
@@ -46,10 +47,8 @@ for (const [name, viewport] of [
           () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
         );
         expect(noScroll).toBe(true);
-        await page.keyboard.press('Tab');
         await link.focus();
-        await page.keyboard.press('Shift+Tab');
-        await page.keyboard.press('Tab');
+        await expect(link).toBeFocused();
         await page.screenshot({
           path: `/tmp/e2e-shots/view-${name}-${colorScheme}.png`,
           fullPage: true,
