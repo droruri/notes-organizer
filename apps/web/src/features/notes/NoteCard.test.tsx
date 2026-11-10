@@ -297,13 +297,13 @@ describe('NoteCard updated date', () => {
 
 describe('NoteCard checklist', () => {
   const list: Note = { ...note, title: null, body: '- [x] milk\n- [ ] call Dan\nfree text' };
-  function renderList(onToggleItem = vi.fn(), pending = false) {
+  function renderList(onToggleItem = vi.fn(), pending = false, body = list.body) {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
         <ul>
           <NoteCard
-            note={list}
+            note={{ ...list, body }}
             categories={taxonomy.categories}
             taxonomy={taxonomy}
             today="2026-10-25"
@@ -330,6 +330,21 @@ describe('NoteCard checklist', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'call Dan' }));
     expect(onToggle).toHaveBeenCalledWith(list, 1);
+  });
+
+  it('does not toggle when a link in an item is clicked', () => {
+    const onToggle = renderList(vi.fn(), false, '- [ ] see https://a.com/x');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    const a = screen.getByRole('link', { name: 'https://a.com/x' });
+    a.addEventListener('click', (e) => e.preventDefault());
+    fireEvent.click(a);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('renders the link in the expanded card', () => {
+    renderList(vi.fn(), false, 'milk and eggs https://example.com/a');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
+    expect(screen.getByRole('link', { name: 'https://example.com/a' })).toBeTruthy();
   });
 
   it('disables boxes while pending', () => {

@@ -39,6 +39,29 @@ export function extractLinks(body: string): string[] {
   return found;
 }
 
+export type LinkSegment = { kind: 'text'; text: string } | { kind: 'link'; url: string };
+
+/** A text split into plain and http(s) link segments, using the same URL rules as `extractLinks`. */
+export function splitLinks(text: string): LinkSegment[] {
+  const out: LinkSegment[] = [];
+  const pushText = (t: string) => {
+    if (!t) return;
+    const last = out[out.length - 1];
+    if (last?.kind === 'text') last.text += t;
+    else out.push({ kind: 'text', text: t });
+  };
+  let pos = 0;
+  for (const match of text.matchAll(URL_PATTERN)) {
+    const url = match[0].replace(TRAILING, '');
+    if (!URL.canParse(url)) continue;
+    pushText(text.slice(pos, match.index));
+    out.push({ kind: 'link', url });
+    pos = match.index + url.length;
+  }
+  pushText(text.slice(pos));
+  return out;
+}
+
 const YOUTUBE_ID = /^[\w-]{11}$/;
 const YOUTUBE_HOSTS = new Set([
   'youtube.com',
