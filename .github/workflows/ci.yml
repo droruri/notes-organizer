@@ -34,9 +34,8 @@ jobs:
       - run: pnpm db:start -x studio,imgproxy,storage-api,edge-runtime,logflare,vector,realtime,supavisor,postgres-meta,mailpit
       - run: pnpm test
 
-  # Playwright against the local stack — pushes to main (and manual runs) only; see docs/plan.md.
+  # Playwright against the local stack — runs on every PR, on pushes to main and on manual runs; see docs/plan.md.
   e2e:
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
