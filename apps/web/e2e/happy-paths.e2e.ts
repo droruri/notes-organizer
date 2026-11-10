@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cardTexts, composeNote, signIn, unique } from './helpers';
+import { cardTexts, composeNote, loadOfflineChunks, signIn, unique } from './helpers';
 
 // Scripted in the API's fake AI (apps/api/src/ai/provider.ts, AI_FAKE=1).
 const CATEGORIES_ANSWER = 'fake categories: עבודה, בית, אישי';
@@ -66,8 +66,9 @@ test('a note written offline is sent from the dialog once back online', async ({
   await signIn(page);
   const body = unique('offline');
 
+  await loadOfflineChunks(page);
   await context.setOffline(true);
-  await page.getByRole('button', { name: 'פתק חדש' }).click();
+  await page.getByRole('button', { name: 'פתק חדש' }).first().click();
   await page.getByRole('textbox', { name: 'טקסט' }).fill(body);
   await page.getByRole('button', { name: 'הצע סיווג' }).click();
   await expect(page.getByText('נשמר במכשיר. יישלח כשהחיבור יחזור.')).toBeVisible();
@@ -86,7 +87,10 @@ test('a note written offline is sent from the dialog once back online', async ({
 
 test('the chat answers "what categories do I have" from the fake script', async ({ page }) => {
   await signIn(page);
-  await page.getByRole('button', { name: 'שאלה', exact: true }).click();
+  await page
+    .locator('[data-slot="list"]')
+    .getByRole('button', { name: 'שאלה', exact: true })
+    .click();
   const chat = page.getByRole('dialog', { name: 'שאלות על הפתקים' });
   await chat.getByRole('textbox', { name: 'שאלו על הפתקים…' }).fill('אילו קטגוריות יש לי?');
   await chat.getByRole('button', { name: 'שליחה' }).click();

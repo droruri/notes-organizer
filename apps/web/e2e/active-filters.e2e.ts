@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { signIn } from './helpers';
+import { composeNote, signIn, unique } from './helpers';
 
 async function openSheet(page: Page) {
   await page.getByRole('button', { name: /^סינון/ }).click();
@@ -14,12 +14,22 @@ const done = (page: Page) => press(page.getByRole('button', { name: 'הצגת ת
 const list = (page: Page) => page.getByRole('list', { name: 'סינונים פעילים' });
 const removers = (page: Page) => list(page).getByRole('button', { name: /^הסר סינון/ });
 
+// A fresh database has no categories, so each test makes its own and picks it by name.
+async function makeCategory(page: Page) {
+  const name = unique('cat');
+  await composeNote(page, unique('filtered'));
+  await page.getByLabel('שם חדש').fill(name);
+  await page.getByRole('button', { name: 'הוספה', exact: true }).click();
+  await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^סינון/ })).toBeVisible();
+  return name;
+}
+
 test('category chip and date range chip remove only their own value', async ({ page }) => {
   await signIn(page);
+  const name = await makeCategory(page);
   let dialog = await openSheet(page);
-  const first = dialog.getByRole('group', { name: 'קטגוריות' }).getByRole('button').first();
-  const name = (await first.innerText()).trim();
-  await press(first);
+  await press(dialog.getByRole('group', { name: 'קטגוריות' }).getByRole('button', { name }));
   await done(page);
   await expect(list(page).locator('[data-color]')).toHaveCount(1);
 
@@ -44,8 +54,9 @@ for (const width of [390, 1280]) {
       page,
     }) => {
       await signIn(page);
+      const name = await makeCategory(page);
       const dialog = await openSheet(page);
-      await press(dialog.getByRole('group', { name: 'קטגוריות' }).getByRole('button').first());
+      await press(dialog.getByRole('group', { name: 'קטגוריות' }).getByRole('button', { name }));
       await press(dialog.getByRole('group', { name: 'סטטוס' }).getByRole('button').nth(0));
       await press(dialog.getByRole('group', { name: 'סטטוס' }).getByRole('button').nth(1));
       await press(dialog.getByRole('group', { name: 'חשיבות' }).getByRole('button').nth(0));

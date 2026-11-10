@@ -246,6 +246,19 @@ describe('NotesScreen modes from the URL', () => {
     expect(screen.getByTestId('where').textContent).toBe(`/notes/${note(1, '', []).id}`);
   });
 
+  it('keeps the undo toast after deleting from the editor redirects past the gone view', async () => {
+    setup('/');
+    fireEvent.click(await screen.findByText('first note'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    await screen.findByDisplayValue('first note');
+    vi.mocked(api.notes).mockResolvedValue([]);
+    vi.spyOn(api, 'deleteNote').mockResolvedValue(undefined);
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/'));
+    expect(await screen.findByText('Note deleted')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+  });
+
   it('shows the review of the draft in the history state', async () => {
     const draft = {
       note: note(1, 'drafted', []),

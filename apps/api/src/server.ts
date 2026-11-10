@@ -5,7 +5,7 @@ import { MAX_AUDIO_BYTES } from '@notes/shared';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
-import { AiEnv, createAi, withLogging, type Ai } from './ai/provider';
+import { AiEnv, createAi, isFakeEnabled, withLogging, type Ai } from './ai/provider';
 import { createTokenVerifier, parseAllowedEmails, requireUser, type VerifyToken } from './auth';
 import { createPush, PushEnv, withPushLogging, createFakePush, type Push } from './push/provider';
 import { createPool, type Db } from './db';
@@ -45,6 +45,7 @@ export function buildServer({
   allowedEmails,
   webOrigin = DEFAULT_WEB_ORIGIN,
   logger = false,
+  rateLimited = true,
 }: {
   db: Db;
   ai: Ai;
@@ -62,6 +63,8 @@ export function buildServer({
   webOrigin?: string;
   /** Fastify logger options (`{ level, stream }`); off by default so tests stay silent. */
   logger?: FastifyServerOptions['logger'];
+  /** Per-user limits on the LLM and push routes; only the e2e run (`RATE_LIMIT=off`) turns them off. */
+  rateLimited?: boolean;
 }): FastifyInstance {
   const ai = withLogging(rawAi);
   const links = withLinkLogging(rawLinks);
@@ -96,7 +99,11 @@ export function buildServer({
         return findAllowed(db, email);
       }),
     );
-    await authed.register(rateLimit, { global: false });
+    // The route limits merge this allowList in, so `false` lets every request through.
+    await authed.register(rateLimit, {
+      global: false,
+      ...(rateLimited ? {} : { allowList: () => true }),
+    });
     void authed.register(multipart, { limits: { fileSize: MAX_AUDIO_BYTES, files: 1 } });
     usersRoutes(authed, db);
     settingsRoutes(authed, db);
@@ -124,8 +131,14 @@ const Env = AiEnv.and(LinkEnv)
       // An empty line (`CRON_SECRET=`) means unset, not a failed boot.
       CRON_SECRET: z.string().optional(),
       PORT: z.coerce.number().int().positive().default(3000),
+      // `off` only for the e2e run, where every spec shares one dev user.
+      RATE_LIMIT: z.enum(['on', 'off']).default('on'),
     }),
-  );
+  )
+  .refine((env) => env.RATE_LIMIT === 'on' || isFakeEnabled(env.AI_FAKE), {
+    message: 'RATE_LIMIT=off is only allowed with AI_FAKE=1 (e2e)',
+    path: ['RATE_LIMIT'],
+  });
 
 async function main(): Promise<void> {
   const env = Env.safeParse(process.env);
@@ -144,8 +157,10 @@ async function main(): Promise<void> {
     allowedEmails: parseAllowedEmails(env.data.ALLOWED_EMAILS),
     webOrigin: env.data.WEB_ORIGIN,
     logger: { level: env.data.LOG_LEVEL },
+    rateLimited: env.data.RATE_LIMIT === 'on',
   });
   if (!push.enabled) app.log.warn('push disabled: no VAPID keys');
+  if (env.data.RATE_LIMIT === 'off') app.log.warn('rate limits disabled: RATE_LIMIT=off');
   await app.listen({ port: env.data.PORT, host: '0.0.0.0' });
 }
 

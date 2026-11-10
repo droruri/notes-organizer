@@ -12,6 +12,7 @@ const apiPort = process.env.E2E_API_PORT || '3000';
 const webPort = process.env.E2E_WEB_PORT || '5173';
 const apiUrl = `http://localhost:${apiPort}`;
 const webUrl = `http://localhost:${webPort}`;
+const SETTINGS_SPECS = ['form-settings.e2e.ts', 'quick-actions.e2e.ts', 'category-pin.e2e.ts'];
 
 export default defineConfig({
   testDir: 'e2e',
@@ -19,12 +20,23 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: webUrl, trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }],
+  projects: [
+    { name: 'chromium', use: devices['Desktop Chrome'], testIgnore: SETTINGS_SPECS },
+    // These change, or compare a snapshot of, the dev user's settings and category strip that every
+    // other spec shares (hidden fields, quick actions, pins), so they run after the rest finishes.
+    {
+      name: 'settings',
+      use: devices['Desktop Chrome'],
+      testMatch: SETTINGS_SPECS,
+      dependencies: ['chromium'],
+    },
+  ],
   webServer: [
     {
       command: 'pnpm --filter @notes/api dev',
       url: `${apiUrl}/health`,
-      env: { PORT: apiPort, WEB_ORIGIN: webUrl, AI_FAKE: '1' },
+      // Every spec shares the one dev user, so the per-user LLM limit (30/min) would trip.
+      env: { PORT: apiPort, WEB_ORIGIN: webUrl, AI_FAKE: '1', RATE_LIMIT: 'off' },
       // API logs in the test output, so a failed request shows why.
       stdout: 'pipe',
       reuseExistingServer: false,

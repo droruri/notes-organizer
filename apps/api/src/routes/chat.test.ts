@@ -52,6 +52,23 @@ describe('POST /chat', () => {
     }
     expect(codes.at(-1)).toBe(429);
   });
+
+  it('lets the 31st request through when rate limits are off', async () => {
+    const unlimited = buildServer({
+      db,
+      ai: createFakeAi([], 'x', 'hello'),
+      verifyToken: fakeVerifyToken,
+      allowedEmails,
+      rateLimited: false,
+    });
+    const codes: number[] = [];
+    for (let i = 0; i < 31; i++) {
+      codes.push(
+        (await unlimited.inject({ method: 'POST', url: '/chat', headers, payload })).statusCode,
+      );
+    }
+    expect(codes.every((c) => c === 200)).toBe(true);
+  });
 });
 
 describe('POST /chat proposals', () => {
