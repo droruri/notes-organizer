@@ -342,9 +342,11 @@ describe('NoteCard checklist', () => {
   });
 
   it('renders the link in the expanded card', () => {
-    renderList(vi.fn(), false, 'shopping\nmilk and eggs https://example.com/a');
+    renderCard();
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
-    expect(screen.getByRole('link', { name: 'https://example.com/a' })).toBeTruthy();
+    expect(
+      screen.getAllByRole('link', { name: 'https://example.com/a' })[0]?.getAttribute('target'),
+    ).toBe('_blank');
   });
 
   it('disables boxes while pending', () => {
