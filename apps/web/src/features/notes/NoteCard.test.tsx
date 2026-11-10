@@ -342,7 +342,7 @@ describe('NoteCard checklist', () => {
   });
 
   it('renders the link in the expanded card', () => {
-    renderList(vi.fn(), false, 'milk and eggs https://example.com/a');
+    renderList(vi.fn(), false, 'shopping\nmilk and eggs https://example.com/a');
     fireEvent.click(screen.getByRole('button', { name: 'Expand' }));
     expect(screen.getByRole('link', { name: 'https://example.com/a' })).toBeTruthy();
   });
