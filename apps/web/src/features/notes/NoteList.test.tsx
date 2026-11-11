@@ -100,4 +100,58 @@ describe('NoteList', () => {
       expect(screen.getAllByRole('button', { name: 'Collapse' })).toHaveLength(1);
     });
   });
+  describe('foldDone', () => {
+    const mk = (i: number, status: Note['status']): Note => ({
+      id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+      clientId: `00000000-0000-4000-9000-${String(i).padStart(12, '0')}`,
+      title: null,
+      body: `note ${i}`,
+      status,
+      workspaceId: '00000000-0000-4000-a000-000000000000',
+      importance: null,
+      urgency: null,
+      dueDate: null,
+      snoozedUntil: null,
+      remindAt: null,
+      proposed: null,
+      unreadLinks: [],
+      categoryIds: [],
+      tagIds: [],
+      hasAudio: false,
+      attachments: [],
+      checklist: [],
+      createdAt: '2026-10-01T00:00:00Z',
+      updatedAt: '2026-10-01T00:00:00Z',
+    });
+
+    it('puts done notes behind a closed row with a count, and opens it', () => {
+      const notes = [mk(1, 'todo'), mk(2, 'done'), mk(3, 'done')];
+      const { rerender } = render(<NoteList {...props} notes={notes} filtered={false} foldDone />);
+      screen.getByText('note 1');
+      expect(screen.queryByText('note 2')).toBeNull();
+      const row = screen.getByRole('button', { name: 'Done (2)' });
+      fireEvent.click(row);
+      screen.getByText('note 2');
+      screen.getByText('note 3');
+      rerender(
+        <NoteList
+          {...props}
+          notes={[mk(1, 'todo'), mk(2, 'done'), mk(3, 'done'), mk(4, 'done')]}
+          filtered={false}
+          foldDone
+        />,
+      );
+      screen.getByRole('button', { name: 'Done (3)' });
+    });
+
+    it('stays flat without foldDone or with only done notes', () => {
+      const { rerender } = render(
+        <NoteList {...props} notes={[mk(1, 'todo'), mk(2, 'done')]} filtered={false} />,
+      );
+      screen.getByText('note 2');
+      rerender(<NoteList {...props} notes={[mk(2, 'done')]} filtered={false} foldDone />);
+      screen.getByText('note 2');
+      expect(screen.queryByRole('button', { name: /^Done \(/ })).toBeNull();
+    });
+  });
 });

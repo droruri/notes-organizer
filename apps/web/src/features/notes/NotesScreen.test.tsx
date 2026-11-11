@@ -409,6 +409,36 @@ describe('NotesScreen status from the list', () => {
   });
 });
 
+describe('NotesScreen done fold with a status filter', () => {
+  it('lists done notes flat, with no Done row, once a status filter is on', async () => {
+    vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const closed: Note = { ...note(2, 'closed note', []), status: 'done' };
+    vi.spyOn(api, 'notes').mockResolvedValue([note(1, 'open note', []), closed]);
+    vi.spyOn(api, 'taxonomy').mockResolvedValue({ categories: [] });
+    vi.spyOn(api, 'settings').mockResolvedValue({
+      noteSort: 'newest',
+      noteForm: DEFAULT_NOTE_FORM,
+      quickActions: ['record'],
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <NotesScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByText('open note');
+    await screen.findByRole('button', { name: /^Done \(1\)$/ });
+    fireEvent.click(screen.getByRole('button', { name: /^filter/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /^Done \(\d+\)$/ })).toBeNull(),
+    );
+    screen.getByText('closed note');
+  });
+});
+
 describe('NotesScreen across workspaces', () => {
   const W1 = '00000000-0000-4000-8000-0000000000f1';
   const W2 = '00000000-0000-4000-8000-0000000000f2';

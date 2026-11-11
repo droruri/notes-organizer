@@ -857,6 +857,7 @@ export function NotesScreen({
                 taxonomy={taxonomy.data}
                 today={today}
                 selectedId={openId}
+                foldDone={filter.text === '' && filter.statuses.length === 0}
                 onOpen={onOpenNote}
                 onStatus={onStatusNote}
                 onSnooze={onSnoozeNote}
