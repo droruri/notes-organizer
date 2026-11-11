@@ -15,7 +15,12 @@ const webUrl = `http://localhost:${webPort}`;
 // These create and delete workspaces on the dev user's account, and note-workspace asserts the
 // editor shows no workspace select while only one exists, so no other spec may run alongside them.
 // Playwright has no per-project worker limit, so each gets its own project, chained in order.
-const WORKSPACE_SPECS = ['workspaces.e2e.ts', 'all-workspaces.e2e.ts', 'note-workspace.e2e.ts'];
+const WORKSPACE_SPECS = [
+  'workspaces.e2e.ts',
+  'all-workspaces.e2e.ts',
+  'note-workspace.e2e.ts',
+  'today-badge.e2e.ts',
+];
 const SETTINGS_SPECS = ['form-settings.e2e.ts', 'quick-actions.e2e.ts', 'category-pin.e2e.ts'];
 
 export default defineConfig({

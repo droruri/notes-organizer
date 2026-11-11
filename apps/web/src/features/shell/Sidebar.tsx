@@ -3,12 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Icon } from '../../ui/Icon';
 import { AppMenu } from './AppMenu';
+import { DueBadge } from './DueBadge';
 import { NAV_ITEMS, ROUTES, todayPath, type NavId } from './routes';
 
 type Actions = {
   onPick: (id: NavId) => void;
   onSignOut: () => void;
   isAdmin: boolean;
+  /** Tasks overdue or due today, shown on the Today row. */
+  dueCount: number;
 };
 
 /** Desktop (>= 1024px): the 16rem sidebar. */
@@ -17,6 +20,7 @@ export function Sidebar({
   currentId,
   onSwitch,
   onManage,
+  dueCount,
   ...menu
 }: Actions & {
   workspaces: Workspace[];
@@ -43,11 +47,15 @@ export function Sidebar({
         key={id}
         type="button"
         onClick={() => void navigate(to)}
+        {...(id === 'today' && dueCount > 0
+          ? { 'aria-label': t('today.badge', { count: dueCount }) }
+          : {})}
         {...(active ? { 'aria-current': 'page' as const } : {})}
         className={`menu-item ${active ? 'bg-accent-soft text-accent font-semibold' : ''}`}
       >
         <Icon name={item.icon} size={18} />
         {t(item.label)}
+        {id === 'today' && <DueBadge count={dueCount} className="ms-auto" />}
       </button>
     );
   };

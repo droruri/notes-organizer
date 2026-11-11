@@ -57,3 +57,6 @@ export const todayCount = (g: TodayGroups): number =>
   g.inProgress.length +
   g.noDate.length +
   g.upcoming.reduce((sum, u) => sum + u.notes.length, 0);
+
+/** Tasks overdue or due today: the number on the Today navigation item. */
+export const dueNowCount = (g: TodayGroups): number => g.overdue.length + g.dueToday.length;

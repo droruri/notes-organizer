@@ -1,10 +1,12 @@
-import { resolveWorkspace } from '@notes/shared';
-import { lazy, Suspense, useState } from 'react';
+import { DEFAULT_NOTE_SORT, resolveWorkspace } from '@notes/shared';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
-import { useWorkspaces } from '../../api';
+import { useNotes, useWorkspaces } from '../../api';
 import { useAuth } from '../auth/authContext';
+import { localToday } from '../notes/formatDate';
 import { NotesScreen } from '../notes/NotesScreen';
+import { dueNowCount, todayGroups } from '../notes/todayGroups';
 import { Loading } from '../../ui/Loading';
 import { OverlayFallback } from '../../ui/OverlayFallback';
 import { Sheet } from '../../ui/Sheet';
@@ -43,6 +45,16 @@ export function Screens() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const workspace = workspaces.data ? resolveWorkspace(workspaces.data, currentId) : undefined;
+  const notes = useNotes().data;
+  const workspaceId = workspace?.id;
+  // Same rule as the Today view; ignores the notes list's "all workspaces" switch.
+  // `today` is a dep so the count recomputes after midnight without a refetch.
+  const today = localToday();
+  const dueCount = useMemo(() => {
+    const all = notes ?? [];
+    const scoped = workspaceId ? all.filter((n) => n.workspaceId === workspaceId) : all;
+    return dueNowCount(todayGroups(scoped, today, DEFAULT_NOTE_SORT));
+  }, [notes, workspaceId, today]);
   // A pick made inside an open sheet replaces the sheet's history entry, so Back from the
   // new screen returns to the page under the sheet (see useBackClose).
   const pick = (id: NavId) => {
@@ -61,7 +73,7 @@ export function Screens() {
   };
   return (
     <>
-      <TabBar onPick={pick} />
+      <TabBar onPick={pick} dueCount={dueCount} />
       <Sidebar
         workspaces={workspaces.data ?? []}
         currentId={workspace?.id}
@@ -70,6 +82,7 @@ export function Screens() {
         onPick={pick}
         onSignOut={() => void signOut()}
         isAdmin={isAdmin}
+        dueCount={dueCount}
       />
       {moreOpen && (
         <Sheet title={t('app.menu')} onClose={() => setMoreOpen(false)}>

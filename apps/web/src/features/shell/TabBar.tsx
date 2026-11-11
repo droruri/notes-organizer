@@ -1,12 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { useLocation, useSearchParams } from 'react-router';
 import { Icon } from '../../ui/Icon';
+import { DueBadge } from './DueBadge';
 import { NAV_ITEMS, ROUTES, isPushedPath, type NavId } from './routes';
 
 const TAB_ITEMS = NAV_ITEMS.filter((i) => i.group === 'tab');
 
 /** Mobile (< 1024px): the fixed bottom tab bar. Hidden on pushed screens. */
-export function TabBar({ onPick }: { onPick: (id: NavId) => void }) {
+export function TabBar({ onPick, dueCount }: { onPick: (id: NavId) => void; dueCount: number }) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const view = useSearchParams()[0].get('view');
@@ -27,10 +28,18 @@ export function TabBar({ onPick }: { onPick: (id: NavId) => void }) {
           key={item.id}
           type="button"
           onClick={() => onPick(item.id)}
+          {...(item.id === 'today' && dueCount > 0
+            ? { 'aria-label': t('today.badge', { count: dueCount }) }
+            : {})}
           {...(item.id === current ? { 'aria-current': 'page' as const } : {})}
           className={`flex h-[var(--tab-h)] min-w-11 flex-1 touch-manipulation flex-col items-center justify-center gap-0.5 text-[11px] font-semibold active:opacity-60 ${item.id === current ? 'text-accent' : 'text-muted'}`}
         >
-          <Icon name={item.icon} size={24} />
+          <span className="relative">
+            <Icon name={item.icon} size={24} />
+            {item.id === 'today' && (
+              <DueBadge count={dueCount} className="absolute -top-1 -end-2" />
+            )}
+          </span>
           {t(item.label)}
         </button>
       ))}
