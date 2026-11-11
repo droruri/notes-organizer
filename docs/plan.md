@@ -343,13 +343,13 @@ and Re-analyze are the safety net.
   `CHECKLIST_LINE` from `@notes/shared`.
 - **Main screen:** header (language toggle, menu: notes, import, categories & tags, users (admin), sign out), search box, filter sheet
   (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
-  deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
+  deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s (with no search text and no status filter, done notes sit behind one closed "Done (N)" row at the end; a list of only done notes is flat), floating
   add-note button (text / record), chat button. Drafts sit at the top with a "draft" badge.
 - **Today view:** `/?view=today` (Today tab on mobile, sidebar link on desktop) is a mode of the
   main screen: sections Overdue, Due today, In progress, Next 7 days (grouped by date), and a closed row "To do, no date (N)" at the end that lists every non-snoozed `todo` note without a due date, derived on
   the client from the notes already synced. A note shows in the first section it matches; drafts and
   done notes never show (an `in_progress` note with no date stays in In progress). It ignores search, filters, the category strip and the sort control; the
-  saved sort orders the Due today, In progress and Upcoming sections, while Overdue is always
+  saved sort orders the Due today, In progress, Upcoming and To do, no date sections, while Overdue is always
   oldest due first. It follows the workspace scope. The Today tab and sidebar row show a red count pill (`99+` above 99, none at zero) of overdue + due today notes in the current workspace; it ignores the list's "all workspaces" switch. Opening a card keeps `?view=today` in the URL, so Back returns to it.
 - **NoteCard:** body excerpt, created date, due date (red when overdue), importance, urgency,
   status, category and tag chips (deleted ones greyed), link previews, audio player, a
