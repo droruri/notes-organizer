@@ -343,7 +343,7 @@ and Re-analyze are the safety net.
   `CHECKLIST_LINE` from `@notes/shared`.
 - **Main screen:** header (language toggle, menu: notes, import, categories & tags, users (admin), sign out), search box, filter sheet
   (categories, tags, status, importance, urgency, created and due date ranges, "Links not read";
-  deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s, floating
+  deleted taxonomy shown disabled), sort menu (saved with `PUT /settings`), list of `NoteCard`s (with no search text and no status filter, done notes sit behind one closed "Done (N)" row at the end; a list of only done notes is flat), floating
   add-note button (text / record), chat button. Drafts sit at the top with a "draft" badge.
 - **Today view:** `/?view=today` (Today tab on mobile, sidebar link on desktop) is a mode of the
   main screen: sections Overdue, Due today, In progress, Next 7 days (grouped by date), and a closed row "To do, no date (N)" at the end that lists every non-snoozed `todo` note without a due date, derived on
