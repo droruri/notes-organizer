@@ -55,7 +55,11 @@ for (const [label, viewport] of [
     await expect(today).toHaveAccessibleName('היום, משימה אחת');
 
     await openWorkspaces(page);
-    const other = page.getByRole('dialog', { name: 'מרחבי עבודה' }).getByRole('radio').first();
+    const other = page
+      .getByRole('dialog', { name: 'מרחבי עבודה' })
+      .getByRole('radio')
+      .filter({ hasNotText: ws })
+      .first();
     await other.click();
     await expect(page.getByRole('dialog', { name: 'מרחבי עבודה' })).toBeHidden();
     await expect(page.getByRole('heading', { name: ws, exact: true })).toHaveCount(0);

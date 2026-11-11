@@ -263,6 +263,7 @@
     "badge_one": "Today, 1 due",
     "badge_two": "Today, {{count}} due",
     "badge_other": "Today, {{count}} due",
+    "badgeOverflow": "99+",
     "overdue": "Overdue",
     "dueToday": "Due today",
     "inProgress": "In progress",

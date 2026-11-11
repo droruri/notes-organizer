@@ -48,11 +48,13 @@ export function Screens() {
   const notes = useNotes().data;
   const workspaceId = workspace?.id;
   // Same rule as the Today view; ignores the notes list's "all workspaces" switch.
+  // `today` is a dep so the count recomputes after midnight without a refetch.
+  const today = localToday();
   const dueCount = useMemo(() => {
     const all = notes ?? [];
     const scoped = workspaceId ? all.filter((n) => n.workspaceId === workspaceId) : all;
-    return dueNowCount(todayGroups(scoped, localToday(), DEFAULT_NOTE_SORT));
-  }, [notes, workspaceId]);
+    return dueNowCount(todayGroups(scoped, today, DEFAULT_NOTE_SORT));
+  }, [notes, workspaceId, today]);
   // A pick made inside an open sheet replaces the sheet's history entry, so Back from the
   // new screen returns to the page under the sheet (see useBackClose).
   const pick = (id: NavId) => {

@@ -56,19 +56,29 @@ describe('Screens routes', () => {
 
 describe('Screens Today badge', () => {
   const today = new Date().toLocaleDateString('en-CA');
-  const note = (id: string, workspaceId: string, o: Partial<Note> = {}) =>
-    ({
-      id,
-      clientId: id,
-      title: null,
-      body: 'x',
-      status: 'todo',
-      workspaceId,
-      dueDate: today,
-      snoozedUntil: null,
-      checklist: [],
-      ...o,
-    }) as unknown as Note;
+  const note = (id: string, workspaceId: string, o: Partial<Note> = {}): Note => ({
+    id,
+    clientId: id,
+    title: null,
+    body: 'x',
+    status: 'todo',
+    workspaceId,
+    importance: null,
+    urgency: null,
+    dueDate: today,
+    snoozedUntil: null,
+    remindAt: null,
+    proposed: null,
+    unreadLinks: [],
+    categoryIds: [],
+    tagIds: [],
+    hasAudio: false,
+    attachments: [],
+    checklist: [],
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    ...o,
+  });
 
   it('counts overdue + due today of the current workspace only', async () => {
     vi.spyOn(api, 'workspaces').mockResolvedValue([

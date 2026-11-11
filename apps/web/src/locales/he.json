@@ -265,6 +265,7 @@
     "badge_one": "היום, משימה אחת",
     "badge_two": "היום, {{count}} משימות",
     "badge_other": "היום, {{count}} משימות",
+    "badgeOverflow": "99+",
     "overdue": "באיחור",
     "dueToday": "להיום",
     "inProgress": "בתהליך",
