@@ -2,6 +2,7 @@ import type { Category, Note, NoteStatus, Taxonomy } from '@notes/shared';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
+import { Section } from '../../ui/Section';
 import { NoteCard } from './NoteCard';
 
 const PAGE = 50;
@@ -36,6 +37,7 @@ export const NoteList = memo(function NoteList({
   onAdd,
   workspaceNames,
   selectedId,
+  foldDone = false,
 }: {
   notes: Note[];
   /** Notes exist, but the filter hides all of them. */
@@ -55,8 +57,16 @@ export const NoteList = memo(function NoteList({
   workspaceNames?: Map<string, string> | undefined;
   /** The note open in the detail pane. */
   selectedId?: string | undefined;
+  /** Put done notes behind one closed "Done (N)" row after the open ones. */
+  foldDone?: boolean;
 }) {
   const { t } = useTranslation();
+  const split = useMemo(() => {
+    if (!foldDone) return null;
+    const open = notes.filter((n) => n.status !== 'done');
+    if (open.length === 0 || open.length === notes.length) return null;
+    return { open, done: notes.filter((n) => n.status === 'done') };
+  }, [notes, foldDone]);
   const [shown, setShown] = useState(PAGE);
   // Back to the first page when the list changes, without remounting the cards.
   const [pagedFor, setPagedFor] = useState(notes);
@@ -83,6 +93,42 @@ export const NoteList = memo(function NoteList({
     io.observe(el);
     return () => io.disconnect();
   }, [more, shown]);
+  if (split) {
+    return (
+      <div className="flex flex-col gap-3">
+        <NoteList
+          notes={split.open}
+          filtered={filtered}
+          taxonomy={taxonomy}
+          today={today}
+          onOpen={onOpen}
+          onStatus={onStatus}
+          onToggleItem={onToggleItem}
+          onSnooze={onSnooze}
+          hiddenStatuses={hiddenStatuses}
+          statusPendingId={statusPendingId}
+          workspaceNames={workspaceNames}
+          selectedId={selectedId}
+        />
+        <Section title={t('notes.status.done')} count={split.done.length} collapsible>
+          <NoteList
+            notes={split.done}
+            filtered={filtered}
+            taxonomy={taxonomy}
+            today={today}
+            onOpen={onOpen}
+            onStatus={onStatus}
+            onToggleItem={onToggleItem}
+            onSnooze={onSnooze}
+            hiddenStatuses={hiddenStatuses}
+            statusPendingId={statusPendingId}
+            workspaceNames={workspaceNames}
+            selectedId={selectedId}
+          />
+        </Section>
+      </div>
+    );
+  }
   if (notes.length === 0) {
     return (
       <div className="enter-fade flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong/60 px-6 py-14 text-center">

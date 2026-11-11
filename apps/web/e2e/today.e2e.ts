@@ -46,3 +46,44 @@ test('Today tab shows the sections in order, and Back from a card returns to Tod
   await expect(page).toHaveURL(/\/\?view=today$/);
   await expect(headings.first()).toBeVisible();
 });
+
+test('Today ends with a closed "to do, no date" row that opens to the undated to-dos', async ({
+  page,
+}) => {
+  await signIn(page);
+  const tag = unique('n');
+  await seed(page, `someday ${tag}`, null);
+  await page.getByRole('button', { name: 'היום' }).click();
+  await expect(page).toHaveURL(/\/\?view=today$/);
+  const row = page.getByRole('button', { name: /לביצוע, בלי תאריך/ });
+  await expect(row).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByText(`someday ${tag}`)).toHaveCount(0);
+  await row.click();
+  await expect(row).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByText(`someday ${tag}`)).toBeVisible();
+});
+
+test('an in-progress note with no date stays under "in progress", not in the no-date row', async ({
+  page,
+}) => {
+  await signIn(page);
+  const tag = unique('p');
+  await seed(page, `wip ${tag}`, null);
+  await seed(page, `todo-nodate ${tag}`, null);
+  await page
+    .locator('li', { hasText: `wip ${tag}` })
+    .getByRole('button', { name: /בתהליך/ })
+    .click();
+  await page.getByRole('button', { name: 'היום' }).click();
+  await expect(page).toHaveURL(/\/\?view=today$/);
+  await expect(page.getByRole('region', { name: 'בתהליך' }).getByText(`wip ${tag}`)).toBeVisible();
+  const row = page.getByRole('button', { name: /לביצוע, בלי תאריך \(\d+\)/ });
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(
+    page.getByRole('region', { name: 'לביצוע, בלי תאריך' }).getByText(`todo-nodate ${tag}`),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'לביצוע, בלי תאריך' }).getByText(`wip ${tag}`),
+  ).toHaveCount(0);
+});

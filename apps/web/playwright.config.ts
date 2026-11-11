@@ -12,6 +12,10 @@ const apiPort = process.env.E2E_API_PORT || '3000';
 const webPort = process.env.E2E_WEB_PORT || '5173';
 const apiUrl = `http://localhost:${apiPort}`;
 const webUrl = `http://localhost:${webPort}`;
+// These create and delete workspaces on the dev user's account, and note-workspace asserts the
+// editor shows no workspace select while only one exists, so no other spec may run alongside them.
+// Playwright has no per-project worker limit, so each gets its own project, chained in order.
+const WORKSPACE_SPECS = ['workspaces.e2e.ts', 'all-workspaces.e2e.ts', 'note-workspace.e2e.ts'];
 const SETTINGS_SPECS = ['form-settings.e2e.ts', 'quick-actions.e2e.ts', 'category-pin.e2e.ts'];
 
 export default defineConfig({
@@ -21,14 +25,24 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: webUrl, trace: 'retain-on-failure' },
   projects: [
-    { name: 'chromium', use: devices['Desktop Chrome'], testIgnore: SETTINGS_SPECS },
+    {
+      name: 'chromium',
+      use: devices['Desktop Chrome'],
+      testIgnore: [...SETTINGS_SPECS, ...WORKSPACE_SPECS],
+    },
+    ...WORKSPACE_SPECS.map((spec, i) => ({
+      name: `workspaces-${i + 1}`,
+      use: devices['Desktop Chrome'],
+      testMatch: spec,
+      dependencies: [i === 0 ? 'chromium' : `workspaces-${i}`],
+    })),
     // These change, or compare a snapshot of, the dev user's settings and category strip that every
     // other spec shares (hidden fields, quick actions, pins), so they run after the rest finishes.
     {
       name: 'settings',
       use: devices['Desktop Chrome'],
       testMatch: SETTINGS_SPECS,
-      dependencies: ['chromium'],
+      dependencies: [`workspaces-${WORKSPACE_SPECS.length}`],
     },
   ],
   webServer: [

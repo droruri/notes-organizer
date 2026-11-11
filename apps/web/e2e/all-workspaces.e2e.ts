@@ -10,6 +10,8 @@ const openDialog = async (page: Page) => {
 
 for (const width of widths) {
   test(`search across all workspaces @${width}`, async ({ page }) => {
+    // long multi-step flow (create workspace, two notes, search, cleanup); 30s is too tight on CI
+    test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 844 });
     await signIn(page);
     const chip = page.getByRole('button', { name: 'בכל סביבות העבודה', exact: true });
@@ -56,13 +58,20 @@ for (const width of widths) {
       await page.goBack();
       await page.goBack();
 
+      await expect(search).toBeVisible();
       await search.fill(tag);
-      await chip.click();
+      // close the suggestion list: at 375px it can cover the chip row
+      await search.press('Escape');
+      await expect(chip).toBeVisible();
+      if ((await chip.getAttribute('aria-pressed')) !== 'false') await chip.click();
+      await expect(chip).toHaveAttribute('aria-pressed', 'false');
       await expect(page.locator('ul.gap-3 > li', { hasText: bodyA })).toHaveCount(0);
       await expect(page.locator('ul.gap-3 > li', { hasText: bodyB })).toBeVisible();
     } finally {
       // cleanup: delete the extra workspace, only if this test created it
       if (created) {
+        // an open suggestion list covers the bottom nav at 375px
+        await page.keyboard.press('Escape');
         await openDialog(page);
         await dialog.getByRole('button', { name: `פעולות עבור ${ws}` }).click();
         await dialog.getByRole('button', { name: 'מחיקה' }).click();

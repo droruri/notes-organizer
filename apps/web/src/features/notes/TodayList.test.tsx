@@ -57,6 +57,7 @@ describe('TodayList', () => {
       dueToday: [],
       inProgress: [note(3, 'working')],
       upcoming: [{ date: '2026-11-12', notes: [note(4, 'soon')] }],
+      noDate: [],
     });
     screen.getByRole('heading', { name: 'Overdue (2)' });
     screen.getByRole('heading', { name: 'In progress (1)' });
@@ -67,9 +68,26 @@ describe('TodayList', () => {
 
   it('shows the empty state and its button calls the handler', () => {
     const onAllNotes = vi.fn();
-    renderList({ overdue: [], dueToday: [], inProgress: [], upcoming: [] }, onAllNotes);
+    renderList({ overdue: [], dueToday: [], inProgress: [], upcoming: [], noDate: [] }, onAllNotes);
     screen.getByText('Nothing due. Enjoy the quiet.');
     fireEvent.click(screen.getByRole('button', { name: 'All notes' }));
     expect(onAllNotes).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a closed no-date row instead of the empty state, and opens it', () => {
+    renderList({
+      overdue: [],
+      dueToday: [],
+      inProgress: [],
+      upcoming: [],
+      noDate: [note(5, 'someday')],
+    });
+    expect(screen.queryByText('Nothing due. Enjoy the quiet.')).toBeNull();
+    const row = screen.getByRole('button', { name: /To do, no date \(1\)/ });
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText('someday')).toBeNull();
+    fireEvent.click(row);
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+    screen.getByText('someday');
   });
 });
