@@ -46,8 +46,9 @@ export function CategoryStrip({
               className="inline-flex min-h-11 min-w-11 items-center"
             >
               <span
-                className={`cat-pill gap-1.5 ${selected ? 'font-semibold ring-2 ring-accent' : ''}`}
+                className="cat-pill gap-1.5"
                 data-color={c.color}
+                {...(selected && { 'data-selected': '' })}
               >
                 <span className="max-w-[12ch] truncate">{c.name}</span>
                 <span className="tabular-nums opacity-70">{count}</span>
