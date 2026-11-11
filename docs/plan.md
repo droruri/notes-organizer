@@ -349,7 +349,7 @@ and Re-analyze are the safety net.
   main screen: sections Overdue, Due today, In progress, Next 7 days (grouped by date), and a closed row "To do, no date (N)" at the end that lists every non-snoozed `todo` note without a due date, derived on
   the client from the notes already synced. A note shows in the first section it matches; drafts and
   done notes never show (an `in_progress` note with no date stays in In progress). It ignores search, filters, the category strip and the sort control; the
-  saved sort orders the Due today, In progress and Upcoming sections, while Overdue is always
+  saved sort orders the Due today, In progress, Upcoming and To do, no date sections, while Overdue is always
   oldest due first. It follows the workspace scope. Opening a card keeps `?view=today` in the URL, so Back returns to it.
 - **NoteCard:** body excerpt, created date, due date (red when overdue), importance, urgency,
   status, category and tag chips (deleted ones greyed), link previews, audio player, a
