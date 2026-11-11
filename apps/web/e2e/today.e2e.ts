@@ -69,6 +69,7 @@ test('an in-progress note with no date stays under "in progress", not in the no-
   await signIn(page);
   const tag = unique('p');
   await seed(page, `wip ${tag}`, null);
+  await seed(page, `todo-nodate ${tag}`, null);
   await page
     .locator('li', { hasText: `wip ${tag}` })
     .getByRole('button', { name: /בתהליך/ })
@@ -77,10 +78,12 @@ test('an in-progress note with no date stays under "in progress", not in the no-
   await expect(page).toHaveURL(/\/\?view=today$/);
   await expect(page.getByRole('region', { name: 'בתהליך' }).getByText(`wip ${tag}`)).toBeVisible();
   const row = page.getByRole('button', { name: /לביצוע, בלי תאריך \(\d+\)/ });
-  if (await row.count()) {
-    await row.click();
-    await expect(
-      page.getByRole('region', { name: 'לביצוע, בלי תאריך' }).getByText(`wip ${tag}`),
-    ).toHaveCount(0);
-  }
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(
+    page.getByRole('region', { name: 'לביצוע, בלי תאריך' }).getByText(`todo-nodate ${tag}`),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'לביצוע, בלי תאריך' }).getByText(`wip ${tag}`),
+  ).toHaveCount(0);
 });
