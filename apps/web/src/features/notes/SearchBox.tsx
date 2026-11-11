@@ -204,8 +204,8 @@ export function SearchBox({
             className={`flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm ${i === active ? 'bg-accent/10' : ''}`}
           >
             {row.color ? (
-              <span className="cat-pill min-h-0 max-w-[20ch] truncate" data-color={row.color}>
-                {row.label}
+              <span className="cat-pill min-h-0 max-w-[20ch]" data-color={row.color}>
+                <span className="truncate">{row.label}</span>
               </span>
             ) : (
               <span className="max-w-[28ch] truncate">{row.label}</span>

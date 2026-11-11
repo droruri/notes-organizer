@@ -160,6 +160,7 @@ export function TaxonomyPicker({
           <Chip
             key={c.id}
             label={c.name}
+            color={c.color}
             selected={value.categoryIds.includes(c.id)}
             className={hiddenOnPhone(c.id)}
             onClick={() => toggleCategory(c.id)}
