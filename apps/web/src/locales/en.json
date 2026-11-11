@@ -264,6 +264,7 @@
     "dueToday": "Due today",
     "inProgress": "In progress",
     "upcoming": "Next 7 days",
+    "noDate": "To do, no date",
     "empty": "Nothing due. Enjoy the quiet.",
     "allNotes": "All notes"
   },

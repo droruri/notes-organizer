@@ -70,13 +70,14 @@ describe('todayGroups', () => {
     expect(ids(g.inProgress)).toEqual([b.id]);
   });
 
-  it('includes due today+7, excludes today+8 and undated todos', () => {
+  it('includes due today+7, excludes today+8; undated todos go to noDate', () => {
     const in7 = note({ dueDate: '2026-11-17' });
     const in8 = note({ dueDate: '2026-11-18' });
     const none = note();
     const g = todayGroups([in7, in8, none], TODAY, 'newest');
     expect(g.upcoming.map((u) => u.date)).toEqual(['2026-11-17']);
-    expect(todayCount(g)).toBe(1);
+    expect(ids(g.noDate)).toEqual([none.id]);
+    expect(todayCount(g)).toBe(2);
   });
 
   it('groups upcoming by date ascending', () => {
@@ -113,5 +114,18 @@ describe('todayGroups', () => {
     const g = todayGroups([a], TODAY, 'newest');
     expect(ids(g.inProgress)).toEqual([a.id]);
     expect(g.upcoming).toEqual([]);
+  });
+
+  it('puts only todo notes with no due date in noDate', () => {
+    const todo = note({ status: 'todo' });
+    const prog = note({ status: 'in_progress' });
+    const none = note({ status: null });
+    const draft = note({ status: 'draft' });
+    const done = note({ status: 'done' });
+    const snoozed = note({ status: 'todo', snoozedUntil: '2026-11-20' });
+    const g = todayGroups([todo, prog, none, draft, done, snoozed], TODAY, 'newest');
+    expect(ids(g.noDate)).toEqual([todo.id]);
+    expect(ids(g.inProgress)).toEqual([prog.id]);
+    expect(todayCount(g)).toBe(2);
   });
 });

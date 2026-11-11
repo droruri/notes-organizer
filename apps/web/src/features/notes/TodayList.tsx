@@ -72,6 +72,11 @@ export function TodayList({
           )}
         </section>
       )}
+      {groups.noDate.length > 0 && (
+        <Section collapsible title={t('today.noDate')} count={groups.noDate.length}>
+          <NoteList notes={groups.noDate} filtered={false} {...list} />
+        </Section>
+      )}
     </div>
   );
 }
