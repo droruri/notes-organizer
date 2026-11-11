@@ -30,3 +30,6 @@ export const updatedDate = (createdAt: string, updatedAt: string, lang: string) 
   const updated = formatDate(updatedAt, lang);
   return updated === formatDate(createdAt, lang) ? null : updated;
 };
+
+/** Today's date in the device's time zone, `YYYY-MM-DD`. */
+export const localToday = () => new Date().toLocaleDateString('en-CA');

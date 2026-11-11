@@ -1,6 +1,6 @@
 import type { Note } from '@notes/shared';
 import { describe, expect, it } from 'vite-plus/test';
-import { todayCount, todayGroups } from './todayGroups';
+import { dueNowCount, todayCount, todayGroups } from './todayGroups';
 
 const TODAY = '2026-11-10';
 let seq = 0;
@@ -127,5 +127,23 @@ describe('todayGroups', () => {
     expect(ids(g.noDate)).toEqual([todo.id]);
     expect(ids(g.inProgress)).toEqual([prog.id]);
     expect(todayCount(g)).toBe(2);
+  });
+});
+
+describe('dueNowCount', () => {
+  it('counts overdue and due today only', () => {
+    const groups = todayGroups(
+      [
+        note({ dueDate: '2026-11-01' }),
+        note({ dueDate: TODAY }),
+        note({ dueDate: '2026-11-12' }),
+        note({ status: 'in_progress' }),
+        note({ dueDate: TODAY, status: 'done' }),
+        note(),
+      ],
+      TODAY,
+      'newest',
+    );
+    expect(dueNowCount(groups)).toBe(2);
   });
 });

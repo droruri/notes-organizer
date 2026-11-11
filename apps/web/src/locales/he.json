@@ -262,6 +262,9 @@
   },
   "today": {
     "title": "היום",
+    "badge_one": "היום, משימה אחת",
+    "badge_two": "היום, {{count}} משימות",
+    "badge_other": "היום, {{count}} משימות",
     "overdue": "באיחור",
     "dueToday": "להיום",
     "inProgress": "בתהליך",

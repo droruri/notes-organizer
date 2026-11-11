@@ -63,6 +63,7 @@ import { Icon } from '../../ui/Icon';
 import { Panes } from '../../ui/Panes';
 import { useScrolledPast } from '../../ui/useScrolledPast';
 import { pushWithTransition, useViewTransitionCommit } from '../../ui/viewTransition';
+import { localToday } from './formatDate';
 import { loadEditor } from './loadEditor';
 import { NoteView } from './NoteView';
 import { NoteFilters } from './NoteFilters';
@@ -100,9 +101,6 @@ const QUICK_ICONS: Record<QuickAction, { icon: 'layers' | 'mic' | 'upload' }> = 
 /** Compose, review and edit slide in as pushed screens. */
 const isPushed = (to: string) =>
   to === ROUTES.compose || to === ROUTES.review || to.startsWith(notePath(''));
-
-/** The client's local date as YYYY-MM-DD. */
-const localToday = () => new Date().toLocaleDateString('en-CA');
 
 /** Key-order-independent equality for two filters (their values are plain JSON). */
 function sameFilter(a: NoteFilter, b: NoteFilter): boolean {

@@ -24,6 +24,7 @@ describe('Sidebar', () => {
           onPick={vi.fn()}
           onSignOut={vi.fn()}
           isAdmin={false}
+          dueCount={0}
         />
       </MemoryRouter>,
     );
@@ -31,6 +32,24 @@ describe('Sidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Beta' }));
     expect(onSwitch).toHaveBeenCalledWith('b');
     expect(screen.getByRole('menuitem', { name: i18n.t('auth.signOut') })).toBeTruthy();
+  });
+
+  it('shows the due count on the Today row', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar
+          workspaces={[]}
+          currentId={undefined}
+          onSwitch={vi.fn()}
+          onManage={vi.fn()}
+          onPick={vi.fn()}
+          onSignOut={vi.fn()}
+          isAdmin={false}
+          dueCount={4}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: i18n.t('today.badge', { count: 4 }) })).toBeTruthy();
   });
 
   it('marks Today active on /?view=today and not Notes, and the reverse on /', () => {
@@ -45,6 +64,7 @@ describe('Sidebar', () => {
             onPick={vi.fn()}
             onSignOut={vi.fn()}
             isAdmin={false}
+            dueCount={0}
           />
         </MemoryRouter>,
       );

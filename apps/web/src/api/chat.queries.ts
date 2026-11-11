@@ -1,8 +1,7 @@
 import type { AgentAction, ChatMessage, ChatPart } from '@notes/shared';
 import { useRef, useState } from 'react';
+import { localToday } from '../features/notes/formatDate';
 import { api } from '../lib/api';
-
-const localToday = () => new Date().toLocaleDateString('en-CA');
 
 /** One chat session: the history, the streaming state and the action cards per answer. */
 export function useChat(locale: string) {
