@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { hydrate, QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const cleared = vi.hoisted(() => [] as number[]);
@@ -13,7 +13,7 @@ vi.mock('idb-keyval', () => ({
 }));
 
 vi.mock('./noteStore', () => ({
-  loadNotes: async () => [{ id: 'n1' }],
+  loadNotes: async () => ({ notes: [{ id: 'n1' }], syncedAt: 1_700_000_000_000 }),
   clearNotes: async () => void cleared.push(1),
 }));
 
@@ -56,8 +56,14 @@ describe('query cache persistence', () => {
   it('adds the device notes as a stale notes query on restore', async () => {
     const restored = await persister.restoreClient();
     const notes = restored?.clientState.queries.find((x) => x.queryKey[0] === 'notes');
-    expect(notes?.state.dataUpdatedAt).toBe(0);
+    expect(notes?.state.dataUpdatedAt).toBe(1_700_000_000_000);
     expect(notes?.state.data).toEqual([{ id: 'n1' }]);
+    // Hydrate the restored state into a real client: the notes query keeps the saved time and is stale.
+    const qc = new QueryClient();
+    hydrate(qc, restored?.clientState ?? { mutations: [], queries: [] });
+    const query = qc.getQueryCache().find({ queryKey: ['notes'], exact: true });
+    expect(query?.state.dataUpdatedAt).toBe(notes?.state.dataUpdatedAt);
+    expect(query?.isStaleByTime(0)).toBe(true);
   });
 
   it('clearCache empties the note store', async () => {

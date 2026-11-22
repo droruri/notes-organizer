@@ -483,5 +483,15 @@
     "notConfigured": "Notifications are not set up on this server.",
     "error": "Could not update notifications. Try again.",
     "hourOption": "{{hour}}:00"
+  },
+  "sync": {
+    "syncing": "Syncing…",
+    "slow": "Server is slow · showing your saved copy from {{time}}",
+    "slowNoTime": "Server is slow · showing your saved copy",
+    "updated_one": "Updated · 1 change",
+    "updated_other": "Updated · {{count}} changes",
+    "upToDate": "Up to date",
+    "failed": "Couldn't refresh ·",
+    "retry": "Retry"
   }
 }

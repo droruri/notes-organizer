@@ -64,7 +64,7 @@ describe('noteStore', () => {
     expect(noteChanges).toHaveBeenCalledWith(undefined);
     expect(out.map((n) => n.id)).toEqual([b.id, c.id, a.id]);
     expect(db.size).toBe(4);
-    expect(await loadNotes()).toEqual(out);
+    expect((await loadNotes())?.notes).toEqual(out);
   });
 
   it('second sync sends the cursor and writes only the changes', async () => {
@@ -77,7 +77,25 @@ describe('noteStore', () => {
     expect(out).toEqual([a2]);
     expect(calls.setMany.at(-1)).toEqual([a.id, '__meta__']);
     expect(calls.delMany.at(-1)).toEqual([b.id]);
-    expect(db.get('__meta__')).toEqual({ version: 1, cursor: 'c2' });
+    expect(db.get('__meta__')).toMatchObject({ version: 1, cursor: 'c2' });
+  });
+
+  it('stores syncedAt with the cursor and loadNotes returns it', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    noteChanges.mockResolvedValue({ notes: [a], deletedIds: [], cursor: 'c1' });
+    await syncNotes(undefined);
+    expect(db.get('__meta__')).toEqual({ version: 1, cursor: 'c1', syncedAt: 1_700_000_000_000 });
+    expect((await loadNotes())?.syncedAt).toBe(1_700_000_000_000);
+    vi.restoreAllMocks();
+  });
+
+  it('loads a store whose meta has no syncedAt, without wiping', async () => {
+    db.set(a.id, a);
+    db.set('__meta__', { version: 1, cursor: 'c1' });
+    const loaded = await loadNotes();
+    expect(loaded?.notes).toEqual([a]);
+    expect(loaded?.syncedAt).toBeUndefined();
+    expect(db.size).toBe(2);
   });
 
   it('wipes the store on an invalid record', async () => {
