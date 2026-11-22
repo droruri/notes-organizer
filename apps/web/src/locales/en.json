@@ -425,6 +425,7 @@
     "pending": "Waiting to be sent ({{count}})",
     "noData": "You're offline — you can still add a note and it will be sent when you're back online.",
     "banner": "You're offline. New notes are saved on this device.",
+    "serverBanner": "The server isn't answering right now. New notes are saved on this device and sent when it answers.",
     "saved": "Saved on this device. It will be sent when you're back online.",
     "saveFailed": "Could not save on this device.",
     "dialogTitle": "Notes waiting to be sent",

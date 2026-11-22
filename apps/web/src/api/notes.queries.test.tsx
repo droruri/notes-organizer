@@ -4,7 +4,13 @@ import type { ReactNode } from 'react';
 import type { Note } from '@notes/shared';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { api } from '../lib/api';
-import { notesKeys, useChangeNoteStatus, useUpdateNote } from './notes.queries';
+import {
+  notesKeys,
+  useChangeNoteStatus,
+  useCreateNote,
+  useCreateVoiceNote,
+  useUpdateNote,
+} from './notes.queries';
 import { taxonomyKeys } from './taxonomy.queries';
 
 afterEach(() => vi.restoreAllMocks());
@@ -66,5 +72,29 @@ describe('useUpdateNote', () => {
     const keys = spy.mock.calls.map(([f]) => f?.queryKey);
     expect(keys).toContainEqual(notesKeys.all);
     expect(keys).toContainEqual(taxonomyKeys.all);
+  });
+});
+
+describe('create hooks', () => {
+  const meta = { clientId: 'c1', today: '2026-10-26', locale: 'en' as const };
+
+  it('useCreateNote passes an abort signal to the request', async () => {
+    const spy = vi.spyOn(api, 'createNote').mockReturnValue(new Promise<never>(() => undefined));
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useCreateNote(), { wrapper });
+    act(() => result.current.mutate({ body: 'x', ...meta }));
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    expect(spy.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+  });
+
+  it('useCreateVoiceNote passes an abort signal to the request', async () => {
+    const spy = vi
+      .spyOn(api, 'createVoiceNote')
+      .mockReturnValue(new Promise<never>(() => undefined));
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useCreateVoiceNote(), { wrapper });
+    act(() => result.current.mutate({ audio: new Blob(['a']), meta }));
+    await waitFor(() => expect(spy).toHaveBeenCalled());
+    expect(spy.mock.calls[0]?.[2]).toBeInstanceOf(AbortSignal);
   });
 });

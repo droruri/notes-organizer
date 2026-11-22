@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { ChecklistItem, Note, NoteEdit, NoteStatus } from '@notes/shared';
-import { api } from '../lib/api';
+import { api, withServerWatch } from '../lib/api';
 import { syncNotes } from '../lib/noteStore';
 import { taxonomyKeys } from './taxonomy.queries';
 
@@ -31,7 +31,8 @@ const patchNote = (qc: QueryClient, saved: Note) =>
 export function useCreateNote() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: Parameters<typeof api.createNote>[0]) => api.createNote(input),
+    mutationFn: (input: Parameters<typeof api.createNote>[0]) =>
+      withServerWatch((signal) => api.createNote(input, signal)),
     onSuccess: () => invalidateTaxonomy(queryClient),
   });
 }
@@ -40,7 +41,7 @@ export function useCreateVoiceNote() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (v: { audio: Blob; meta: Parameters<typeof api.createVoiceNote>[1] }) =>
-      api.createVoiceNote(v.audio, v.meta),
+      withServerWatch((signal) => api.createVoiceNote(v.audio, v.meta, signal)),
     onSuccess: () => invalidateTaxonomy(queryClient),
   });
 }
