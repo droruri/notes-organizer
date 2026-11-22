@@ -24,8 +24,10 @@ function toDone(result: SyncResult, wasVisible: boolean): Done | null {
   return wasVisible ? { kind: 'upToDate' } : null;
 }
 
+// Each icon has its own key so a state change remounts it and `enter-fade` cross-fades the swap.
 const spinner = () => (
   <svg
+    key="spinner"
     aria-hidden="true"
     viewBox="0 0 16 16"
     className="enter-fade size-4 shrink-0 animate-[spin_1s_linear_infinite] motion-reduce:animate-none"
@@ -41,6 +43,7 @@ const spinner = () => (
 
 const icon = (path: string, className: string) => (
   <svg
+    key={path}
     aria-hidden="true"
     viewBox="0 0 16 16"
     className={`enter-fade size-4 shrink-0 ${className}`}

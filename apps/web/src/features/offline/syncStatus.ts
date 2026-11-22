@@ -40,7 +40,12 @@ export function watchNotesSync(queryClient: QueryClient): () => void {
   const cache = queryClient.getQueryCache();
   const unsubscribe = cache.subscribe(() => {
     const query = cache.find<Note[]>({ queryKey: notesKeys.all, exact: true });
-    if (!query) return;
+    if (!query) {
+      // The query was removed mid-fetch (e.g. sign-out): end the transition so the latch can't stick.
+      if (wasFetching) set({ fetching: false, background: false });
+      wasFetching = false;
+      return;
+    }
     const fetching = query.state.fetchStatus === 'fetching';
     if (fetching && !wasFetching) {
       before = query.state.data;
@@ -62,7 +67,7 @@ export function watchNotesSync(queryClient: QueryClient): () => void {
             count: changedIds.length + removed,
           },
         });
-      } else if (status === 'error') {
+      } else if (status === 'error' && background) {
         const err = query.state.error;
         set({
           fetching: false,

@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { hydrate, QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
 const cleared = vi.hoisted(() => [] as number[]);
@@ -58,15 +58,12 @@ describe('query cache persistence', () => {
     const notes = restored?.clientState.queries.find((x) => x.queryKey[0] === 'notes');
     expect(notes?.state.dataUpdatedAt).toBe(1_700_000_000_000);
     expect(notes?.state.data).toEqual([{ id: 'n1' }]);
-    // Stale: a restored query with default staleTime 0 refetches on mount.
+    // Hydrate the restored state into a real client: the notes query keeps the saved time and is stale.
     const qc = new QueryClient();
-    qc.setQueryData(['notes'], [], { updatedAt: notes?.state.dataUpdatedAt ?? 0 });
-    expect(
-      qc
-        .getQueryCache()
-        .find({ queryKey: ['notes'] })
-        ?.isStaleByTime(0),
-    ).toBe(true);
+    hydrate(qc, restored?.clientState ?? { mutations: [], queries: [] });
+    const query = qc.getQueryCache().find({ queryKey: ['notes'], exact: true });
+    expect(query?.state.dataUpdatedAt).toBe(notes?.state.dataUpdatedAt);
+    expect(query?.isStaleByTime(0)).toBe(true);
   });
 
   it('clearCache empties the note store', async () => {
