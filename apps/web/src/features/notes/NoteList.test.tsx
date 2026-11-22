@@ -2,7 +2,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 import type { Note } from '@notes/shared';
 import { i18n } from '../../lib/i18n';
+import { useNotesSync, type SyncState } from '../offline/syncStatus';
 import { NoteList } from './NoteList';
+
+vi.mock('../offline/syncStatus', () => ({ useNotesSync: vi.fn(() => ({})) }));
 
 beforeEach(async () => {
   await i18n.changeLanguage('en');
@@ -153,5 +156,60 @@ describe('NoteList', () => {
       screen.getByText('note 2');
       expect(screen.queryByRole('button', { name: /^Done \(/ })).toBeNull();
     });
+  });
+});
+
+describe('NoteList fresh highlight', () => {
+  const mk = (id: string) =>
+    ({
+      id,
+      clientId: id,
+      title: null,
+      body: `note ${id}`,
+      status: null,
+      workspaceId: 'w',
+      dueDate: null,
+      snoozedUntil: null,
+      remindAt: null,
+      categoryIds: [],
+      attachments: [],
+      checklist: [],
+    }) as unknown as Note;
+  const notes = [mk('a'), mk('b')];
+  const sync = (state: SyncState) => vi.mocked(useNotesSync).mockReturnValue(state);
+  const fresh = (c: HTMLElement) => c.querySelectorAll('li.note-fresh');
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.mocked(useNotesSync).mockReturnValue({ fetching: false, background: false });
+  });
+
+  it('marks only the changed card, and clears it after 1.5 s', () => {
+    sync({
+      fetching: false,
+      background: true,
+      result: { at: Date.now(), changedIds: new Set(['a']), count: 1 },
+    });
+    const { container } = render(<NoteList {...props} notes={notes} filtered={false} />);
+    expect(fresh(container)).toHaveLength(1);
+    expect(fresh(container)[0]?.textContent).toContain('note a');
+    act(() => void vi.advanceTimersByTime(1500));
+    expect(fresh(container)).toHaveLength(0);
+  });
+
+  it('does not mark a result older than the window', () => {
+    sync({
+      fetching: false,
+      background: true,
+      result: { at: Date.now() - 2000, changedIds: new Set(['a']), count: 1 },
+    });
+    const { container } = render(<NoteList {...props} notes={notes} filtered={false} />);
+    expect(fresh(container)).toHaveLength(0);
+  });
+
+  it('does not mark anything without a background result (mutation refresh)', () => {
+    sync({ fetching: false, background: false });
+    const { container } = render(<NoteList {...props} notes={notes} filtered={false} />);
+    expect(fresh(container)).toHaveLength(0);
   });
 });

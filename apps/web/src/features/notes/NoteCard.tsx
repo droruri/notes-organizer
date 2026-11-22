@@ -31,6 +31,7 @@ export const NoteCard = memo(function NoteCard({
   statusPending = false,
   workspaceName,
   selected = false,
+  fresh = false,
 }: {
   note: Note;
   taxonomy: Taxonomy;
@@ -51,6 +52,8 @@ export const NoteCard = memo(function NoteCard({
   workspaceName?: string | undefined;
   /** Open in the detail pane. */
   selected?: boolean;
+  /** Added or changed by the last background sync: fades an accent tint once. */
+  fresh?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -64,7 +67,7 @@ export const NoteCard = memo(function NoteCard({
   return (
     <li
       aria-current={selected ? 'true' : undefined}
-      className={`card slip [contain-intrinsic-size:auto_9rem] [content-visibility:auto] ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5 ${selected ? 'ring-2 ring-accent' : ''}`}
+      className={`card slip [contain-intrinsic-size:auto_9rem] [content-visibility:auto] ${statusClass(note.status)} flex flex-col gap-3 p-4 ps-5 ${selected ? 'ring-2 ring-accent' : ''} ${fresh ? 'note-fresh' : ''}`}
     >
       <div className="flex items-start gap-1">
         <button
