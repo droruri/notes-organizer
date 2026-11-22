@@ -227,6 +227,7 @@ export function withServerWatch<T>(send: (signal: AbortSignal) => Promise<T>): P
   const watchdog = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
       api.health(AbortSignal.timeout(PROBE_MS)).catch(() => {
+        if (settled) return;
         gaveUp = true;
         console.warn('create note: server not answering; queued');
         controller.abort();
