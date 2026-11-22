@@ -222,6 +222,7 @@ export const PROBE_MS = 3000;
 export function withServerWatch<T>(send: (signal: AbortSignal) => Promise<T>): Promise<T> {
   const controller = new AbortController();
   let gaveUp = false;
+  let settled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const watchdog = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
@@ -239,7 +240,10 @@ export function withServerWatch<T>(send: (signal: AbortSignal) => Promise<T>): P
       throw err;
     }),
     watchdog,
-  ]).finally(() => clearTimeout(timer));
+  ]).finally(() => {
+    settled = true;
+    clearTimeout(timer);
+  });
 }
 
 export const api = {

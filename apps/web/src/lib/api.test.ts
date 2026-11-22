@@ -62,7 +62,7 @@ describe('withServerWatch', () => {
   });
 
   it('keeps waiting when health answers', async () => {
-    const health = vi.spyOn(api, 'health').mockResolvedValue({ ok: true } as never);
+    const health = vi.spyOn(api, 'health').mockResolvedValue({ ok: true });
     const s = pending<string>();
     const p = withServerWatch(s.send);
     await vi.advanceTimersByTimeAsync(SLOW_SAVE_MS + 1);

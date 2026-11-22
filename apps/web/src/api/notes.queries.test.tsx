@@ -79,7 +79,7 @@ describe('create hooks', () => {
   const meta = { clientId: 'c1', today: '2026-10-26', locale: 'en' as const };
 
   it('useCreateNote passes an abort signal to the request', async () => {
-    const spy = vi.spyOn(api, 'createNote').mockResolvedValue({} as never);
+    const spy = vi.spyOn(api, 'createNote').mockReturnValue(new Promise<never>(() => undefined));
     const { wrapper } = setup();
     const { result } = renderHook(() => useCreateNote(), { wrapper });
     act(() => result.current.mutate({ body: 'x', ...meta }));
@@ -88,7 +88,9 @@ describe('create hooks', () => {
   });
 
   it('useCreateVoiceNote passes an abort signal to the request', async () => {
-    const spy = vi.spyOn(api, 'createVoiceNote').mockResolvedValue({} as never);
+    const spy = vi
+      .spyOn(api, 'createVoiceNote')
+      .mockReturnValue(new Promise<never>(() => undefined));
     const { wrapper } = setup();
     const { result } = renderHook(() => useCreateVoiceNote(), { wrapper });
     act(() => result.current.mutate({ audio: new Blob(['a']), meta }));
