@@ -6,6 +6,7 @@ import { ApiNetworkError, ApiRequestError } from '../../lib/api';
 import { clearCache } from '../../lib/queryPersist';
 import { auth } from '../../lib/supabase';
 import { AuthContext, type AuthState } from './authContext';
+import { clearLastAccess, readLastAccess, saveLastAccess } from './lastAccess';
 
 /** Why a session was refused (or not): the API decides, via 403 not_allowed on /me. */
 async function checkAccess(
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signedOut = () => {
       access.current = null;
       userId.current = null;
+      clearLastAccess();
       void clearCache(queryClient);
       setState('signedOut');
     };
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Another user on this device: the cache and the last access belong to the previous one.
       if (userId.current !== null && userId.current !== session.user.id) {
         access.current = null;
+        clearLastAccess();
         // Drop the previous user's /me synchronously: clearCache awaits IndexedDB first, and a
         // fetchQuery started meanwhile would otherwise join that user's in-flight request.
         queryClient.removeQueries({ queryKey: meKeys.all });
@@ -52,9 +55,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Loading shows only while access for this user is unknown (first load, sign-in after
       // sign-out, a different user). Otherwise (token refresh, or auth-js re-emitting
       // SIGNED_IN on tab refocus) re-check quietly so the screens and typed text stay mounted.
+      // After a reload, the last known access for this user stands in until /me answers.
+      if (access.current === null) {
+        const last = readLastAccess(session.user.id);
+        if (last) {
+          access.current = { state: 'allowed', isAdmin: last.isAdmin };
+          setIsAdmin(last.isAdmin);
+          setState('allowed');
+        }
+      }
       const quiet = access.current !== null;
       if (!quiet) setState('loading');
+      // Only a real /me answer is stored; the offline fallback below is not verified.
+      let verified = false;
       checkAccess(queryClient)
+        .then((result) => {
+          verified = true;
+          return result;
+        })
         .catch((err: unknown) => {
           // Offline with a session: keep the last known access, else assume allowed.
           // The API still checks every request, so this grants nothing server-side.
@@ -66,6 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .then((result) => {
           if (cancelled) return;
+          if (result.state === 'allowed') {
+            if (verified) saveLastAccess(session.user.id, result.isAdmin);
+          } else if (quiet) {
+            // Access revoked: don't keep the device copy.
+            clearLastAccess();
+            void clearCache(queryClient);
+          }
           access.current = result;
           setIsAdmin(result.isAdmin);
           setState(result.state);
