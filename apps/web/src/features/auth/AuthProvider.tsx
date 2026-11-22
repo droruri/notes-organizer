@@ -66,7 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const quiet = access.current !== null;
       if (!quiet) setState('loading');
+      // Only a real /me answer is stored; the offline fallback below is not verified.
+      let verified = false;
       checkAccess(queryClient)
+        .then((result) => {
+          verified = true;
+          return result;
+        })
         .catch((err: unknown) => {
           // Offline with a session: keep the last known access, else assume allowed.
           // The API still checks every request, so this grants nothing server-side.
@@ -78,8 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .then((result) => {
           if (cancelled) return;
-          if (result.state === 'allowed') saveLastAccess(session.user.id, result.isAdmin);
-          else if (quiet) {
+          if (result.state === 'allowed') {
+            if (verified) saveLastAccess(session.user.id, result.isAdmin);
+          } else if (quiet) {
             // Access revoked: don't keep the device copy.
             clearLastAccess();
             void clearCache(queryClient);

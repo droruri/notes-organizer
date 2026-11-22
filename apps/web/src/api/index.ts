@@ -9,3 +9,4 @@ export * from './attachments.queries';
 export * from './notes.queries';
 export * from './auth.queries';
 export * from './chat.queries';
+export { useIsRestoring } from '@tanstack/react-query';

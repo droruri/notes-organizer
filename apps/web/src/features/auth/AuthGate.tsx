@@ -1,6 +1,6 @@
-import { useIsRestoring } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useIsRestoring } from '../../api';
 import { useAuth } from './authContext';
 import { NoAccess } from './NoAccess';
 import { SignIn } from './SignIn';
