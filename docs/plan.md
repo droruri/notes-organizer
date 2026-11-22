@@ -382,6 +382,12 @@ and Re-analyze are the safety net.
 - Back online with a non-empty outbox → `OutboxDialog` lists the items; each opens in the
   NoteEditor; Confirm → `POST /notes` with its `clientId` (idempotent, safe to retry) → the
   returned draft continues in the normal review → the item leaves the outbox.
+- **Slow server:** a new note (text or voice) with no answer after 8 s triggers a 3 s `/health`
+  probe (`withServerWatch` in `lib/api.ts`, used by the create hooks). Probe fails → the request is
+  aborted and rejects with `ApiNetworkError`, so the existing outbox path queues it (same
+  `clientId`, idempotent resend). Probe answers (AI just slow) → keep waiting. Any successful
+  query ends the 30 s offline window early (`reportServerReachable`, `QueryCache.onSuccess`).
+  While `navigator.onLine` but `useOnline()` is false the banner says the server isn't answering.
 - The app shell is precached by `vite-plugin-pwa`. The React Query cache for notes, taxonomy and
   settings is persisted to IndexedDB (`lib/queryPersist.ts`, 7 days), parsed against the shared
   schemas on restore, so the last-synced notes are readable offline after a cold start. Sign-out

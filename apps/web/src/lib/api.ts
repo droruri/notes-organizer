@@ -82,6 +82,7 @@ async function request<T>(
   path: string,
   schema: z.ZodType<T>,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const token = path === '/health' ? null : await accessToken();
   const headers: Record<string, string> = {};
@@ -93,6 +94,7 @@ async function request<T>(
     method,
     headers,
     ...(body !== undefined ? { body: isForm ? body : JSON.stringify(body) } : {}),
+    ...(signal ? { signal } : {}),
   });
   const json: unknown = await res.json().catch(() => undefined);
   if (!res.ok) {
@@ -111,7 +113,11 @@ async function request<T>(
 const NoContent = z.undefined();
 
 /** `POST /notes` with a recording: the server transcribes it and drafts the note. */
-function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<NoteCreated> {
+function createVoiceNote(
+  audio: Blob,
+  meta: Omit<NoteCreate, 'body'>,
+  signal?: AbortSignal,
+): Promise<NoteCreated> {
   const form = new FormData();
   form.set('clientId', meta.clientId);
   form.set('today', meta.today);
@@ -119,7 +125,7 @@ function createVoiceNote(audio: Blob, meta: Omit<NoteCreate, 'body'>): Promise<N
   if (meta.title) form.set('title', meta.title);
   if (meta.workspaceId) form.set('workspaceId', meta.workspaceId);
   form.set('audio', audio, 'voice');
-  return request('POST', '/notes', NoteCreated, form);
+  return request('POST', '/notes', NoteCreated, form, signal);
 }
 
 /** Bytes of an authenticated GET (an `<audio>`/`<img>` tag cannot send the bearer token). */
@@ -203,6 +209,39 @@ async function chat(
   }
 }
 
+/** No answer to a save after this long, and the server is suspected asleep. */
+export const SLOW_SAVE_MS = 8000;
+/** How long the `/health` probe gets before the server counts as not answering. */
+export const PROBE_MS = 3000;
+
+/**
+ * Runs a save, and if it has no answer after SLOW_SAVE_MS probes `/health`. A server that
+ * doesn't answer the probe either is asleep: the save is aborted and rejects with
+ * `ApiNetworkError`, so the caller queues it. A slow AI answer (health OK) keeps waiting.
+ */
+export function withServerWatch<T>(send: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  let gaveUp = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const watchdog = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      api.health(AbortSignal.timeout(PROBE_MS)).catch(() => {
+        gaveUp = true;
+        console.warn('create note: server not answering; queued');
+        controller.abort();
+        reject(new ApiNetworkError('server not answering'));
+      });
+    }, SLOW_SAVE_MS);
+  });
+  return Promise.race([
+    send(controller.signal).catch((err: unknown) => {
+      if (gaveUp) throw new ApiNetworkError('server not answering');
+      throw err;
+    }),
+    watchdog,
+  ]).finally(() => clearTimeout(timer));
+}
+
 export const api = {
   chat,
   me: () => request('GET', '/me', Me),
@@ -216,7 +255,7 @@ export const api = {
     const query = since ? `?${new URLSearchParams({ since })}` : '';
     return request('GET', `/notes/changes${query}`, NoteChanges);
   },
-  health: () => request('GET', '/health', HealthResponse),
+  health: (signal?: AbortSignal) => request('GET', '/health', HealthResponse, undefined, signal),
   settings: () => request('GET', '/settings', Settings),
   subscribePush: (sub: PushSubscriptionBody) =>
     request('POST', '/push/subscriptions', NoContent, sub),
@@ -249,7 +288,8 @@ export const api = {
   deleteTag: (id: string) => request('DELETE', `/tags/${id}`, NoContent),
   restoreTag: (id: string) => request('POST', `/tags/${id}/restore`, Tag),
   notes: () => request('GET', '/notes', NoteList),
-  createNote: (input: NoteCreate) => request('POST', '/notes', NoteCreated, input),
+  createNote: (input: NoteCreate, signal?: AbortSignal) =>
+    request('POST', '/notes', NoteCreated, input, signal),
   createVoiceNote,
   noteAudio,
   uploadAttachment,

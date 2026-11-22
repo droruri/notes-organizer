@@ -13,16 +13,23 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
 
   // Cut the API (the dev server still serves the shell), then cold-start the screen.
   const cut = (route: import('@playwright/test').Route) => route.abort('internetdisconnected');
-  await page.route(/\/(notes\/changes|taxonomy|settings)(\?|$)/, cut);
+  // Every API request is cut: a request the server still answered would end the offline window.
+  const apiOnly = (url: URL) => url.origin !== new URL(page.url()).origin;
+  await page.route(apiOnly, cut);
   await page.reload();
-  await expect(page.getByRole('status').filter({ hasText: 'אין חיבור' }).first()).toBeVisible();
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: /אין חיבור|השרת לא עונה/ })
+      .first(),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'פתק חדש' }).click();
   await page.getByRole('textbox', { name: 'טקסט' }).fill(body);
   await page.getByRole('button', { name: 'הצע סיווג' }).click();
   await expect(page.getByText('נשמר במכשיר')).toBeVisible();
 
   // Back online: reload with the API reachable; the outbox dialog offers the note.
-  await page.unroute(/\/(notes\/changes|taxonomy|settings)(\?|$)/, cut);
+  await page.unroute(apiOnly, cut);
   await page.reload();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('dialog').getByText(body).click();

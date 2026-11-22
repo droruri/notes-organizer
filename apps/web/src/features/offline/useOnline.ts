@@ -8,7 +8,8 @@ let retry: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
-function clearFailure() {
+/** Call when the server answered: ends an offline window early. */
+export function reportServerReachable() {
   clearTimeout(retry);
   retry = undefined;
   if (!failed) return;
@@ -23,12 +24,12 @@ export function reportNetworkFailure() {
     emit();
   }
   clearTimeout(retry);
-  retry = setTimeout(clearFailure, RETRY_MS);
+  retry = setTimeout(reportServerReachable, RETRY_MS);
 }
 
 function subscribe(listener: () => void) {
   const onOnline = () => {
-    clearFailure();
+    reportServerReachable();
     listener();
   };
   listeners.add(listener);
