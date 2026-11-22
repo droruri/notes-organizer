@@ -401,6 +401,9 @@ and Re-analyze are the safety net.
   offline (the banner owns that). `noteStore` Meta keeps `syncedAt` (optional, `VERSION` stays 1);
   restored notes get `dataUpdatedAt = syncedAt`, still stale. Only the non-syncing states are in
   the `aria-live` region.
+- **Fresh highlight** (`NoteList` → `NoteCard fresh`): notes in the last *background* sync's
+  `changedIds` get a one-time `--color-accent-soft` → card background fade (1.2 s, `.note-fresh`;
+  colour only, so reduced motion keeps it). `NoteList` clears the flag 1.5 s after the result's `at`.
 
 ## Android
 

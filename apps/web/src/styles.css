@@ -847,6 +847,17 @@
   }
 }
 
+/* One-shot tint for notes a background sync changed: accent-soft fades back to the card's own
+   background (no `to` frame, no fill). Colour only, no movement or scale, so reduced motion keeps it. */
+.note-fresh {
+  animation: note-fresh 1200ms var(--ease-out);
+}
+@keyframes note-fresh {
+  from {
+    background-color: var(--color-accent-soft);
+  }
+}
+
 @keyframes spin {
   to {
     rotate: 360deg;

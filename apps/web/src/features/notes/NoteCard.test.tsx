@@ -46,7 +46,7 @@ const taxonomy = {
   ],
 };
 
-function renderCard(onOpen = vi.fn(), card: Note = note) {
+function renderCard(onOpen = vi.fn(), card: Note = note, fresh?: boolean) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -59,6 +59,7 @@ function renderCard(onOpen = vi.fn(), card: Note = note) {
           onOpen={onOpen}
           onStatus={vi.fn()}
           hiddenStatuses={[]}
+          {...(fresh === undefined ? {} : { fresh })}
         />
       </ul>
     </QueryClientProvider>,
@@ -366,5 +367,15 @@ describe('NoteCard checklist', () => {
     fireEvent.pointerEnter(open);
     fireEvent.focus(open);
     expect(loadEditor).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('NoteCard fresh', () => {
+  it('adds the highlight class only when fresh', () => {
+    renderCard(vi.fn(), note, true);
+    expect(document.querySelector('li.note-fresh')).not.toBeNull();
+    cleanup();
+    renderCard();
+    expect(document.querySelector('li.note-fresh')).toBeNull();
   });
 });

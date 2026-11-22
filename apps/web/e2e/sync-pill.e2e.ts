@@ -39,3 +39,47 @@ test('one note changed on the server reads "עודכן · …"', async ({ page, 
   // ("שינוי אחד") is covered by the SyncPill unit test.
   await expect(page.getByText(/^עודכן · (שינוי אחד|\d+ שינויים)$/)).toBeVisible({ timeout: 8000 });
 });
+
+test('a note changed on the server is highlighted after the sync, others are not', async ({
+  page,
+  browser,
+}) => {
+  await signIn(page);
+  const body = unique('fresh');
+  await composeNote(page, body);
+  const saved = page.waitForResponse(
+    (r) =>
+      r.request().method() === 'PATCH' && /\/notes\/[0-9a-f-]+$/.test(new URL(r.url()).pathname),
+  );
+  await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+  const id = new URL((await saved).url()).pathname.split('/').pop() ?? '';
+  expect(id).toMatch(/^[0-9a-f-]+$/);
+  await expect(page.locator('ul.gap-3 > li', { hasText: body })).toBeVisible();
+  const stable = unique('stable');
+  await composeNote(page, stable);
+  await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+  await expect(page.locator('ul.gap-3 > li', { hasText: stable })).toBeVisible();
+  await page.waitForTimeout(1500);
+
+  const title = unique('edited');
+  // A second session edits that note (a title replaces the body on the card), so its updatedAt differs from the cached one.
+  const other = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const otherPage = await other.newPage();
+  await signIn(otherPage);
+  await otherPage.goto(`/notes/${id}/edit`);
+  await otherPage.getByRole('textbox', { name: 'כותרת' }).fill(title);
+  const patched = otherPage.waitForResponse((r) => r.request().method() === 'PATCH');
+  await otherPage.getByRole('button', { name: 'שמירה', exact: true }).click();
+  await patched;
+  await other.close();
+
+  await page.route('**/notes/changes*', async (route) => {
+    await new Promise((r) => setTimeout(r, 300));
+    await route.continue().catch(() => undefined);
+  });
+  await page.reload();
+  const card = page.locator('ul.gap-3 > li', { hasText: title });
+  await expect(card).toHaveClass(/note-fresh/, { timeout: 8000 });
+  await expect(page.locator('ul.gap-3 > li', { hasText: stable })).not.toHaveClass(/note-fresh/);
+  await expect(card).not.toHaveClass(/note-fresh/, { timeout: 4000 });
+});

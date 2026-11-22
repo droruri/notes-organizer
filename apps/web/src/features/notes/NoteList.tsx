@@ -3,9 +3,13 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../ui/Icon';
 import { Section } from '../../ui/Section';
+import { useTimeout } from '../../ui/useTimeout';
+import { useNotesSync } from '../offline/syncStatus';
 import { NoteCard } from './NoteCard';
 
 const PAGE = 50;
+/** How long a card counts as fresh after the sync that changed it (the CSS fade is 1.2 s). */
+const FRESH_MS = 1500;
 
 type CategoryOrder = Map<string, { c: Category; i: number }>;
 
@@ -61,6 +65,16 @@ export const NoteList = memo(function NoteList({
   foldDone?: boolean;
 }) {
   const { t } = useTranslation();
+  const { result } = useNotesSync();
+  // A result already older than the window when this list mounted must not flash.
+  const [mountedAt] = useState(() => Date.now());
+  const [expiredAt, setExpiredAt] = useState<number | null>(null);
+  const syncAt = result && !result.failed ? result.at : null;
+  useTimeout(syncAt, () => setExpiredAt(syncAt), FRESH_MS);
+  const freshIds =
+    result && !result.failed && expiredAt !== result.at && result.at > mountedAt - FRESH_MS
+      ? result.changedIds
+      : null;
   const split = useMemo(() => {
     if (!foldDone) return null;
     const open = notes.filter((n) => n.status !== 'done');
@@ -163,6 +177,7 @@ export const NoteList = memo(function NoteList({
           statusPending={statusPendingId === n.id}
           workspaceName={workspaceNames?.get(n.workspaceId)}
           selected={selectedId === n.id}
+          fresh={freshIds?.has(n.id) ?? false}
         />
       ))}
       {more && <li ref={sentinel} aria-hidden className="h-px" />}
