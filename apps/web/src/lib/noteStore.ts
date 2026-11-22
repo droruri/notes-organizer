@@ -7,7 +7,12 @@ import { api } from './api';
 const VERSION = 1;
 const META_KEY = '__meta__';
 
-const Meta = z.object({ version: z.literal(VERSION), cursor: z.string() });
+const Meta = z.object({
+  version: z.literal(VERSION),
+  cursor: z.string(),
+  // Optional so stores written before it existed stay valid.
+  syncedAt: z.number().optional(),
+});
 
 let store: ReturnType<typeof createStore> | undefined;
 const db = () => (store ??= createStore('notes-device-store', 'notes'));
@@ -20,7 +25,7 @@ export async function clearNotes(): Promise<void> {
 }
 
 /** The device copy of the notes, or undefined (store wiped) when it can't be trusted. */
-export async function loadNotes(): Promise<Note[] | undefined> {
+export async function loadNotes(): Promise<{ notes: Note[]; syncedAt?: number } | undefined> {
   try {
     const all = await entries(db());
     if (all.length === 0) return undefined;
@@ -36,12 +41,14 @@ export async function loadNotes(): Promise<Note[] | undefined> {
       if (parsed.success) notes.push(parsed.data);
       else dropped++;
     }
-    if (dropped > 0 || !Meta.safeParse(meta).success) {
+    const parsedMeta = Meta.safeParse(meta);
+    if (dropped > 0 || !parsedMeta.success) {
       console.warn(`note store: wiped, ${dropped} invalid record(s) or missing/old metadata`);
       await clearNotes();
       return undefined;
     }
-    return notes.sort(byNewest);
+    const syncedAt = parsedMeta.data.syncedAt;
+    return { notes: notes.sort(byNewest), ...(syncedAt !== undefined ? { syncedAt } : {}) };
   } catch (err) {
     console.warn('note store: could not read', err);
     return undefined;
@@ -73,7 +80,7 @@ export async function syncNotes(current: Note[] | undefined): Promise<Note[]> {
     await setMany(
       [
         ...changes.notes.map((n): [string, unknown] => [n.id, n]),
-        [META_KEY, { version: VERSION, cursor: changes.cursor }],
+        [META_KEY, { version: VERSION, cursor: changes.cursor, syncedAt: Date.now() }],
       ],
       db(),
     );

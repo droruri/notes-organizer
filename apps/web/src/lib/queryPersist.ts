@@ -80,16 +80,17 @@ export const persister: Persister = {
   restoreClient: async () => {
     try {
       const saved = parsePersisted(await get(KEY));
-      const notes = await loadNotes();
-      if (!notes) return saved;
+      const device = await loadNotes();
+      if (!device) return saved;
       const client: PersistedClient = saved ?? {
         timestamp: Date.now(),
         buster: '',
         clientState: { mutations: [], queries: [] },
       };
-      // dataUpdatedAt 0 makes it stale, so it syncs right after first paint.
+      // dataUpdatedAt is the real last-sync time (0 for an old store). staleTime is 0, so the
+      // restored notes are stale either way and sync right after first paint.
       const qc = new QueryClient();
-      qc.setQueryData(notesKeys.all, notes, { updatedAt: 0 });
+      qc.setQueryData(notesKeys.all, device.notes, { updatedAt: device.syncedAt ?? 0 });
       client.clientState.queries.push(...dehydrate(qc).queries);
       return client;
     } catch (err) {

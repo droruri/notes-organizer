@@ -391,6 +391,16 @@ and Re-analyze are the safety net.
   (`localStorage` `notes-last-access-v1`, `{userId, isAdmin}`, only `allowed` is stored, Zod-parsed,
   cleared on sign-out, user switch and revoke). `/me` is re-checked in the background; a 403 there
   wipes the cache.
+- **Sync pill** (`features/offline/SyncPill.tsx`, state in `syncStatus.ts`): a fixed pill at the
+  top for the notes sync. `watchNotesSync` (wired in `App.tsx`) marks a fetch as *background* when
+  cached data exists and no mutation is in flight (the first load and the user's own saves show
+  nothing). Background sync ≥ 1 s → "מתעדכן…"; ≥ 8 s → slow text with the saved time
+  (`dataUpdatedAt`); success with changes (`diffNotes`: new/changed `updatedAt`/removed) →
+  "עודכן · N שינויים" for 2.5 s; success with 0 changes after the pill was visible → "הכל מעודכן"
+  2.5 s; non-network failure after it was visible → "לא הצלחנו לעדכן" + retry, 6 s. Hidden while
+  offline (the banner owns that). `noteStore` Meta keeps `syncedAt` (optional, `VERSION` stays 1);
+  restored notes get `dataUpdatedAt = syncedAt`, still stale. Only the non-syncing states are in
+  the `aria-live` region.
 
 ## Android
 

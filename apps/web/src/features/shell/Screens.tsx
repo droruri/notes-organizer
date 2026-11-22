@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router';
 import { useWorkspaces } from '../../api';
 import { useAuth } from '../auth/authContext';
+import { SyncPill } from '../offline/SyncPill';
 import { NotesScreen } from '../notes/NotesScreen';
 import { Loading } from '../../ui/Loading';
 import { OverlayFallback } from '../../ui/OverlayFallback';
@@ -61,6 +62,7 @@ export function Screens() {
   };
   return (
     <>
+      <SyncPill />
       <TabBar onPick={pick} />
       <Sidebar
         workspaces={workspaces.data ?? []}

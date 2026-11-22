@@ -13,7 +13,7 @@ vi.mock('idb-keyval', () => ({
 }));
 
 vi.mock('./noteStore', () => ({
-  loadNotes: async () => [{ id: 'n1' }],
+  loadNotes: async () => ({ notes: [{ id: 'n1' }], syncedAt: 1_700_000_000_000 }),
   clearNotes: async () => void cleared.push(1),
 }));
 
@@ -56,8 +56,17 @@ describe('query cache persistence', () => {
   it('adds the device notes as a stale notes query on restore', async () => {
     const restored = await persister.restoreClient();
     const notes = restored?.clientState.queries.find((x) => x.queryKey[0] === 'notes');
-    expect(notes?.state.dataUpdatedAt).toBe(0);
+    expect(notes?.state.dataUpdatedAt).toBe(1_700_000_000_000);
     expect(notes?.state.data).toEqual([{ id: 'n1' }]);
+    // Stale: a restored query with default staleTime 0 refetches on mount.
+    const qc = new QueryClient();
+    qc.setQueryData(['notes'], [], { updatedAt: notes?.state.dataUpdatedAt ?? 0 });
+    expect(
+      qc
+        .getQueryCache()
+        .find({ queryKey: ['notes'] })
+        ?.isStaleByTime(0),
+    ).toBe(true);
   });
 
   it('clearCache empties the note store', async () => {
