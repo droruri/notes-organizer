@@ -63,6 +63,7 @@ async function fire(event: string, s: Session | null) {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   h.me.mockReset();
   // A never-settling /me from one test must not be joined by the next test's fetch.
   h.client?.getQueryCache().clear();
@@ -221,5 +222,72 @@ describe('AuthProvider', () => {
     await fire('SIGNED_IN', otherSession);
     expect(h.clear).toHaveBeenCalledTimes(1);
     expect(h.del).toHaveBeenCalledWith('notes-query-cache-v1');
+  });
+
+  describe('last known access', () => {
+    const store = (userId: string, isAdmin: boolean) =>
+      localStorage.setItem('notes-last-access-v1', JSON.stringify({ userId, isAdmin }));
+
+    it('renders children before /me resolves, with isAdmin from the record', async () => {
+      store('u1', true);
+      h.me.mockReturnValue(new Promise(() => {}));
+      render(
+        <AuthProvider>
+          <AuthGate>
+            <Probe />
+          </AuthGate>
+        </AuthProvider>,
+      );
+      await fire('INITIAL_SESSION', session);
+      expect(screen.getByTestId('p').textContent).toBe('allowed:true');
+    });
+
+    it('a 403 on the background check clears the record and the cache', async () => {
+      store('u1', false);
+      h.clear.mockClear();
+      h.me.mockRejectedValue(new ApiRequestError(403, undefined, 'no'));
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+      await fire('INITIAL_SESSION', session);
+      expect(screen.getByTestId('p').textContent).toBe('notAllowed:false');
+      expect(localStorage.getItem('notes-last-access-v1')).toBeNull();
+      expect(h.clear).toHaveBeenCalled();
+    });
+
+    it('shows loading first with no record or a record for another user', async () => {
+      for (const setup of [() => {}, () => store('u2', true)]) {
+        localStorage.clear();
+        setup();
+        h.me.mockReturnValue(new Promise(() => {}));
+        h.client?.getQueryCache().clear();
+        render(
+          <AuthProvider>
+            <Probe />
+          </AuthProvider>,
+        );
+        await fire('INITIAL_SESSION', session);
+        expect(screen.getByTestId('p').textContent).toBe('loading:false');
+        cleanup();
+      }
+    });
+
+    it('a successful check saves the record; sign-out clears it', async () => {
+      h.me.mockResolvedValue({ isAdmin: true });
+      render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+      await fire('INITIAL_SESSION', session);
+      expect(JSON.parse(localStorage.getItem('notes-last-access-v1') ?? 'null')).toEqual({
+        userId: 'u1',
+        isAdmin: true,
+      });
+      await fire('SIGNED_OUT', null);
+      expect(localStorage.getItem('notes-last-access-v1')).toBeNull();
+    });
   });
 });

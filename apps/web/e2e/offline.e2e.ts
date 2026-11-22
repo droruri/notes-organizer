@@ -15,7 +15,7 @@ test('a note added offline from a cold start is queued, then sent on reconnect',
   const cut = (route: import('@playwright/test').Route) => route.abort('internetdisconnected');
   await page.route(/\/(notes\/changes|taxonomy|settings)(\?|$)/, cut);
   await page.reload();
-  await expect(page.getByRole('status').filter({ hasText: 'אין חיבור' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'אין חיבור' }).first()).toBeVisible();
   await page.getByRole('button', { name: 'פתק חדש' }).click();
   await page.getByRole('textbox', { name: 'טקסט' }).fill(body);
   await page.getByRole('button', { name: 'הצע סיווג' }).click();
@@ -38,7 +38,7 @@ test('saved notes show offline after a reload, with the waiting section', async 
   await page.goto('/');
   await page.getByRole('button', { name: 'כניסת פיתוח' }).click();
   await expect(page.getByRole('heading', { name: 'כללי', exact: true })).toBeVisible();
-  const countText = page.getByText(/^\d+ פתקים$/).first();
+  const countText = page.getByText(/^(\d+ פתקים|פתק אחד)$/).first();
   const count = await countText.textContent();
   // Let the persister flush to IndexedDB, then go offline and cold-start.
   await expect

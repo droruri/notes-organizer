@@ -387,6 +387,10 @@ and Re-analyze are the safety net.
   schemas on restore, so the last-synced notes are readable offline after a cold start. Sign-out
   (or any transition to signed out) clears it. Offline, queued notes show in a "ממתינים לשליחה (N)"
   section above the cached notes; editing stays disabled.
+- A reload shows the cached notes without waiting for `/me`, using the last known access per user
+  (`localStorage` `notes-last-access-v1`, `{userId, isAdmin}`, only `allowed` is stored, Zod-parsed,
+  cleared on sign-out, user switch and revoke). `/me` is re-checked in the background; a 403 there
+  wipes the cache.
 
 ## Android
 

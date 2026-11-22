@@ -1,3 +1,4 @@
+import { useIsRestoring } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './authContext';
@@ -9,6 +10,9 @@ import { Loading } from '../../ui/Loading';
 export function AuthGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const { state, signOut } = useAuth();
+  // The persisted cache is read in ~50 ms; mounting the screens first would race its restore.
+  const restoring = useIsRestoring();
+  if (restoring) return null;
   if (state === 'loading') return <Loading label={t('auth.loading')} />;
   if (state === 'signedOut') return <SignIn />;
   if (state === 'notAllowed') return <NoAccess onSignOut={() => void signOut()} />;
